@@ -18,8 +18,8 @@ down:
 	$(compose) down
 
 remove_data:
-	sudo rm -rf data/pg
-	sudo rm -rf data/redis
+	rm -rf data/pg
+	rm -rf data/redis
 
 generate:
 	$(compose) run inferno_web bundle exec rake web:generate
