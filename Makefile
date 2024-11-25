@@ -22,7 +22,7 @@ remove_data:
 	rm -rf data/redis
 
 generate:
-	$(compose) run inferno_web bundle exec rake web:generate
+	$(compose) -f compose.generate.yml run inferno bundle exec rake web:generate
 
 migrate:
 	$(compose) run inferno_web /opt/inferno/migrate.sh

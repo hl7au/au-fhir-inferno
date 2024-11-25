@@ -15,10 +15,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Set up permissions for data directory
-        run: |
-          sudo chown -R $USER:$USER data
-          sudo chmod -R 755 data
       - name: Generate static content
         run: make generate
       - name: Log in to the Container registry

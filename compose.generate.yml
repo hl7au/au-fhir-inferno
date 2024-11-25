@@ -1,0 +1,10 @@
+version: '3'
+services:
+  inferno:
+    build:
+      context: ./
+    mem_limit: 1500m
+    restart: unless-stopped
+    volumes:
+      - ./resources:/opt/inferno/resources
+      - ./_site:/opt/inferno/_site
