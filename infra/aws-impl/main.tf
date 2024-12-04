@@ -17,7 +17,7 @@ resource "helm_release" "inferno" {
   chart            = "../helm/inferno"
   namespace        = local.env_name
   create_namespace = true
-  reset_values = true
+  reset_values     = true
 
   values = [
     file("../helm/inferno/values.yaml"),
