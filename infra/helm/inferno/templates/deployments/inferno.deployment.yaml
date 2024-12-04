@@ -16,24 +16,7 @@ spec:
       nodeSelector:
         kubernetes.io/arch: amd64
       volumes:
-        - name: site-content
-          emptyDir: {}
-        - name: examplenginx-config
-          configMap:
-            name: nginx-config
-            items:
-              - key: nginx.conf
-                path: nginx.conf
       initContainers:
-      - name: generate-static-files
-        image: {{ .Values.inferno.imageUrl }}
-        command: ["bundle", "exec", "rake", "web:generate"]
-        env:
-          - name: TX_SERVER_URL
-            value: {{ .Values.inferno.terminologyServer }}
-        volumeMounts:
-          - name: site-content
-            mountPath: /opt/inferno/_site
       - name: run-migrations
         image: {{ .Values.inferno.imageUrl }}
         imagePullPolicy: Always
@@ -57,9 +40,6 @@ spec:
         env:
           - name: TX_SERVER_URL
             value: {{ .Values.inferno.terminologyServer }}
-        volumeMounts:
-          - name: site-content
-            mountPath: /opt/inferno/_site
         envFrom:
         - configMapRef:
             name: inferno
@@ -68,12 +48,7 @@ spec:
         - secretRef:
             name: postgresql-secret
       - name: nginx
-        image: nginx
+        image: {{ .Values.nginx.platformImageUri }}
+        imagePullPolicy: Always
         ports:
           - containerPort: 80
-        volumeMounts:
-          - name: site-content
-            mountPath: /var/www/inferno/public/
-          - name: examplenginx-config
-            mountPath: /etc/nginx/nginx.conf
-            subPath: nginx.conf

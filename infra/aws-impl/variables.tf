@@ -36,3 +36,10 @@ variable "imageUrl" {
   description = "Image URL"
   type        = string
 }
+
+variable "platformImageUri" {
+  description = "Platform Image URI"
+  type        = string
+  default     = "ghcr.io/hl7au/au-fhir-inferno:8885d0c456d0fdfaa92a915410e54cd820adc0fc"
+
+}

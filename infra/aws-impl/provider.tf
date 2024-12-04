@@ -13,7 +13,7 @@ provider "helm" {
   }
 }
 provider "aws" {
-  profile = "FHIR-Admin"
+  # profile = "FHIR-Admin"
 }
 
 
@@ -27,9 +27,9 @@ terraform {
     }
   }
   backend "s3" {
-    bucket  = "examplebucket-fhir-aws"
-    region  = "ap-southeast-2"
-    key     = "infra/inferno/au-fhir-inferno-dev.tfstate"
-    profile = "FHIR-Admin"
+    bucket = "examplebucket-fhir-aws"
+    region = "ap-southeast-2"
+    key    = "infra/inferno/au-fhir-inferno-dev.tfstate"
+    # profile = "FHIR-Admin"
   }
 }
