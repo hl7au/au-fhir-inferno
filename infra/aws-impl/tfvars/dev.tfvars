@@ -1,5 +1,5 @@
 name                 = "inferno"
 environment          = "dev"
 external_domain_name = "dev.inferno.hl7.org.au"
-imageUrl             = "ghcr.io/hl7au/au-fhir-inferno:68270162fcc1997a9ffac63c78530921bf0f32cf"
+imageUrl             = "ghcr.io/hl7au/au-fhir-inferno:10a03203c0e7219c95146190c69114db178d942c"
 platformImageUri     = "ghcr.io/hl7au/au-fhir-inferno:7a99baaf50e18e201e95f7ca91477bc41da0cda8-nginx"
