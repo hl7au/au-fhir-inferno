@@ -15,7 +15,6 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/arch: amd64
-      volumes:
       initContainers:
       - name: run-migrations
         image: {{ .Values.inferno.imageUrl }}
