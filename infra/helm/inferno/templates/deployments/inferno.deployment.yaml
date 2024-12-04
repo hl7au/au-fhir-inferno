@@ -15,21 +15,21 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/arch: amd64
-      # initContainers:
-      # - name: run-migrations
-      #   image: {{ .Values.inferno.imageUrl }}
-      #   imagePullPolicy: Always
-      #   command: ["bundle", "exec", "rake", "db:migrate"]
-      #   env:
-      #     - name: TX_SERVER_URL
-      #       value: {{ .Values.inferno.terminologyServer }}
-      #   envFrom:
-      #   - configMapRef:
-      #       name: inferno
-      #   - configMapRef:
-      #       name: postgresql-configmap
-      #   - secretRef:
-      #       name: postgresql-secret
+      initContainers:
+      - name: run-migrations
+        image: {{ .Values.inferno.imageUrl }}
+        imagePullPolicy: Always
+        command: ["bundle", "exec", "rake", "db:migrate"]
+        env:
+          - name: TX_SERVER_URL
+            value: {{ .Values.inferno.terminologyServer }}
+        envFrom:
+        - configMapRef:
+            name: inferno
+        - configMapRef:
+            name: postgresql-configmap
+        - secretRef:
+            name: postgresql-secret
       containers:
       - name: inferno-app
         image: {{ .Values.inferno.imageUrl }}
