@@ -1,4 +1,4 @@
-externalDomain: "dev.inferno.hl7.org.au"
+externalDomain: "default.inferno.hl7.org.au"
 
 inferno:
   imageUrl: "ghcr.io/hl7au/au-fhir-inferno:68270162fcc1997a9ffac63c78530921bf0f32cf"

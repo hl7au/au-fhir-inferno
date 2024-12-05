@@ -46,3 +46,8 @@ spec:
             name: postgresql-configmap
         - secretRef:
             name: postgresql-secret
+      - name: nginx
+        image: {{ .Values.nginx.platformImageUri }}
+        imagePullPolicy: Always
+        ports:
+          - containerPort: 80

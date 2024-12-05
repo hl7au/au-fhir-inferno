@@ -47,6 +47,11 @@ resource "helm_release" "inferno" {
     value = var.imageUrl
   }
 
+  set {
+    name  = "nginx.platformImageUri"
+    value = var.platformImageUri
+  }
+
   depends_on = [
     module.rds,
   ]
