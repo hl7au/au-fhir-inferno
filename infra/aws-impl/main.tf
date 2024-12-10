@@ -54,7 +54,12 @@ resource "helm_release" "inferno" {
 
   set {
     name  = "nginx.example"
-    value = "a1sdas"
+    value = "bqaaaqc"
+  }
+
+  set {
+    name  = "inferno.usesWrapper"
+    value = var.usesWrapper
   }
 
   depends_on = [

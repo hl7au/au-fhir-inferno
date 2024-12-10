@@ -23,8 +23,11 @@ spec:
       - name: copy-ig
         image: {{ .Values.inferno.imageUrl }}
         imagePullPolicy: Always
-        # command: ["bash", "-c", "cp /opt/inferno/lib/inferno_platform_template/igs/*.tgz /home/igs"] # for dev/non core image
-        command: ["bash", "-c", "cp /opt/inferno/lib/au_core_test_kit/igs/*.tgz /home/igs"] #for prod / core image
+        {{- if .Values.inferno.usesWrapper }}
+        command: ["bash", "-c", "cp /opt/inferno/lib/inferno_platform_template/igs/*.tgz /home/igs"] # for dev/wrapper image that containers core test kit + more
+        {{- else }}
+        command: ["bash", "-c", "cp /opt/inferno/lib/au_core_test_kit/igs/*.tgz /home/igs"] #for prod / core image that is only test kit
+        {{- end }}
         volumeMounts:
         - name: igs
           mountPath: /home/igs

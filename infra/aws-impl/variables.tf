@@ -43,3 +43,8 @@ variable "platformImageUri" {
   default     = "ghcr.io/hl7au/au-fhir-inferno:8885d0c456d0fdfaa92a915410e54cd820adc0fc"
 
 }
+
+variable "usesWrapper" {
+  description = "Boolean to determine if the application is a wrapper of inferno or just the core inferno test kit"
+  type        = bool  
+}

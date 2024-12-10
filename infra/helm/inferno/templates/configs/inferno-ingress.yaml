@@ -24,17 +24,17 @@ spec:
                 name: validator-api
                 port:
                   number: 3500
+          # - path: /
+          #   pathType: Prefix
+          #   backend:
+          #     service:
+          #       name: inferno
+          #       port:
+          #         number: 4567
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: inferno
-                port:
-                  number: 4567
-          - path: /nginx
-            pathType: Prefix
-            backend:
-              service:
-                name: inferno
+                name: nginx
                 port:
                   number: 80
