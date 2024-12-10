@@ -4,7 +4,7 @@ metadata:
   name: inferno
   namespace: {{ .Values.namespace }}
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
     - name: inferno-app
       port: 4567

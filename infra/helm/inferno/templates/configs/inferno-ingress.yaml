@@ -30,4 +30,11 @@ spec:
               service:
                 name: inferno
                 port:
-                  name: nginx
+                  number: 4567
+          - path: /nginx
+            pathType: Prefix
+            backend:
+              service:
+                name: inferno
+                port:
+                  number: 80

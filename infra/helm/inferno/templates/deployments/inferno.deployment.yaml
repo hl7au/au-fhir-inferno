@@ -15,6 +15,13 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/arch: amd64
+      volumes:
+        - name: examplenginx-config
+          configMap:
+            name: nginx-config
+            items:
+              - key: nginx.conf
+                path: nginx.conf
       initContainers:
       - name: run-migrations
         image: {{ .Values.inferno.imageUrl }}
@@ -51,3 +58,7 @@ spec:
         imagePullPolicy: Always
         ports:
           - containerPort: 80
+        volumeMounts:
+          - name: examplenginx-config
+            mountPath: /etc/nginx/nginx.conf
+            subPath: nginx.conf
