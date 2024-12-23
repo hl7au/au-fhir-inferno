@@ -46,5 +46,5 @@ variable "platformImageUri" {
 
 variable "usesWrapper" {
   description = "Boolean to determine if the application is a wrapper of inferno or just the core inferno test kit"
-  type        = bool  
+  type        = bool
 }
