@@ -38,28 +38,48 @@ across multiple Test Kits, they also:
 If you would like to set up a platform, this is the place to start.  Please
 remember that this is under heavy development and is not yet stable.
 
-## Contributing to Inferno Test Kit Platform and Reporting Issues
+## Reporting Issues
+We appreciate your contributions to improving hl7au/au-fhir-inferno. **If you encounter a bug or wish to make a feature request, please follow the steps below to raise an issue**:
 
-1. Discuss an issue in chat.fhir.org
-If you have a question, feature request, or proposed change, the best place to start is Zulip i.e. the https://chat.fhir.org/#narrow/stream/179309-inferno
+### 1. Search for Existing Issues
+Before submitting a new issue, please search the GitHub [Issues list](https://github.com/hl7au/au-fhir-inferno/issues) to check if your issue has already been reported. If you find an existing issue, you can add your comments or additional information to it.
 
-If you're unable to find an open request, please create a GitHub to:
-contribute Test suites or Code to the repository: state your details and the nature of the changes to be contributed
-suggest improvements or enhancements to the project
+### 2. Open a New Issue
+If you do not find a similar issue, you can open a [new one](https://github.com/hl7au/au-fhir-inferno/issues). Click on the New Issue button and provide details, e.g., for a bug report:
 
-We appreciate your contributions to improving this test suite. **If you encounter any issues or have suggestions for enhancements, please follow the steps below to report them**:
-
-1. **Search for Existing Issues**:
-Before submitting a new issue, please check the [Issues section](https://github.com/hl7au/au-fhir-inferno/issues) to see if the problem or suggestion has already been reported. If you find an existing issue, you can add your comments or additional information to it.
-2. **Open a New Issue:**
-If you do not find a similar issue, you can open a [new one](https://github.com/hl7au/au-fhir-inferno/issues/new). Click on the New Issue button and provide the following details:
 ```
 Title: A brief and descriptive title for the issue.
 Description: A detailed description of the issue, including:
 1. Steps to reproduce the issue.
-2. Expected and actual behavior.
+2. Expected and actual behaviour.
 3. Screenshots or another related information (if applicable).
 ```
+
+### 3. Labelling
+Help us categorise the issue by adding relevant labels (e.g., bug, enhancement). This helps us prioritise and address the issues more efficiently.
+
+### Resolving Issues
+To support effective issue resolution, reporters may be engaged in the review process to help confirm that resolutions address their concerns. This can involve notifying the reporter when a fix is implemented and inviting them to validate the solution or provide feedback before the issue is formally closed.
+
+### Questions?
+If you have a question, the best place to start is Zulip e.g. the https://chat.fhir.org/#narrow/channel/179309-inferno channel.
+
+## How to Contribute to the HL7 AU Inferno Test Kit Platform
+If you would like to add an Inferno test kit for a published HL7 AU FHIR IG, here’s how you can contribute:
+
+### 1. Communicate Before You Start
+- Open a [GitHub issue](https://github.com/hl7au/au-fhir-inferno/issues) to discuss your plans to help avoid duplication of effort, align and prioritise your contributions.
+- Join the fortnightly HL7 AU Infrastructure and Tooling Community Meetings ([register here](https://confluence.hl7.org/display/HAFWG/Infrastructure+and+Tooling+Contact+List)) where we discuss and triage issues. Feel free to add your issue to the [meeting agenda](https://confluence.hl7.org/pages/viewpage.action?pageId=265492851#CommunityMeetingAgendaandMinutes-MeetingDetails) and we'll aim to discuss your issue/ proposed contribution when you are present at the meeting.
+- Use Zulip to connect with the team and community asynchronously: 
+  - Specific topic for HL7 AU Inferno Test Kit feedback and queries: [australia > Inferno Test Kit feedback and queries](https://chat.fhir.org/#narrow/channel/179173-australia/topic/Inferno.20Test.20Kit.20feedback.20and.20queries)
+  - General: [Inferno channel](https://chat.fhir.org/#narrow/channel/179309-inferno)
+
+### 2. Contribute Code
+1. Fork this repository.
+2. Create a branch and use the GitHub issue number followed by a meaningful description as the branch name for your contribution.
+3. Make your contributions/ changes.
+4. Submit a pull request (PR) for review.
+5. Once the PR has been reviewed, feedback addressed collaboratively, and approved (by the designated HL7 AU project facilitator or their delegate - refer to the [HL7 AU Project Registry](https://confluence.hl7.org/display/HA/HL7+Australia+Project+Registry)), it may be merged into the main branch.
 
 ## Getting Started
 
