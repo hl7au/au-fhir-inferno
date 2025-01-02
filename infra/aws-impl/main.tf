@@ -112,7 +112,7 @@ module "rds" {
   tags                        = local.tags
   manage_master_user_password = true
 
-  
+
   snapshot_identifier = var.snapshot_identifier
 }
 
