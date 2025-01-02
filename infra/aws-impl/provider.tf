@@ -27,8 +27,8 @@ terraform {
     }
   }
   backend "s3" {
-    bucket  = "examplebucket-fhir-aws"
-    region  = "ap-southeast-2"
+    bucket = "examplebucket-fhir-aws"
+    region = "ap-southeast-2"
     # key     = "infra/inferno/au-fhir-inferno-prodd.tfstate"
     # profile = "FHIR-Admin"
   }
