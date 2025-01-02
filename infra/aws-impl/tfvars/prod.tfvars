@@ -6,3 +6,4 @@ platformImageUri = "ghcr.io/hl7au/au-fhir-inferno:473d92b2fbe8e78ec36f43ffdc1fb8
 usesWrapper      = true
 cluster_name     = "sparked-k8s"
 vpc_name         = "sparked-k8s-vpc"
+snapshot_identifier = "pre-delete-snapshot"

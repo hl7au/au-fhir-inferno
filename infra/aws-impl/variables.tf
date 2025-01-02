@@ -42,3 +42,10 @@ variable "usesWrapper" {
   description = "Boolean to determine if the application is a wrapper of inferno or just the core inferno test kit"
   type        = bool
 }
+
+variable "snapshot_identifier" {
+  type        = string
+  description = "Optional snapshot identifier for restoring an RDS instance from a snapshot."
+  default     = null
+}
+
