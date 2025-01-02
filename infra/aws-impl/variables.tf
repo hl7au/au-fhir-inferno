@@ -20,12 +20,6 @@ variable "environment" {
   default     = "dev"
 }
 
-variable "external_domain_name" {
-  description = "Domain name"
-  type        = string
-  default     = "inferno.hl7.org.au"
-}
-
 variable "name" {
   description = "Name of the application"
   type        = string

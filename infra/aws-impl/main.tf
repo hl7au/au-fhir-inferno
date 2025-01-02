@@ -36,10 +36,15 @@ resource "helm_release" "inferno" {
     name  = "postgresql.externaldbhost"
     value = split(":", module.rds.db_instance_endpoint)[0] # rds module provides endpoint with the port but inferno expects only the hostname
   }
-
   set {
-    name  = "externalDomain"
-    value = var.external_domain_name
+    name  = "ingress.hostnames[0]"
+    value = "${var.environment}.inferno.sparked-fhir.com"
+  }
+
+  # External domain: if prod => "inferno.hl7.org.au"
+  set {
+    name  = "ingress.hostnames[1]"
+    value = var.environment == "prodd" ? "inferno.hl7.org.au" : "${var.environment}.inferno.hl7.org.au"
   }
 
   set {
@@ -54,7 +59,7 @@ resource "helm_release" "inferno" {
 
   set {
     name  = "nginx.example"
-    value = "bqaaaqc"
+    value = "123"
   }
 
   set {
@@ -106,6 +111,8 @@ module "rds" {
 
   tags                        = local.tags
   manage_master_user_password = true
+
+  snapshot_identifier = "pre-delete-snapshot"
 }
 
 ################################################################################
