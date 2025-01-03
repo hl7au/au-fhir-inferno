@@ -44,7 +44,7 @@ resource "helm_release" "inferno" {
   # External domain: if prod => "inferno.hl7.org.au"
   set {
     name  = "ingress.hostnames[1]"
-    value = var.environment == "prodd" ? "inferno.hl7.org.au" : "${var.environment}.inferno.hl7.org.au"
+    value = var.environment == "prod" ? "inferno.hl7.org.au" : "${var.environment}.inferno.hl7.org.au"
   }
 
   set {
@@ -88,7 +88,7 @@ module "rds" {
   # All available versions: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_PostgreSQL.html#PostgreSQL.Concepts
   engine         = "postgres"
   engine_version = "16"
-  instance_class = "db.t4g.large"
+  instance_class = var.postgres_instance_class
 
   allocated_storage = 20
 
