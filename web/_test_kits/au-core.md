@@ -11,4 +11,4 @@ suites:
     id: au_core_v100_preview
 ---
 
-The AU Core Test Kit
+The AU Core Test Kit (Test deploy)
