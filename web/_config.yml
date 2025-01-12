@@ -2,13 +2,10 @@
 # Replace the following content with relevant information about this
 # installation of Inferno
 
-title: Inferno Platform Template
-subtitle: Template for hosting your own Inferno Test Kit Platform
+title: Inferno on hl7.org.au
+subtitle: HL7® FHIR® Testing using reference test kits built with Inferno by the Sparked AU FHIR Accelerator
 description: >
-  Provide a brief description of the purpose of this Test Kit Platform and
-  who is operating it.  Lorem ipsum dolor sit amet, consectetur adipiscing elit,
-  sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Elementum
-  eu facilisis sed odio morbi quis commodo odio aenean.
+  Inferno on hl7.org.au is a public service for running select FHIR conformance tests built with Inferno. This includes reference tests that target the AU Core Implementation Guide which are packaged into a Test Kit. The Sparked AU FHIR Accelerator hopes to make additional Test Kits available in alignment with HL7 AU FHIR Implementation Guides as they are developed and released.
 
 # Links in the navigation header.  These currently match the content in the template
 # site, but you can modify the content and links here as needed.
@@ -25,20 +22,11 @@ navigation_links:
 # The Quick Links are provided on the main page in the first section on the right
 # Use this if you would like to steer users to a specific test or set of tests.
 quick_links:
-  - title: Example Link Title
+  - title: AU Core Test Kit
     description: >
-      This is a description of a link.  Usually this would be to the most
-      important Test Kit. But it could be to anything (news, additional services,
-      etc).
-    link_text: Use Example Thing
-    link_href: '/test-kits/us-core-test-kit'
-  - title: Another Example Link
-    description: >
-      This is a description of a link.  Usually this would be to the most
-      important Test Kit. But it could be to anything (news, additional services,
-      etc).
-    link_text: Use Example Thing
-    link_href: '/validator'
+      Evaluate a publicly accessible test server against the AU Core Responder Capability Statement v1.0.0 using this public reference testing instance of Inferno.
+    link_text: Start Testing
+    link_href: '/test-kits/au-core'
 
 # This populates the dropdown on the Test Kit list page.  Future versions should
 # make this more intelligent to allow it to be automatically populated based on

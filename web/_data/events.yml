@@ -1,24 +1,10 @@
 event_list:
-- name: Example Future Event
-  date: 2025-04-10T13:00-0400
-  day: '10'
-  month: April
-  time: 1:00pm ET to 2:00pm ET
+- name: HL7 AU Infrastructure and Tooling Community Meeting
+  date: 2025-01-17
+  day: '17'
+  month: January
+  time: 11:00 AM AEDT Canberra, Melbourne, Sydney; 10:00 AM AEST Brisbane
   description: Example Description Here
   location:
-    name: Online Meeting
-    url: https://example.org
-- name: Example Historic Event
-  date: 2024-03-13T14:00-0400
-  day: '13'
-  month: March
-  time: 1:00pm ET to 2:00pm ET
-  description: Example Description Here
-  location:
-    name: Online Meeting
-    url: https://example.org
-  files:
-  - name: Presentation Slides
-    url: https://example.org
-  - name: Recording
-    url: https://example.org
+    name: Zoom Meeting
+    url: https://hl7-au.zoom.us/j/86154710463
