@@ -25,75 +25,30 @@ current_page: About
       <h1 class="my-3">About {{ site.title }} </h1>
       <article class="section" id="section1">
         <h2>Overview</h2>
-        <p>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-          eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad
-          minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-          aliquip ex ea commodo consequat. Duis aute irure dolor in
-          reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-          pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
-          culpa qui officia deserunt mollit anim id est laborum.
-        </p>
-        <p>
-          Inferno tests are packaged in executable Test Kits, which typically
-          target requirements provided by one or more FHIR Implementation
-          Guides. {{site.title}} allows users to execute tests within
-          several Inferno Test Kits. To get started testing, select the
-          Test Kit that targets an Implementation Guide relevant to your system on the <a href="/test-kits/">Test
-            Kits</a> page.
-        </p>
-        <a class="anchor" id="disclaimer"></a>
-        <div class="callout callout-warning">
-          This site is not approved for use to access sensitive data or
-          Protected Health Information (PHI). It is intended for demonstration
-          purposes; users are encouraged to download and run tests locally, as
-          all tests provided on this host are open source and are designed to be
-          portable between environments. Test session data is periodically
-          removed.
-        </div>
-      </article>
-      <article class="section" id="section2">
+        <p>Welcome to Inferno on hl7.org.au, a public Inferno test host provided by HL7 Australia and the Sparked AU FHIR Accelerator. This site provides a live demonstration environment for select HL7® FHIR® tests written using the Inferno Framework. This includes the AU Core Test Kit v1.0.0 for AU Core FHIR Implementation Guide Release 1.</p>
+        <p>Inferno tests are packaged in executable Test Kits, which typically target conformance requirements specified by one or more FHIR Implementation Guides. Inferno on hl7.org.au allows users to execute tests with Inferno Test Kits. To get started testing, select the Test Kit that targets an Implementation Guide relevant to your system on the <a href="https://inferno.hl7.org.au/test-kits/">Test Kits</a> page.</p>
+        <p>This site is not approved for use to access sensitive data or Protected Health Information (PHI). It is intended for demonstration purposes; users are encouraged to download and run tests locally, as all tests provided on this host are open source and are designed to be portable between environments. Test session data is periodically removed.</p>
+
         <h2>About the Inferno Framework</h2>
-        <p>
-          All tests that are available on {{ site.title }} are built
-          using the <a href="https://inferno-framework.github.io">Inferno
-          Framework</a>, a framework for creating, executing and sharing FHIR
-          conformance tests. If you are interested in learning how to create
-          your own tests with the Inferno Framework, visit the <a
-          href="https://inferno-framework.github.io/docs/">Inferno Framework
-          documentation site</a>.
-        </p>
-      </article>
-      <article class="section" id="test-kits">
+        <p>All tests that are available on Inferno on HealthIT.gov are built using the <a href="https://inferno-framework.github.io/" target="_blank">Inferno Framework</a>, a framework for creating, executing and sharing FHIR conformance tests. If you are interested in learning how to create your own tests with the Inferno Framework, visit the <a href="https://inferno-framework.github.io/docs/">Inferno Framework documentation site</a>.</p>
+
         <h2>Available Inferno Test Kits</h2>
-        <p>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-          eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad
-          minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-          aliquip ex ea commodo consequat. Duis aute irure dolor in
-          reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-          pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
-          culpa qui officia deserunt mollit anim id est laborum.
-        </p>
-        <p>
-          For a more comprehensive list of Test Kits built using the Inferno
-          Framework, including those not available to be executed on this site,
-          the Inferno team maintains a list of publicly available, open source
-          Test Kits on the <a
-          href="https://inferno-framework.github.io/community/test-kits.html">Inferno Framework
-          community page</a>.
-        </p>
-      </article>
-      <article class="section" id="section4">
+        <p>This site hosts a curated set of Reference Test Kits built with Inferno for FHIR capability testing. They are designed to assist in assessing a system's conformance to a HL7 AU FHIR Implementation Guide (IG). However, these Reference Test Kits are not formalised conformance tests and are not part of any conformance certification program/activity. Visit the <a href="https://inferno.hl7.org.au/test-kits/" target="_blank">Test Kit</a> page to see which Test Kits are currently available to be run on this site. Please reach out to the team if you have built an Inferno Test Kit for a HL7 AU FHIR IG that you would like to be added to this site.</p>
+        <p>For a more comprehensive list of Test Kits built using the Inferno Framework, including those not available to be executed on this site, the Inferno team maintains a list of publicly available, open source Test Kits on the <a href="https://inferno-framework.github.io/community/test-kits.html" target="_blank">Inferno Framework community page</a>.</p>
+
+        <h2>Inferno on hl7.org.au Public Hosts</h2>
+        <h3>inferno.hl7.org.au</h3>
+        <p>Inferno on hl7.org.au is a public Inferno Platform, hosted by HL7 Australia for the benefit of the community. An Inferno Platform is a specialized site for hosting many Inferno Test Kits, with a configuration that is designed to scale to many simultaneous users. Inferno Platforms typically have a primary host, e.g. inferno.hl7.org.au, but can also have secondary hosts for staging or development purposes, e.g. inferno.dev.hl7.org.au.</p>
+        <p>The host inferno.hl7.org.au is the officially supported primary public Inferno Platform on hl7.org.au, and is regularly updated with approved stable releases of Inferno Core and supported Test Kits.</p>
+        <h3>inferno.dev.hl7.org.au</h3>
+        <p>The host inferno.dev.hl7.org.au is a staging platform provided for testing and demonstration of upcoming Test Kits in alignment with their respective HL7 AU FHIR IG under development, or development releases of Inferno Core.</p>
+        <p>It is likely to be updated without notice and can be used by those participating in testing of a HL7 AU FHIR IG under development.</p>
+        <p>Both hosts are for demonstration purposes only, and should not be used with any sensitive data or Protected Health Information (PHI).</p>
+
         <h2>Contact the Team</h2>
-        <p>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-          eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad
-          minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-          aliquip ex ea commodo consequat. Duis aute irure dolor in
-          reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-          pariatur.
-        </p>
+        <p>For questions or issues with this site, please reach out to the Sparked FHIR Accelerator team on the <a href="https://chat.fhir.org/#narrow/channel/179173-australia" target="_blank">#Australia FHIR Zulip channel</a>. Here, there is an existing topic for <a href="https://chat.fhir.org/#narrow/channel/179173-australia/topic/Inferno.20Test.20Kit.20feedback.20and.20queries" target="_blank">#Inferno Test Kit feedback and queries</a>.</p>
+        <p>For general questions or issues about the Inferno Testing Framework, please reach out to the Inferno team on the <a href="https://chat.fhir.org/#narrow/channel/179309-inferno" target="_blank">#Inferno FHIR Zulip channel</a>.</p>
+        <p>Please submit issues with individual tests to the maintainers of those tests. Each Test Kit includes contact information, and issues with specific Test Kits are typically tracked via the Test Kit's GitHub repository. For example, the AU Core Test Kits tracks issues on its associated GitHub Repository <a href="https://github.com/hl7au/au-fhir-core-inferno/issues" target="_blank">Issue page</a>. Links to the appropriate issue tracker are typically provided in the Test Kit description and in the footer of the testing interface.</p>
       </article>
       <a href="#content">Return to top</a>
     </div>
