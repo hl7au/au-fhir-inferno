@@ -42,6 +42,30 @@ title: Home
   </div>
 </div>
 
+
+{% if site.features %}
+<section class="features">
+  <a class="anchor" id="what-is-inferno"></a>
+  {% for feature in site.features %}
+  <section class="container-fluid">
+    <h2>{{ feature.name }}</h2>
+    {% if feature.items %}
+    <div class="row">
+      {% for item in feature.items %}
+      <div class="col-lg-4 col-md-6">
+        <div class="feature-content">
+          <h3>{{ item.name }}</h3>
+          {{ item.description }}
+        </div>
+      </div>
+      {% endfor %}
+    </div><!-- end row -->
+    {% endif %}
+  </section><!-- end container -->
+  {% endfor %}
+</section>
+{% endif %}
+
 <section class="news-and-events">
   <div class="container-fluid">
     <div class="row">
