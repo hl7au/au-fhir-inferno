@@ -149,7 +149,7 @@ spec:
           mountPath: /home/igs
       containers:
       - name: validator-api
-        image: ghcr.io/projkov/validator-wrapper:1.0.62-snapshot
+        image: ghcr.io/beda-software/validator-wrapper:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3500

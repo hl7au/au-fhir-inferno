@@ -62,7 +62,7 @@ services:
     mem_limit: 100m
     restart: unless-stopped
   validator-api:
-    image: ghcr.io/projkov/validator-wrapper:1.0.62-snapshot
+    image: ghcr.io/beda-software/validator-wrapper:latest
     environment:
       SESSION_CACHE_DURATION: -1
     volumes:
