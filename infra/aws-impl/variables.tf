@@ -42,7 +42,7 @@ variable "validatorImageUri" {
   description = "Validator Image URI"
   type        = string
   default     = "pavelrozhkov/wrapper:6.3.11"
-  
+
 }
 
 variable "usesWrapper" {
