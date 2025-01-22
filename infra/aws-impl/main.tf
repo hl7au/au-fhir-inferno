@@ -44,7 +44,7 @@ resource "helm_release" "inferno" {
   # External domain: if prod => "inferno.hl7.org.au"
   set {
     name  = "ingress.hostnames[1]"
-    value = var.environment == "prod" ? "inferno.hl7.org.au" : "${var.environment}.inferno.hl7.org.au"
+    value = var.environment == "prod" ? "inferno.hl7.org.au" : "inferno.${var.environment}.hl7.org.au"
   }
 
   set {
