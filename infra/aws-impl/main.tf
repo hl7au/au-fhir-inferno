@@ -58,8 +58,13 @@ resource "helm_release" "inferno" {
   }
 
   set {
+    name  = "inferno.validatorImageUri"
+    value = var.validatorImageUri
+  }
+
+  set {
     name  = "nginx.example"
-    value = "123"
+    value = "1234"
   }
 
   set {
