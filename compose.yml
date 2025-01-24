@@ -23,7 +23,6 @@ services:
     restart: unless-stopped
     volumes:
       - ./resources:/opt/inferno/resources
-      - ./:/opt/inferno
     depends_on:
       - redis
       - inferno_db
