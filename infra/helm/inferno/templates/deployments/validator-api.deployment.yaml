@@ -46,5 +46,5 @@ spec:
             memory: "512Mi"   # Minimum memory required for scheduling
             cpu: "250m"       # Minimum CPU required for scheduling
           limits:
-            memory: "1Gi"     # Maximum memory usage allowed
+            memory: "10Gi"     # Maximum memory usage allowed
             cpu: "500m"       # Maximum CPU usage allowed
