@@ -64,7 +64,7 @@ resource "helm_release" "inferno" {
 
   set {
     name  = "nginx.example"
-    value = "1234"
+    value = "12345"
   }
 
   set {
