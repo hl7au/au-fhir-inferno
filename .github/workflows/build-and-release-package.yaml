@@ -47,21 +47,10 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
       - name: Build and push Docker image (With commit hash)
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
-        env:
-          JEKYLL_ENV: "production"
         with:
           context: .
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          labels: ${{ steps.meta.outputs.labels }}
-      - name: Build and push Dev Docker image (With commit hash)
-        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
-        env:
-          JEKYLL_ENV: "development"
-        with:
-          context: .
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-dev
           labels: ${{ steps.meta.outputs.labels }}
 
       # - name: Build and push Inferno Docker image
