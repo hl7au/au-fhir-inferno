@@ -6,7 +6,6 @@ current_page: Test Kits
 <div class="container-fluid mt-3">
   <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-      <li class="breadcrumb-item">{{ jekyll.environment }}</li>
       <li class="breadcrumb-item"><a href="/">Home</a></li>
       <li class="breadcrumb-item active" aria-current="page">{{ page.current_page }}</li>
     </ol>
@@ -61,7 +60,7 @@ current_page: Test Kits
       </div>
       {% for test_kit in test_kits%}
       {% if site.pinned_test_kits contains test_kit.test_kit_id %}
-      {% unless test_kit.hide_at_env contains jekyll.environment %}
+      {% unless site.ignore_test_kits contains test_kit.test_kit_id %}
       <div class="product-card pinned" name="test-kit">
         <a href="{{ test_kit.id }}" class="title">{{ test_kit.title }}</a>
         <p class="description">{{ test_kit.content | split:'<!-- break -->' | first }}</p>
@@ -101,7 +100,7 @@ current_page: Test Kits
 
       {% for test_kit in test_kits %}
       {% unless site.pinned_test_kits contains test_kit.test_kit_id %}
-      {% unless test_kit.hide_at_env contains jekyll.environment %}
+      {% unless site.ignore_test_kits contains test_kit.test_kit_id %}
       <div class="product-card" name="test-kit">
         <a href="{{ test_kit.id }}" class="title">{{ test_kit.title }}</a>
         <p class="description">{{ test_kit.content | split:'<!-- break -->' | first }}</p>

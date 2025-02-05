@@ -5,7 +5,6 @@ test_kit_id: au_ps_test_kit
 tags: [ AU ]
 date: 2024-10-08
 version: 0.0.14
-hide_at_env: [ production ]
 maturity: Low
 suites:
   - title: AU PS Test Kit

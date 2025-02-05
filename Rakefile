@@ -21,6 +21,24 @@ namespace :web do
     config = Jekyll.configuration({
       core_base_path: ENV['BASE_PATH'] ? "/#{ENV['BASE_PATH']}/" : '/',
       source: 'web',
+      config: ["web/_config.yml", "web/_config.dev.yml"]
+    })
+
+    site = Jekyll::Site.new(config)
+    Jekyll::Commands::Build.build(site, config)
+
+  end
+
+
+  desc 'Generate the static platform web site as prod'
+  task :generate_prod do
+    require 'dotenv'
+    Dotenv.load(File.join(Dir.pwd, '.env'))
+
+    config = Jekyll.configuration({
+      core_base_path: ENV['BASE_PATH'] ? "/#{ENV['BASE_PATH']}/" : '/',
+      source: 'web',
+      config: ["web/_config.yml", "web/_config.prod.yml"]
     })
 
     site = Jekyll::Site.new(config)
@@ -30,6 +48,13 @@ namespace :web do
 
   desc 'Generate and serve the static web platform pages'
   task serve: [:generate] do
+
+    sh "jekyll serve --skip-initial-build --no-watch"
+
+  end
+
+  desc 'Generate and serve the static web platform pages as production'
+  task serve_prod: [:generate_prod] do
 
     sh "jekyll serve --skip-initial-build --no-watch"
 
