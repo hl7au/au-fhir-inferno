@@ -60,6 +60,7 @@ current_page: Test Kits
       </div>
       {% for test_kit in test_kits%}
       {% if site.pinned_test_kits contains test_kit.test_kit_id %}
+      {% unless site.ignore_test_kits contains test_kit.test_kit_id %}
       <div class="product-card pinned" name="test-kit">
         <a href="{{ test_kit.id }}" class="title">{{ test_kit.title }}</a>
         <p class="description">{{ test_kit.content | split:'<!-- break -->' | first }}</p>
@@ -90,6 +91,7 @@ current_page: Test Kits
         <!-- Pin icon -->
         <i class="bi bi-pin-fill position-absolute top-0 end-0 mt-2 me-2 pin-icon"></i>
       </div>
+      {% endunless %}
       {% endif %}
       {% endfor %}
 
@@ -98,6 +100,7 @@ current_page: Test Kits
 
       {% for test_kit in test_kits %}
       {% unless site.pinned_test_kits contains test_kit.test_kit_id %}
+      {% unless site.ignore_test_kits contains test_kit.test_kit_id %}
       <div class="product-card" name="test-kit">
         <a href="{{ test_kit.id }}" class="title">{{ test_kit.title }}</a>
         <p class="description">{{ test_kit.content | split:'<!-- break -->' | first }}</p>
@@ -127,6 +130,7 @@ current_page: Test Kits
           </div>
         </div>
       </div>
+      {% endunless %}
       {% endunless %}
       {% endfor %}
 

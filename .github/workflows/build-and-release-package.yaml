@@ -16,6 +16,14 @@ jobs:
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        environment: [dev, prod]
+        include:
+          - environment: dev
+            rake_task: web:generate
+          - environment: prod
+            rake_task: web:generate_prod
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,11 +39,10 @@ jobs:
 
       - name: Generate static content
         run: |
-          bundle exec rake web:generate
+          bundle exec rake ${{ matrix.rake_task }}
 
       - name: Log in to the Container registry
         uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
-        # uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -50,20 +57,13 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-${{ matrix.environment }}
           labels: ${{ steps.meta.outputs.labels }}
-
-      # - name: Build and push Inferno Docker image
-      #   uses: docker/build-push-action@v2
-      #   with:
-      #     context: .
-      #     push: true
-      #     tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-inferno
 
       - name: Build and push Nginx Docker image
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: ./nginx.Dockerfile  # Dockerfile for Nginx
+          file: ./nginx.Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-nginx
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-nginx-${{ matrix.environment }}
