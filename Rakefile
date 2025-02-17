@@ -5,7 +5,7 @@ task default: :spec
 
 def generate_static(jekyll_config)
   require 'dotenv'
-  Dotenv.load(File.join(Dir.pwd, '.env.development'))
+  Dotenv.load(File.join(Dir.pwd, '.env'))
 
   config = Jekyll.configuration({
     core_base_path: ENV['BASE_PATH'] ? "/#{ENV['BASE_PATH']}/" : '/',
@@ -29,7 +29,7 @@ end
 namespace :web do
   desc 'Generate the static platform web site'
   task :generate do
-    generate_static(["web/_config.yml", "web/_config.dev.yml"])
+    generate_static(["web/_config.yml", "web/_config.local.yml"])
   end
 
   desc 'Generate the static platform web site as prod'
@@ -37,9 +37,9 @@ namespace :web do
     generate_static(["web/_config.yml", "web/_config.prod.yml"])
   end
 
-  desc 'Generate the static platform web site as local'
-  task :generate_local do
-    generate_static(["web/_config.yml", "web/_config.local.yml"])
+  desc 'Generate the static platform web site as dev'
+  task :generate_dev do
+    generate_static(["web/_config.yml", "web/_config.dev.yml"])
   end
 
   desc 'Generate and serve the static web platform pages'
