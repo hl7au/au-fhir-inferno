@@ -3,6 +3,20 @@ require 'jekyll'
 RSpec::Core::RakeTask.new(:spec)
 task default: :spec
 
+def generate_static(jekyll_config)
+  require 'dotenv'
+  Dotenv.load(File.join(Dir.pwd, '.env.development'))
+
+  config = Jekyll.configuration({
+    core_base_path: ENV['BASE_PATH'] ? "/#{ENV['BASE_PATH']}/" : '/',
+    source: 'web',
+    config: jekyll_config
+  })
+
+  site = Jekyll::Site.new(config)
+  Jekyll::Commands::Build.build(site, config)
+end
+
 namespace :db do
   desc 'Apply changes to the database'
   task :migrate do
@@ -15,35 +29,17 @@ end
 namespace :web do
   desc 'Generate the static platform web site'
   task :generate do
-    require 'dotenv'
-    Dotenv.load(File.join(Dir.pwd, '.env'))
-
-    config = Jekyll.configuration({
-      core_base_path: ENV['BASE_PATH'] ? "/#{ENV['BASE_PATH']}/" : '/',
-      source: 'web',
-      config: ["web/_config.yml", "web/_config.dev.yml"]
-    })
-
-    site = Jekyll::Site.new(config)
-    Jekyll::Commands::Build.build(site, config)
-
+    generate_static(["web/_config.yml", "web/_config.dev.yml"])
   end
-
 
   desc 'Generate the static platform web site as prod'
   task :generate_prod do
-    require 'dotenv'
-    Dotenv.load(File.join(Dir.pwd, '.env'))
+    generate_static(["web/_config.yml", "web/_config.prod.yml"])
+  end
 
-    config = Jekyll.configuration({
-      core_base_path: ENV['BASE_PATH'] ? "/#{ENV['BASE_PATH']}/" : '/',
-      source: 'web',
-      config: ["web/_config.yml", "web/_config.prod.yml"]
-    })
-
-    site = Jekyll::Site.new(config)
-    Jekyll::Commands::Build.build(site, config)
-
+  desc 'Generate the static platform web site as local'
+  task :generate_local do
+    generate_static(["web/_config.yml", "web/_config.local.yml"])
   end
 
   desc 'Generate and serve the static web platform pages'
