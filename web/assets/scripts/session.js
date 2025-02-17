@@ -64,7 +64,8 @@ const createSession = () => {
       value: elem.value
     }));
 
-  const postUrl = `${basePath}/api/test_sessions?test_suite_id=${suiteId}`;
+  const hostAndBasePath = `${siteConfig.infernoHost}${basePath}`
+  const postUrl = `${hostAndBasePath}/api/test_sessions?test_suite_id=${suiteId}`;
   const postBody = {
     preset_id: null,
     suite_options: checkedOptions,
@@ -78,7 +79,7 @@ const createSession = () => {
       } else if (!sessionId || sessionId === 'undefined') {
         throw Error('Session could not be created. Session ID is undefined.');
       } else {
-        location.href = `${basePath}/test_sessions/${sessionId}`;
+        location.href = `${hostAndBasePath}/test_sessions/${sessionId}`;
       }
     })
     .catch((e) => {

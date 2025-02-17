@@ -21,7 +21,7 @@ jobs:
         environment: [dev, prod]
         include:
           - environment: dev
-            rake_task: web:generate
+            rake_task: web:generate_dev
           - environment: prod
             rake_task: web:generate_prod
     steps:
