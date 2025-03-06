@@ -12,7 +12,7 @@ gem 'pg'
 # also point to git repos, or with some extra
 # Docker configuration relative directories
 
-gem 'au_core_test_kit', '~> 0.0.18'
+gem 'au_core_test_kit', '~> 1.0.0'
 gem 'au_ips_inferno', git: 'https://github.com/beda-software/au-ips-inferno', ref: '507ab792ec0a639d7e28e7389dcc51a4fc135cb0'
 gem 'validation_test_kit', git: 'https://github.com/beda-software/validation-test-kit'
 gem 'ips_test_kit', '~> 0.10.2'
