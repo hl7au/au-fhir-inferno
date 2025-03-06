@@ -46,7 +46,7 @@ jobs:
         terraform init -upgrade \
           -backend-config="bucket=examplebucket-fhir-aws" \
           -backend-config="region=ap-southeast-2" \
-          -backend-config="key=infra/inferno/au-fhir-inferno-${{ github.event.inputs.packages }}.tfstate"
+          -backend-config="key=infra/inferno/au-fhir-inferno-${{ github.event.inputs.environment }}.tfstate"
       working-directory: ${{ env.working-dir }}
 
     # Checks that all Terraform configuration files adhere to a canonical format
@@ -62,7 +62,7 @@ jobs:
       working-directory: ${{ env.working-dir }}
       run: |
         export exitcode=0
-        terraform plan -var-file="tfvars/${{ github.event.inputs.packages }}.tfvars" -detailed-exitcode -no-color -out main.tfplan || export exitcode=$?
+        terraform plan -var-file="tfvars/${{ github.event.inputs.environment }}.tfvars" -detailed-exitcode -no-color -out main.tfplan || export exitcode=$?
 
         echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
         
@@ -112,7 +112,7 @@ jobs:
         terraform init -upgrade \
           -backend-config="bucket=examplebucket-fhir-aws" \
           -backend-config="region=ap-southeast-2" \
-          -backend-config="key=infra/inferno/au-fhir-inferno-${{ github.event.inputs.packages }}.tfstate"
+          -backend-config="key=infra/inferno/au-fhir-inferno-${{ github.event.inputs.environment }}.tfstate"
       working-directory: ${{ env.working-dir }}
 
     # Download saved plan from artifacts  
