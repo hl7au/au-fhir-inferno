@@ -40,7 +40,11 @@ jobs:
           bundle install
 
       - name: Use correct environment file
-        run: cp ${{ matrix.env_file }} .env
+        run: |
+          if [ "${{ matrix.environment }}" = "dev" ]; then
+            cp ${{ matrix.env_file }} .env
+          fi
+
 
       - name: Generate static content
         run: |
