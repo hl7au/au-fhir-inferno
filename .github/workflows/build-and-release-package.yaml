@@ -22,8 +22,10 @@ jobs:
         include:
           - environment: dev
             rake_task: web:generate_dev
+            env_file: .env.development
           - environment: prod
             rake_task: web:generate_prod
+            env_file: .env
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -36,6 +38,13 @@ jobs:
       - name: Install dependencies
         run: |
           bundle install
+
+      - name: Use correct environment file
+        run: |
+          if [ "${{ matrix.environment }}" = "dev" ]; then
+            cp ${{ matrix.env_file }} .env
+          fi
+
 
       - name: Generate static content
         run: |
