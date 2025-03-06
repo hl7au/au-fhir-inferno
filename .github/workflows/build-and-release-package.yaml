@@ -22,7 +22,7 @@ jobs:
         include:
           - environment: dev
             rake_task: web:generate_dev
-            env_file: env.development
+            env_file: .env.development
           - environment: prod
             rake_task: web:generate_prod
             env_file: .env
