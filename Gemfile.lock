@@ -1,17 +1,17 @@
 GIT
-  remote: https://github.com/beda-software/au-ips-inferno
-  revision: 507ab792ec0a639d7e28e7389dcc51a4fc135cb0
-  ref: 507ab792ec0a639d7e28e7389dcc51a4fc135cb0
-  specs:
-    au_ips_inferno (0.0.1)
-      inferno_core (~> 0.6.1)
-
-GIT
   remote: https://github.com/beda-software/validation-test-kit
   revision: 3438159ae5860216d37c559725fbfdc316ad745c
   specs:
     validation_test_kit (0.0.1)
       inferno_core (>= 0.4.2)
+
+GIT
+  remote: https://github.com/hl7au/au-ps-inferno
+  revision: 846e984ac4186d7a9179822f7a647f6553c7ce10
+  ref: 846e984ac4186d7a9179822f7a647f6553c7ce10
+  specs:
+    au_ps_inferno (0.0.1)
+      inferno_core (~> 0.6.2)
 
 GEM
   remote: https://rubygems.org/
@@ -185,7 +185,7 @@ GEM
     httpclient (2.8.3)
     i18n (1.14.7)
       concurrent-ruby (~> 1.0)
-    inferno_core (0.6.1)
+    inferno_core (0.6.2)
       activesupport (~> 6.1.7.5)
       base62-rb (= 0.3.1)
       blueprinter (= 0.25.2)
@@ -213,12 +213,6 @@ GEM
       sqlite3 (~> 1.4)
       thor (~> 1.2.1)
       tty-markdown (~> 0.7.1)
-    ipa_test_kit (0.4.1)
-      inferno_core (>= 0.4.37)
-      smart_app_launch_test_kit (~> 0.3)
-      tls_test_kit (~> 0.2.0)
-    ips_test_kit (0.10.2)
-      inferno_core (>= 0.4.37)
     jekyll (4.3.4)
       addressable (~> 2.4)
       colorator (~> 1.0)
@@ -426,12 +420,10 @@ PLATFORMS
 
 DEPENDENCIES
   au_core_test_kit (~> 0.0.18)
-  au_ips_inferno!
+  au_ps_inferno!
   database_cleaner-sequel (~> 1.8)
   factory_bot (~> 6.1)
-  inferno_core (~> 0.6.1)
-  ipa_test_kit (~> 0.4.1)
-  ips_test_kit (~> 0.10.2)
+  inferno_core (= 0.6.2)
   jekyll
   pg
   rspec (~> 3.10)
