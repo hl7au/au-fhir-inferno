@@ -8,6 +8,7 @@ inferno:
   terminologyServer: "https://tx.dev.hl7.org.au/fhir"
   externalValidatorUrl: null  # This can be overridden during chart deployment
   validatorImageUri: "ghcr.io/beda-software/validator-wrapper:latest"
+  initializeValidatorSession: false
 
 controller:
   enabled: false # Set to true to enable the ingress controller if you have not already installed it, multiple ingress controllers can be installed via https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
