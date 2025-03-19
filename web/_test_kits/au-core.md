@@ -3,12 +3,14 @@ layout: test-kit
 title: AU Core Test Kit
 test_kit_id: au_core_test_kit
 tags: [ AU ]
-date: 2025-02-05
-version: 0.0.18
+date: 2025-03-12
+version: 1.1.0.pre
 maturity: Low
 suites:
   - title: AU Core v1.0.0
     id: au_core_v100
+  - title: AU Core v1.1.0-preview
+    id: au_core_v110_preview
 ---
 
 The AU Core Test Kit validates the conformance of a server implementation to a specific version of the AU Core IG. Currently, Inferno can test against implementations of following versions of the AU Core IG: [v1.0.0](https://hl7.org.au/fhir/core/).
