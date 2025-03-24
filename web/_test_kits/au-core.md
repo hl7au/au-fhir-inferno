@@ -3,9 +3,9 @@ layout: test-kit
 title: AU Core Test Kit
 test_kit_id: au_core_test_kit
 tags: [ AU ]
-date: 2025-02-05
-version: 0.0.18
-maturity: Low
+date: 2025-03-14
+version: 1.0.0
+maturity: 2
 suites:
   - title: AU Core v1.0.0
     id: au_core_v100
