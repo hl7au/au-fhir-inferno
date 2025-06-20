@@ -20,7 +20,6 @@ provider "aws" {
 
 terraform {
   required_version = ">= 1.3"
-
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -42,7 +41,7 @@ terraform {
   backend "s3" {
     bucket = "examplebucket-fhir-aws"
     region = "ap-southeast-2"
-    # key    = "infra/inferno/au-fhir-inferno-sparkey-prod.tfstate"
+    # key     = "infra/inferno/au-fhir-inferno-dev.tfstate"
     # profile = "FHIR-Admin"
   }
 }
