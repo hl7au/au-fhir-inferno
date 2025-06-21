@@ -7,7 +7,7 @@ date: 2025-03-11
 version: 0.1.1.pre
 maturity: Low
 suites:
-  - title: 0.4.0-draft
+  - title: 0.2.0-preview
     id: au_ps_suite
 ---
 
