@@ -15,12 +15,14 @@ The AU PS Test Kit validates the conformance of a server implementation to a spe
 
 <!-- break -->
 
-This test kit is open source and freely available for use or adoption by the health IT community including EHR vendors, health app developers, and testing labs. It is built using the [Inferno Framework](https://inferno-framework.github.io/inferno-core/). The Inferno Framework is designed for reuse and aims to make it easier to build test kits for any FHIR-based data exchange.
+This test kit is open source and freely available for use or adoption by the health IT community including EHR vendors, health app developers, and testing labs. It is built using the [Inferno Framework](https://inferno-framework.github.io/inferno-core/). The Inferno Framework is designed for reuse and aims to make it easier to build test kits for any FHIR-based data exchange. 
 
 ## Status
 
 The AU PS Test Kit is actively developed and regularly updated. The test kit currently tests the following requirements:
 
+* $summary operation support
+* $docref operation support
 * Validity of the resources according to the IG
 
 See the test descriptions within the test kit for detail on the specific validations performed as part of testing these requirements.
