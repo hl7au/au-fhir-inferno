@@ -75,6 +75,8 @@ spec:
         env:
           - name: TX_SERVER_URL
             value: {{ .Values.inferno.terminologyServer }}
+          - name: INITIALIZE_VALIDATOR_SESSIONS
+            value: {{ .Values.inferno.initializeValidatorSession  }}
         envFrom:
         - configMapRef:
             name: inferno
