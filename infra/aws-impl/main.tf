@@ -83,7 +83,8 @@ resource "helm_release" "inferno" {
 # RDS Module
 ################################################################################
 module "rds" {
-  source = "terraform-aws-modules/rds/aws"
+  source  = "terraform-aws-modules/rds/aws"
+  version = "~> 6.10.0"
 
   identifier = local.rds_name
 
