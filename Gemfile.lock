@@ -29,7 +29,7 @@ GEM
       inferno_core (>= 0.6.1)
       smart_app_launch_test_kit (>= 0.4.0)
       tls_test_kit (~> 0.2.0)
-    auscvdrisk_inferno (0.1.0)
+    auscvdrisk_inferno (0.2.0)
       inferno_core (~> 0.6.2)
     base62-rb (0.3.1)
     base64 (0.2.0)
