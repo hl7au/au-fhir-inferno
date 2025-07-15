@@ -29,6 +29,8 @@ GEM
       inferno_core (>= 0.6.1)
       smart_app_launch_test_kit (>= 0.4.0)
       tls_test_kit (~> 0.2.0)
+    auscvdrisk_inferno (0.2.0)
+      inferno_core (~> 0.6.2)
     base62-rb (0.3.1)
     base64 (0.2.0)
     bcp47 (0.3.3)
@@ -421,6 +423,7 @@ PLATFORMS
 DEPENDENCIES
   au_core_test_kit (~> 1.0.0)
   au_ps_inferno!
+  auscvdrisk_inferno
   database_cleaner-sequel (~> 1.8)
   factory_bot (~> 6.1)
   inferno_core (= 0.6.2)
