@@ -3,8 +3,8 @@ layout: test-kit
 title: AU Core Test Kit
 test_kit_id: au_core_test_kit
 tags: [ AU ]
-date: 2025-06-22
-version: 1.1.0
+date: 2025-08-06
+version: 1.2.0
 maturity: Low
 suites:
   - title: AU Core v1.0.0
@@ -13,6 +13,8 @@ suites:
     id: au_core_v110_preview
   - title: AU Core v2.0.0-draft
     id: au_core_v200_draft
+  - title: AU Core v2.0.0-ballot
+    id: au_core_v200_ballot
 ---
 
 The AU Core Test Kit validates the conformance of a server implementation to a specific version of the AU Core IG.

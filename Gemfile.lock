@@ -6,6 +6,16 @@ GIT
       inferno_core (>= 0.4.2)
 
 GIT
+  remote: https://github.com/hl7au/au-fhir-core-inferno
+  revision: 5d9069364f7a535b1d0073dc08ac817e4ccfcd66
+  ref: 5d9069364f7a535b1d0073dc08ac817e4ccfcd66
+  specs:
+    au_core_test_kit (1.2.0)
+      inferno_core (>= 0.6.1)
+      smart_app_launch_test_kit (>= 0.4.0)
+      tls_test_kit (~> 0.2.0)
+
+GIT
   remote: https://github.com/hl7au/au-ps-inferno
   revision: 6ecf3bb0a05bf78c93353d98a63a571227fb8493
   ref: 6ecf3bb0a05bf78c93353d98a63a571227fb8493
@@ -25,10 +35,6 @@ GEM
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
     aes_key_wrap (1.1.0)
-    au_core_test_kit (1.1.0)
-      inferno_core (>= 0.6.1)
-      smart_app_launch_test_kit (>= 0.4.0)
-      tls_test_kit (~> 0.2.0)
     base62-rb (0.3.1)
     base64 (0.2.0)
     bcp47 (0.3.3)
@@ -419,7 +425,7 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
-  au_core_test_kit (~> 1.1)
+  au_core_test_kit!
   au_ps_inferno!
   database_cleaner-sequel (~> 1.8)
   factory_bot (~> 6.1)
