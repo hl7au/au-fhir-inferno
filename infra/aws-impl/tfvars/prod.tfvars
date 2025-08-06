@@ -1,8 +1,8 @@
 name        = "inferno"
 environment = "prod"
 # imageUrl             = "ghcr.io/hl7au/au-fhir-core-inferno:bb8de66a310a6dcb800b71e9da83a2a6221346c3" # old working core image
-imageUrl                = "ghcr.io/hl7au/au-fhir-inferno:36b65671c0374a42acc71dfbf759d7460703ef5c-prod"       # use the image that is not tagged with -nginx
-platformImageUri        = "ghcr.io/hl7au/au-fhir-inferno:36b65671c0374a42acc71dfbf759d7460703ef5c-nginx-prod" # use the image that IS tagged with -nginx
+imageUrl                = "ghcr.io/hl7au/au-fhir-inferno:5c7eabc3b378ca0147a781b6fd9cecab0046ba5f-prod"       # use the image that is not tagged with -nginx
+platformImageUri        = "ghcr.io/hl7au/au-fhir-inferno:5c7eabc3b378ca0147a781b6fd9cecab0046ba5f-nginx-prod" # use the image that IS tagged with -nginx
 validatorImageUri       = "ghcr.io/beda-software/validator-wrapper:latest"
 usesWrapper             = true
 cluster_name            = "sparked-k8s"
