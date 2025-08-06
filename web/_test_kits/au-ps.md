@@ -3,11 +3,11 @@ layout: test-kit
 title: AU PS Test Kit
 test_kit_id: au_ps_suite
 tags: [ AU ]
-date: 2025-06-22
+date: 2025-08-06
 version: 0.1.1.pre
 maturity: Low
 suites:
-  - title: 0.2.0-preview
+  - title: 0.3.0-ballot
     id: au_ps_suite
 ---
 
