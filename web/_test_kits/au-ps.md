@@ -3,11 +3,11 @@ layout: test-kit
 title: AU PS Test Kit
 test_kit_id: au_ps_suite
 tags: [ AU ]
-date: 2025-08-06
+date: 2025-08-29
 version: 0.1.1.pre
 maturity: Low
 suites:
-  - title: 0.3.0-ballot
+  - title: 0.4.0-draft
     id: au_ps_suite
 ---
 
@@ -21,8 +21,6 @@ This test kit is open source and freely available for use or adoption by the hea
 
 The AU PS Test Kit is actively developed and regularly updated. The test kit currently tests the following requirements:
 
-* $summary operation support
-* $docref operation support
 * Validity of the resources according to the IG
 
 See the test descriptions within the test kit for detail on the specific validations performed as part of testing these requirements.
