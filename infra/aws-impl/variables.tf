@@ -41,7 +41,7 @@ variable "platformImageUri" {
 variable "validatorImageUri" {
   description = "Validator Image URI"
   type        = string
-  default     = "ghcr.io/beda-software/validator-wrapper:latest"
+  default     = "markiantorno/validator-wrapper:1.0.68"
 
 }
 

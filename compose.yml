@@ -65,7 +65,7 @@ services:
   validator-api:
     # image: pavelrozhkov/wrapper:6.3.11
     # image: markiantorno/validator-wrapper:1.0.58-SNAPSHOT
-    image: ghcr.io/beda-software/validator-wrapper:latest
+    image: markiantorno/validator-wrapper:1.0.68
     environment:
       SESSION_CACHE_DURATION: -1
     volumes:
