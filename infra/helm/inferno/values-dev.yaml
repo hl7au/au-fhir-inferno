@@ -1,0 +1,20 @@
+ingress:
+  hostnames:
+    - dev.inferno.sparked-fhir.com
+    - inferno.dev.hl7.org.au
+
+inferno:
+  imageUrl: ghcr.io/hl7au/au-fhir-inferno:7a78c7ce86294055090ae7379ba3eefd1f6f128f-dev
+  usesWrapper: true
+  validatorImageUri: markiantorno/validator-wrapper:latest
+
+nginx:
+  platformImageUri: ghcr.io/hl7au/au-fhir-inferno:7a78c7ce86294055090ae7379ba3eefd1f6f128f-nginx-dev
+
+postgresql:
+  global:
+    postgresql:
+      auth:
+        username: <path:arn:aws:secretsmanager:ap-southeast-2:471112546300:secret:rds!db-574d4a3b-a58e-431c-aa48-8a3849fa65bd-1FsyQe#username>
+        password: <path:arn:aws:secretsmanager:ap-southeast-2:471112546300:secret:rds!db-574d4a3b-a58e-431c-aa48-8a3849fa65bd-1FsyQe#password>
+  externaldbhost: dev-inferno-postgresql.creaskuwcgs3.ap-southeast-2.rds.amazonaws.com
