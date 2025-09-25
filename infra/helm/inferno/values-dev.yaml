@@ -15,6 +15,6 @@ postgresql:
   global:
     postgresql:
       auth:
-        username: <path:arn:aws:secretsmanager:ap-southeast-2:471112546300:secret:rds!db-574d4a3b-a58e-431c-aa48-8a3849fa65bd-1FsyQe#username>
-        password: <path:arn:aws:secretsmanager:ap-southeast-2:471112546300:secret:rds!db-574d4a3b-a58e-431c-aa48-8a3849fa65bd-1FsyQe#password>
+        username: <path:arn:aws:secretsmanager:ap-southeast-2:471112546300:secret:rds!db-fb57cd48-e7e3-4c91-b22f-c77536a16135-SSvLxD#username>
+        password: <path:arn:aws:secretsmanager:ap-southeast-2:471112546300:secret:rds!db-fb57cd48-e7e3-4c91-b22f-c77536a16135-SSvLxD#password>
   externaldbhost: dev-inferno-postgresql.creaskuwcgs3.ap-southeast-2.rds.amazonaws.com
