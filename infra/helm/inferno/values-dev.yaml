@@ -11,10 +11,17 @@ inferno:
 nginx:
   platformImageUri: ghcr.io/hl7au/au-fhir-inferno:7a78c7ce86294055090ae7379ba3eefd1f6f128f-nginx-dev
 
+
+externalSecrets:
+  enabled: true
+  roleArn: arn:aws:iam::471112546300:role/dev-sparkey-inferno-external-secrets-sa
+  secretArn: arn:aws:secretsmanager:ap-southeast-2:471112546300:secret:rds!db-ed54d45e-936a-4cf0-bdbb-9356864d6670-3FhA4J
+  username: postgres  # Since username isn't sensitive, we can hardcode it
+  region: ap-southeast-2
+
 postgresql:
+  externaldbhost: dev-sparkey-inferno-postgresql.creaskuwcgs3.ap-southeast-2.rds.amazonaws.com
   global:
     postgresql:
       auth:
-        username: <path:arn:aws:secretsmanager:ap-southeast-2:471112546300:secret:rds!db-fb57cd48-e7e3-4c91-b22f-c77536a16135-SSvLxD#username>
-        password: <path:arn:aws:secretsmanager:ap-southeast-2:471112546300:secret:rds!db-fb57cd48-e7e3-4c91-b22f-c77536a16135-SSvLxD#password>
-  externaldbhost: dev-inferno-postgresql.creaskuwcgs3.ap-southeast-2.rds.amazonaws.com
+        database: inferno
