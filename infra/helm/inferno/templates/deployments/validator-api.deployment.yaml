@@ -39,15 +39,15 @@ spec:
         - containerPort: 3500
         env:
         - name: JAVA_TOOL_OPTIONS
-          value: "-Xms512m -Xmx7g"  # Initial heap 512MB, max heap 4GB
+          value: "-Xms512m -Xmx3g"  # Initial heap 512MB, max heap 3GB
         volumeMounts:
         - name: igs
           mountPath: /home/igs
           readOnly: true
         resources:
           requests: 
-            memory: "7Gi"   
-            cpu: "250m"       
+            memory: "3Gi"   # Minimum memory required for scheduling
+            cpu: "250m"       # Minimum CPU required for scheduling
           limits:
-            memory: "8Gi"    # Increase from 4Gi to 6Gi
-            cpu: "500m"
+            memory: "4Gi"     # Maximum memory usage allowed
+            cpu: "500m"       # Maximum CPU usage allowed
