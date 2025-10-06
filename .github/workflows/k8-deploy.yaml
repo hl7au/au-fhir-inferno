@@ -32,7 +32,7 @@ jobs:
     - name: Configure aws credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: arn:aws:iam::471112546300:role/core-inferno-github-actions-eks-role
+        role-to-assume: arn:aws:iam::471112546300:role/inferno-github-actions-eks-role
         aws-region: ap-southeast-2
 
 
@@ -170,7 +170,7 @@ jobs:
     - name: Configure aws credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: arn:aws:iam::471112546300:role/core-inferno-github-actions-eks-role
+        role-to-assume: arn:aws:iam::471112546300:role/inferno-github-actions-eks-role
         aws-region: ap-southeast-2
 
     # Set environment variable based on branch or PR
