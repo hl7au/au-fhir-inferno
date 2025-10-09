@@ -55,11 +55,11 @@ spec:
             name: postgresql-secret
         resources:
           requests: # defaults to 1m CPU and 2919Mi Memory if not specified, might be a memory leak since it tries to consume all memory on node
-            memory: "512Mi"   # Minimum memory required for scheduling
-            cpu: "250m"       # Minimum CPU required for scheduling
+            memory: "2Gi"   # Minimum memory required for scheduling
+            cpu: "500m"       # Minimum CPU required for scheduling
           limits:
-            memory: "1Gi"     # Maximum memory usage allowed
-            cpu: "500m"       # Maximum CPU usage allowed
+            memory: "2.5Gi"     # Maximum memory usage allowed
+            cpu: "1m"       # Maximum CPU usage allowed
       - name: nginx
         image: {{ .Values.nginx.platformImageUri }}
         imagePullPolicy: Always
