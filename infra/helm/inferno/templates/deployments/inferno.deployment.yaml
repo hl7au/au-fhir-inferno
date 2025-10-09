@@ -61,7 +61,7 @@ spec:
             cpu: "500m"       # Minimum CPU required for scheduling
           limits:
             memory: "2.5Gi"     # Maximum memory usage allowed
-            cpu: "1m"       # Maximum CPU usage allowed
+            cpu: "1"       # Maximum CPU usage allowed
       - name: nginx
         image: {{ .Values.nginx.platformImageUri }}
         imagePullPolicy: Always
