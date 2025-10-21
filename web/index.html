@@ -44,105 +44,27 @@ title: Home
 
 
 {% if site.features %}
-<section class="features">
-  <a class="anchor" id="what-is-inferno"></a>
-  {% for feature in site.features %}
-  <section class="container-fluid">
-    <h2>{{ feature.name }}</h2>
-    {% if feature.items %}
-    <div class="row">
-      {% for item in feature.items %}
-      <div class="col-lg-4 col-md-6">
-        <div class="feature-content">
-          <h3>{{ item.name }}</h3>
-          {{ item.description }}
-        </div>
-      </div>
+<section class="features-new">
+      <a class="anchor" id="what-is-inferno"></a>
+      {% for feature in site.features %}
+      <section class="container-fluid">
+            <h2>{{ feature.name }}</h2>
+            <span class="sub-title">{{ feature.description }}</span>
+            {% if feature.items %}
+            <div class="list-block">
+                <div class="row">
+                    {% for item in feature.items %}
+                    <div class="col-lg-4 col-md-6">
+                        <div class="card">
+                            <span class="card-title">{{ item.name }}</span>
+                            <span class="card-text">{{ item.description }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+      </section>
       {% endfor %}
-    </div><!-- end row -->
-    {% endif %}
-  </section><!-- end container -->
-  {% endfor %}
 </section>
 {% endif %}
-
-<section class="news-and-events">
-  <div class="container-fluid">
-    <div class="row">
-      <!-- News and Updates column -->
-      <div class="col-lg-7 col-md-6">
-        <h2>News and Updates</h2>
-        <section class="recent-news-items">
-          {% assign news_items = site.news | reverse %}
-          {% assign news_count = 0 %}
-          {% for news_item in news_items limit: 3 %}
-          {% assign news_count = news_count|plus:1 %}
-
-          <article class="news-item">
-            <h3><a href="{{ news_item.url }}">{{ news_item.title }}</a></h3>
-            <time datetime="{{ news_item.date }}">{{ news_item.date | date: "%B %-d, %Y" }}</time>
-            <p>{{ news_item.content | split:'<!-- break -->' | first }}</p>
-            {% if news_item.content contains '<!-- break -->' %}
-            <p><a href="{{ news_item.url }}">Read more...</a></p>
-            {% endif %}
-          </article>
-          {% endfor %}
-        </section>
-        {% if news_count == 0 %}
-        <div class="no-news-or-events">No recent news to report.</div>
-        {% endif %}
-        <div class="text-end view-all"><a href="/news">View more news and updates</a></div>
-      </div>
-      <div class="col-lg-5 col-md-6">
-        <h2>Upcoming Events</h2>
-        <div class="upcoming-events">
-          {% assign event_count = 0 %}
-          {% assign curDate = site.time | date: '%s' | plus: 0%}
-          {% for event in site.data.events.event_list reversed %}
-          {% assign eventDate = event.date | date: '%s' %}
-          {% assign eventExpireDate = eventDate | plus: 86400 %}
-          {% if curDate < eventExpireDate %}
-          {% assign event_count = event_count|plus:1 %}
-          <article class="event-item">
-            <time class="calendardate" datetime="{{ event.date }}">
-              <span class="calendardate-day">{{ event.day }}</span>
-              <span class="calendardate-month">{{ event.month | truncate: 3, "" }}</span>
-            </time>
-            <div class="event-detail">
-              <h3>
-                {{ event.name }}
-              </h3>
-
-              {% if event.description %}
-              <p>{{ event.description }}</p>
-              {% endif %}
-
-              {% if event.time %}
-              <time datetime="{{ event.datetime }}">
-                <i class="bi bi-clock"></i>
-                {{ event.time }}
-              </time>
-              {% endif %}
-
-              {% if event.location %}
-              <div>
-                <i class="bi bi-geo-alt"></i>
-                <a href="{{ event.location.url }}">
-                  {{ event.location.name }}
-                </a>
-              </div>
-              {% endif %}
-            </div>
-            </article>
-            {% endif %}
-            {% endfor %}
-
-            {% if event_count == 0 %}
-            <div class="no-news-or-events">No events are currently scheduled.</div>
-            {% endif %}
-        </div>
-        <div class="text-end view-all"><a href="/events">View all events</a></div>
-      </div>
-    </div>
-  </div>
-</section>

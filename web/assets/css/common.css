@@ -8,7 +8,7 @@
   --product-card-pinned-border-color: #9be;
 
   --card-header-bkg: #fcfcfc;
-  --footer-bkg: #f2f2f2;
+  --footer-bkg: #1F2937;
   --tag-bkg: #f0f0f0;
   --year-header-color: #555;
   --features-bkg: #f9f9f9;
@@ -54,12 +54,49 @@ a {
 }
 
 footer {
-  background-color: var(--footer-bkg);
-  font-size: 0.9rem;
+    margin-top: 80px;
+    background-color: var(--footer-bkg);
+    padding: 48px 120px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
 }
 
 footer p {
-  margin-bottom: 0.5rem;
+    color: #FFF;
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 24px;
+}
+
+footer .text-block {
+    display: flex;
+    flex: .8;
+    flex-direction: column;
+    gap: 16px;
+}
+
+footer .logo-block {
+    display: flex;
+    flex: .2;
+    justify-content: flex-end;
+}
+
+footer a {
+    color: #3498DB;
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 24px;
+}
+
+footer h3 {
+    color: #FFF;
+    font-size: 20px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: 28px;
 }
 
 footer .footer-logo{
@@ -79,7 +116,11 @@ footer .footer-logo a:hover,
 footer .footer-logo a:active,
 footer .footer-logo a:visited
 {
-  color: rgb(33, 37, 41);
+    color: #FFF;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 20px;
 }
 
 footer .footer-logo .built-with {
@@ -531,4 +572,73 @@ h2.year {
 
 nav[data-toggle="toc"] .nav .nav {
   display: none;
+}
+
+.features-new {
+    margin: 0px 80px;
+    text-align: center;
+}
+
+.features-new h2 {
+    color: #2C3E50;
+    text-align: center;
+    font-size: 32px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 36px;
+}
+
+.features-new .sub-title {
+    color: #2C3E50;
+    text-align: center;
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 28px;
+}
+
+.features-new .card {
+    width: 475px;
+    margin-bottom: 33px;
+    height: 208px;
+    display: flex;
+    padding: 24px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    flex: 1 0 0;
+    align-self: stretch;
+
+    border-radius: 12px;
+    border: 1px solid #E5E7EB;
+    background: #FFF;
+}
+
+.features-new .card .card-title {
+    color: #2C3E50;
+    font-size: 20px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 28px;
+}
+
+.features-new .card .card-text {
+    color: #2C3E50;
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 24px;
+    text-align: left;
+}
+
+.features-new .card a {
+    color: #D94A2A;
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 24px;
+}
+
+.features-new .list-block {
+    margin-top: 48px;
 }
