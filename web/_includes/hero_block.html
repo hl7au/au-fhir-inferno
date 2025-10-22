@@ -4,8 +4,8 @@
         <h3>{{ site.subtitle }}</h3>
         <span class="text">{{ site.description }}</span>
         <div class="btn-block" data-toc-skip>
-            <button class="btn btn-attention">Start Testing Now</button>
-            <button class="btn btn-secondary">Learn more</button>
+            <a class="btn btn-attention" href="/test-kits">Start Testing Now</a>
+            <a class="btn btn-secondary" href="https://inferno-framework.github.io" target="_blank">Learn more</a>
         </div>
     </div>
     <div class="card-block">
@@ -13,7 +13,7 @@
         <div class="card">
             <div class="card-title">{{ quick_link.title }}</div>
             <div class="card-text">{{ quick_link.description }}</div>
-            <button class="btn btn-primary">Start testing</button>
+            <a class="btn btn-primary" href="{{ quick_link.link_href }}">Start testing</a>
         </div>
         {% endfor %}
     </div>

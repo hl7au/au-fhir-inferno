@@ -130,8 +130,8 @@ a.anchor {
 
 /* Navbar */
 .navbar {
-  border-bottom: 5px solid rgba(0, 0, 0, 0.12);
-  height: 90px;
+    height: 80px;
+    padding: 0 120px;
 }
 
 nav .dropdown {
@@ -609,6 +609,15 @@ nav[data-toggle="toc"] .nav .nav {
     background: #FFF;
 }
 
+@media (max-width: 767px) {
+    .features-new .list-block {
+        gap: 16px;
+    }
+    .features-new .card {
+        flex: 0 0 100%;
+    }
+}
+
 .features-new .card .card-title {
     color: #2C3E50;
     font-size: 20px;
@@ -717,7 +726,7 @@ nav[data-toggle="toc"] .nav .nav {
     line-height: 28px;
 }
 
-.hero-block .details-block a {
+a {
     color: #D94A2A;
     font-size: 18px;
     font-style: normal;
