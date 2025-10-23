@@ -3,77 +3,102 @@ layout: page
 current_page: About
 ---
 
-<div class="container-fluid mt-3">
-  <nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="/">Home</a></li>
-      <li class="breadcrumb-item active" aria-current="page">{{ page.current_page }}</li>
-    </ol>
-  </nav>
-</div>
+<!--<div class="container-fluid mt-3">-->
+<!--    <nav aria-label="breadcrumb">-->
+<!--        <ol class="breadcrumb">-->
+<!--            <li class="breadcrumb-item"><a href="/">Home</a></li>-->
+<!--            <li class="breadcrumb-item active" aria-current="page">{{ site.custom_pages.about.breadcrumb }}</li>-->
+<!--        </ol>-->
+<!--    </nav>-->
+<!--</div>-->
 
-<!-- TODO: Determine text to go on this page -->
+<!--<div class="container-fluid">-->
+<!--  <div class="row">-->
+<!--    <nav id="toc" class="col-md-3 mt-5 bd-toc order-2" data-toggle="toc">-->
+<!--      <p class="toc-header">On this page</p>-->
+<!--    </nav>-->
+<!--    <div class="col-md-9 order-1 mb-5" id="content">-->
+<!--      <h1 class="my-3">{{ site.custom_pages.about.title }}</h1>-->
+<!--      <article class="custom-page-container" id="section1">-->
+<!--          {% for block in site.custom_pages.about.blocks %}-->
+<!--          <div class="custom-page-container card">-->
+<!--              <div class="title-block">-->
+<!--                  <img src="{{ block.logo_path }}" width="32px" height="32px"/>-->
+<!--                  <h2>{{ block.title }}</h2>-->
+<!--              </div>-->
+<!--              {{ block.content }}-->
+<!--              {% if block.warning_content %}-->
+<!--              <div class="custom-page-container card warning-block">-->
+<!--                  {{ block.warning_content }}-->
+<!--              </div>-->
+<!--              {% endif %}-->
+<!--          </div>-->
+<!--          {% endfor %}-->
+<!--      </article>-->
+<!--      <a href="#content" class="btn btn-secondary">Return to top</a>-->
+<!--    </div>-->
+<!--  </div>-->
+<!--</div>-->
 
-<div class="container-fluid">
-  <div class="row">
-    <!-- Main content -->
-    <!-- Table of contents -->
-    <nav id="toc" class="col-md-3 mt-5 bd-toc order-2" data-toggle="toc">
-      <p class="toc-header">On this page</p>
-    </nav>
-    <div class="col-md-9 order-1 mb-5" id="content">
-      <h1 class="my-3">About {{ site.title }} </h1>
-      <article class="section" id="section1">
-        <h2>Overview</h2>
-        <p>Welcome to Inferno on hl7.org.au, a public Inferno test host provided by HL7 Australia and the Sparked AU FHIR Accelerator. This site provides a live demonstration environment for select HL7® FHIR® tests written using the Inferno Framework. This includes the AU Core Test Kit v1.0.0 for AU Core FHIR Implementation Guide Release 1.</p>
-        <p>Inferno tests are packaged in executable Test Kits, which typically target conformance requirements specified by one or more FHIR Implementation Guides. Inferno on hl7.org.au allows users to execute tests with Inferno Test Kits. To get started testing, select the Test Kit that targets an Implementation Guide relevant to your system on the <a href="{{ site.inferno_host }}/test-kits/">Test Kits</a> page.</p>
-        <p>This site is not approved for use to access sensitive data or Protected Health Information (PHI). It is intended for demonstration purposes; users are encouraged to download and run tests locally, as all tests provided on this host are open source and are designed to be portable between environments. Test session data is periodically removed.</p>
+<!--<style>-->
+<!--  .section {-->
+<!--    margin-bottom: 0;-->
+<!--  }-->
 
-        <h2>About the Inferno Framework</h2>
-        <p>All tests that are available on Inferno on hl7.org.au are built using the <a href="https://inferno-framework.github.io/" target="_blank">Inferno Framework</a>, a framework for creating, executing and sharing FHIR conformance tests. If you are interested in learning how to create your own tests with the Inferno Framework, visit the <a href="https://inferno-framework.github.io/docs/">Inferno Framework documentation site</a>.</p>
+<!--  .section h2 {-->
+<!--    margin-top: 0;-->
+<!--    scroll-margin-top: 150px;-->
+<!--  }-->
 
-        <h2>Available Inferno Test Kits</h2>
-        <p>This site hosts a curated set of Reference Test Kits built with Inferno for FHIR capability testing. They are designed to assist in assessing a system's conformance to a HL7 AU FHIR Implementation Guide (IG). However, these Reference Test Kits are not formalised conformance tests and are not part of any conformance certification program/activity. Visit the <a href="https://inferno.hl7.org.au/test-kits/" target="_blank">Test Kit</a> page to see which Test Kits are currently available to be run on this site. Please reach out to the team if you have built an Inferno Test Kit for a HL7 AU FHIR IG that you would like to be added to this site.</p>
-        <p>For a more comprehensive list of Test Kits built using the Inferno Framework, including those not available to be executed on this site, the Inferno team maintains a list of publicly available, open source Test Kits on the <a href="https://inferno-framework.github.io/community/test-kits.html" target="_blank">Inferno Framework community page</a>.</p>
+<!--  #content {-->
+<!--    scroll-margin-top: 150px;-->
+<!--  }-->
 
-        <h2>Inferno on hl7.org.au Public Hosts</h2>
-        <h3>inferno.hl7.org.au</h3>
-        <p>Inferno on hl7.org.au is a public Inferno Platform, hosted by HL7 Australia for the benefit of the community. An Inferno Platform is a specialized site for hosting many Inferno Test Kits, with a configuration that is designed to scale to many simultaneous users. Inferno Platforms typically have a primary host, e.g. inferno.hl7.org.au, but can also have secondary hosts for staging or development purposes, e.g. inferno.dev.hl7.org.au.</p>
-        <p>The host inferno.hl7.org.au is the officially supported primary public Inferno Platform on hl7.org.au, and is regularly updated with approved stable releases of Inferno Core and supported Test Kits.</p>
-        <h3>inferno.dev.hl7.org.au</h3>
-        <p>The host inferno.dev.hl7.org.au is a staging platform provided for testing and demonstration of upcoming Test Kits in alignment with their respective HL7 AU FHIR IG under development, or development releases of Inferno Core.</p>
-        <p>It is likely to be updated without notice and can be used by those participating in testing of a HL7 AU FHIR IG under development.</p>
-        <p>Both hosts are for demonstration purposes only, and should not be used with any sensitive data or Protected Health Information (PHI).</p>
+<!--  @media (min-width: 992px) {-->
+<!--    #toc {-->
+<!--      position: sticky;-->
+<!--      top: var(&#45;&#45;top-nav-height);-->
+<!--      height: calc(50vh);-->
+<!--    }-->
+<!--  }-->
+<!--</style>-->
 
-        <h2>Contact the Team</h2>
-        <p>For questions or issues with this site, please reach out to the Sparked FHIR Accelerator team on the <a href="https://chat.fhir.org/#narrow/channel/179173-australia" target="_blank">#Australia FHIR Zulip channel</a>. Here, there is an existing topic for <a href="https://chat.fhir.org/#narrow/channel/179173-australia/topic/Inferno.20Test.20Kit.20feedback.20and.20queries" target="_blank">#Inferno Test Kit feedback and queries</a>.</p>
-        <p>For general questions or issues about the Inferno Testing Framework, please reach out to the Inferno team on the <a href="https://chat.fhir.org/#narrow/channel/179309-inferno" target="_blank">#Inferno FHIR Zulip channel</a>.</p>
-        <p>Please submit issues with individual tests to the maintainers of those tests. Each Test Kit includes contact information, and issues with specific Test Kits are typically tracked via the Test Kit's GitHub repository. For example, the AU Core Test Kits tracks issues on its associated GitHub Repository <a href="https://github.com/hl7au/au-fhir-core-inferno/issues" target="_blank">Issue page</a>. Links to the appropriate issue tracker are typically provided in the Test Kit description and in the footer of the testing interface.</p>
-      </article>
-      <a href="#content">Return to top</a>
+
+<div class="content-container">
+    <div class="breadcrumb">
+        Home/About
     </div>
-  </div>
+    <div class="content" id="content">
+        <h1>{{ site.custom_pages.about.title }}</h1>
+        <div class="two-columns">
+            <div class="content-blocks">
+                {% for block in site.custom_pages.about.blocks %}
+                <a class="anchor" id="{{ block.anchor }}"></a>
+                <div class="card">
+                    <div class="title-block">
+                        <img src="{{ block.logo_path }}" width="32px" height="32px"/>
+                        <h2>{{ block.title }}</h2>
+                    </div>
+                    {{ block.content }}
+                    {% if block.warning_content %}
+                    <div class="warning-block">
+                        {{ block.warning_content }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                <a href="#content" class="btn btn-secondary">Return to top</a>
+            </div>
+            <div class="toc-block">
+                {% assign fragment = page.url | split: '#' | last %}
+                {% assign current_group_url = page_parts[1] %}
+                <h2>On this page</h2>
+                <ul>
+                    {% for block in site.custom_pages.about.blocks %}
+                    <li><a href="#{{ block.anchor }}">{{ block.title }} // {{ page.url }}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
 </div>
-
-<style>
-  .section {
-    margin-bottom: 0;
-  }
-
-  .section h2 {
-    margin-top: 0;
-    scroll-margin-top: 150px;
-  }
-
-  #content {
-    scroll-margin-top: 150px;
-  }
-
-  @media (min-width: 992px) {
-    #toc {
-      position: sticky;
-      top: var(--top-nav-height);
-      height: calc(50vh);
-    }
-  }
-</style>

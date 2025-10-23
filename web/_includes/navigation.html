@@ -1,25 +1,68 @@
-<nav class="navbar navbar-expand-lg">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="#">
-            <img src="/assets/images/logo-new.png" alt="Logo" width="232" height="24" class="d-inline-block align-text-top">
+<!--<nav>-->
+<!--    <div>-->
+<!--        <img src="/assets/images/logo-new.png" alt="Logo" width="232" height="24" class="d-inline-block align-text-top">-->
+<!--    </div>-->
+<!--    <div>-->
+<!--        <ul>-->
+<!--            {% include navigation_links.html %}-->
+<!--        </ul>-->
+<!--    </div>-->
+<!--</nav>-->
+
+
+<!--<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">-->
+<!--    <div class="container-fluid">-->
+<!--        &lt;!&ndash; Logo on the left &ndash;&gt;-->
+<!--        <a class="navbar-brand" href="#">-->
+<!--            <img src="https://via.placeholder.com/40" alt="Logo" width="40" height="40" class="d-inline-block align-text-top me-2">-->
+<!--            MyBrand-->
+<!--        </a>-->
+
+<!--        &lt;!&ndash; Hamburger menu for mobile &ndash;&gt;-->
+<!--        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">-->
+<!--            <span class="navbar-toggler-icon"></span>-->
+<!--        </button>-->
+
+<!--        &lt;!&ndash; Navigation items on the right &ndash;&gt;-->
+<!--        <div class="collapse navbar-collapse" id="navbarNav">-->
+<!--            <ul class="navbar-nav ms-auto">-->
+<!--                <li class="nav-item">-->
+<!--                    <a class="nav-link active" aria-current="page" href="#">Home</a>-->
+<!--                </li>-->
+<!--                <li class="nav-item">-->
+<!--                    <a class="nav-link" href="#">About</a>-->
+<!--                </li>-->
+<!--                <li class="nav-item">-->
+<!--                    <a class="nav-link" href="#">Services</a>-->
+<!--                </li>   -->
+<!--            </ul>-->
+<!--        </div>-->
+<!--    </div>-->
+<!--</nav>-->
+
+<a href="#content" class="visually-hidden-focusable">Skip to main content</a>
+<nav class="navbar navbar-expand-lg navbar-light bg-light align-items-end sticky-top">
+    <div class="container-fluid align-items-end">
+        <a class="navbar-brand" href="/">
+            <div>
+                <img src="/assets/images/assembled_logo@2x.png">
+            </div>
         </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+
+        <!-- static navigation menu -->
         <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav">
-                <li class="nav-item">
-                    <a class="nav-link active" aria-current="page" href="#">Home</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">Features</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">Pricing</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link disabled" aria-disabled="true">Disabled</a>
-                </li>
+            <ul class="navbar-nav ms-auto align-items-end">
+                {% include navigation_links.html %}
+            </ul>
+        </div>
+
+        <!-- dropdown navigation menu -->
+        <div class="dropdown navbar-collapse">
+            <button class="navbar-toggler navbar-nav ms-auto" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <ul class="dropdown-menu">
+                {% include navigation_links.html %}
             </ul>
         </div>
     </div>
