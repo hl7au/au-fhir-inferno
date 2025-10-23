@@ -65,6 +65,10 @@
                 flex-direction: column;
                 flex: 0.7;
 
+                .btn-secondary {
+                    width: 166px;
+                }
+
                 .card {
                     display: flex;
                     padding: 24px 32px;
