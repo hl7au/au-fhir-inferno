@@ -5,7 +5,10 @@ current_page: About
 
 <div class="content-container">
     <div class="breadcrumb">
-        Home/About
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li>{{ page.current_page }}</li>
+        </ul>
     </div>
     <div class="content" id="content">
         <h1>{{ site.custom_pages.about.title }}</h1>
