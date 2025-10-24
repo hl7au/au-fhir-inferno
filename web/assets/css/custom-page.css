@@ -1,3 +1,28 @@
+:root {
+    /* Colors */
+    --color-primary: #2C3E50;
+    --color-secondary: #6C757D;
+    --color-background: #FFF;
+    --color-border: #E5E7EB;
+    --color-warning-background: #FFF1F0;
+    --color-warning-border: #FFA39E;
+
+    /* Typography */
+    --font-family-base: 'Inter', sans-serif;
+    --font-weight-bold: 700;
+    --font-weight-regular: 400;
+    --font-style-normal: normal;
+    --line-height-normal: normal;
+    --font-size-base: 18px;
+    --font-size-lg: 24px;
+    --font-size-xl: 32px;
+    --font-size-xxl: 42px;
+
+    /* Border Radius */
+    --radius-sm: 12px;
+    --radius-md: 16px;
+}
+
 .content-container {
     margin: 64px 120px 128px 120px;
     display: flex;
@@ -5,21 +30,21 @@
     gap: 64px;
     justify-content: space-between;
 
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base);
     align-self: stretch;
 
     .breadcrumb {
-        color: #2C3E50;
-        font-size: 24px;
+        color: var(--color-primary);
+        font-size: var(--font-size-lg);
         font-style: normal;
-        font-weight: 700;
+        font-weight: var(--font-weight-bold);
         line-height: normal;
 
         a {
-            color: #6C757D;
-            font-size: 24px;
+            color: var(--color-secondary);
+            font-size: var(--font-size-lg);
             font-style: normal;
-            font-weight: 700;
+            font-weight: var(--font-weight-bold);
             line-height: normal;
             text-decoration: none;
         }
@@ -47,10 +72,10 @@
         gap: 40px;
 
         h1 {
-            color: #2C3E50;
-            font-size: 42px;
+            color: var(--color-primary);
+            font-size: var(--font-size-xxl);
             font-style: normal;
-            font-weight: 700;
+            font-weight: var(--font-weight-bold);
             line-height: normal;
         }
 
@@ -75,20 +100,20 @@
                     flex-direction: column;
                     gap: 24px;
                     border-radius: 12px;
-                    background: #FFF;
+                    background: var(--color-background);
                     margin-bottom: 24px;
 
-                    font-size: 18px;
+                    font-size: var(--font-size-base);
 
                     a {
                         text-decoration: none;
                     }
 
                     h2 {
-                        color: #2C3E50;
-                        font-size: 32px;
+                        color: var(--color-primary);
+                        font-size: var(--font-size-xl);;
                         font-style: normal;
-                        font-weight: 700;
+                        font-weight: var(--font-weight-bold);
                         line-height: 40px;
                         margin: 0px;
                     }
@@ -110,8 +135,8 @@
                         gap: 24px;
 
                         border-radius: 16px;
-                        border: 1px solid #FFA39E;
-                        background: #FFF1F0;
+                        border: 1px solid var(--color-warning-border);
+                        background: var(--color-warning-background);
                     }
                 }
             }
@@ -125,23 +150,23 @@
                 align-self: auto;
 
                 border-radius: 12px;
-                border: 1px solid #E5E7EB;
-                background: #FFF;
+                border: 1px solid var(--color-border);
+                background: var(--color-background);
 
                 h2 {
-                    color: #2C3E50;
-                    font-size: 24px;
+                    color: var(--color-primary);
+                    font-size: var(--font-size-lg);
                     font-style: normal;
-                    font-weight: 700;
+                    font-weight: var(--font-weight-bold);
                     line-height: 32px;
                     margin: 0px;
                 }
 
                 a {
-                    color: #2C3E50;
-                    font-size: 18px;
+                    color: var(--color-primary);
+                    font-size: var(--font-size-base);
                     font-style: normal;
-                    font-weight: 400;
+                    font-weight: var(--font-weight-regular);
                     line-height: 29px;
                     text-decoration: none;
                 }
