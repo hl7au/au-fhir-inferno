@@ -580,8 +580,6 @@ nav[data-toggle="toc"] .nav .nav {
 
 .features-new {
     margin-top: 80px;
-    margin-right: 80px;
-    margin-left: 80px;
     text-align: center;
 }
 
@@ -666,8 +664,6 @@ nav[data-toggle="toc"] .nav .nav {
 
 .hero-block {
     margin-top: 64px;
-    margin-left: 80px;
-    margin-right: 80px;
     display: flex;
     flex-direction: row;
     justify-content: space-between;

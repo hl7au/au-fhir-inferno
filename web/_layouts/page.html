@@ -10,7 +10,9 @@
   <div class="flex-wrapper">
     <div>
       {% include navigation.html %}
-      {{ content }}
+      <div class="content-wrapper">
+        {{ content }}
+      </div>
     </div>
     {% include footer.html %}
   </div>
@@ -23,6 +25,10 @@
     flex-direction: column;
     justify-content: space-between;
     background: #F8F9FA;
+  }
+
+  .content-wrapper {
+      padding: 0 120px;
   }
 </style>
 

@@ -24,7 +24,7 @@
 }
 
 .content-container {
-    margin: 64px 120px 128px 120px;
+    margin: 64px 0px 128px 0px;
     display: flex;
     flex-direction: column;
     gap: 64px;
