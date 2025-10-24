@@ -1,52 +1,7 @@
 ---
 layout: page
 current_page: License
+page_key: license
 ---
 
-<div class="content-container">
-    <div class="breadcrumb">
-        <ul>
-            <li><a href="/">Home</a></li>
-            <li>{{ page.current_page }}</li>
-        </ul>
-    </div>
-    <div class="content" id="content">
-        <h1>{{ site.custom_pages.license.title }}</h1>
-        <div class="two-columns">
-            <div class="content-blocks">
-                {% for block in site.custom_pages.license.blocks %}
-                <a class="anchor" id="{{ block.anchor }}"></a>
-                <div class="card">
-                    {% if block.logo_path || block.title %}
-                    <div class="title-block">
-                        {% if block.logo_path %}
-                        <img src="{{ block.logo_path }}" width="32px" height="32px"/>
-                        {% endif %}
-                        {% if block.title %}
-                        <h2>{{ block.title }}</h2>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-                    {{ block.content }}
-                    {% if block.warning_content %}
-                    <div class="warning-block">
-                        {{ block.warning_content }}
-                    </div>
-                    {% endif %}
-                </div>
-                {% endfor %}
-                <a href="#content" class="btn btn-secondary">Return to top</a>
-            </div>
-            {% if site.custom_pages.license.hide_toc != true %}
-            <div class="toc-block">
-                <h2>On this page</h2>
-                <ul>
-                    {% for block in site.custom_pages.license.blocks %}
-                    <li><a href="#{{ block.anchor }}">{{ block.title }}</a></li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-</div>
+{% include custom_page.html %}
