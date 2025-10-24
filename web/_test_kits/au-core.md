@@ -5,7 +5,9 @@ test_kit_id: au_core_test_kit
 tags: [ AU ]
 date: 2025-08-06
 version: 1.2.0
-maturity: Low
+canonical_url: "http://hl7.org.au/fhir/core"
+logo: /assets/images/au-core-logo.png
+preview_text: The AU Core Test Kit validates the conformance of a server implementation to a specific version of the AU Core IG
 suites:
   - title: AU Core v1.0.0
     id: au_core_v100
