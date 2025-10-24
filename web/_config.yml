@@ -94,6 +94,40 @@ features_block:
 keep_files: ['.keep']
 
 custom_pages:
+  license:
+    title: License
+    breadcrumb: License
+    hide_toc: true
+    blocks:
+      - content: >
+          <div>
+          <span>
+          HL7 Australia provides HL7 Australia content for informational and reference purposes.
+          While HL7 Australia and the broader HL7 community endeavour to ensure the accuracy and reliability of HL7 Australia content, to the extent permitted by law, HL7 Australia:
+          </span>
+          <span>
+          &nbsp(a) Makes no warranties, express or implied:</br>
+          &nbsp&nbsp&nbsp&nbsp(i) That HL7 Australia content will not infringe upon any third-party intellectual property rights, including patents, copyrights, trademarks, or trade secrets; or </br>
+          &nbsp&nbsp&nbsp&nbsp(ii) That HL7 Australia content is suitable, complete or applicable for any particular purpose or use contemplated by the User, and </br>
+          &nbsp(b) Shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising out of or in connection with the use or reliance on HL7 Australia content.
+          </span>
+          <span>
+          By accessing or using HL7 Australia content, Users agree to indemnify and hold harmless HL7 Australia, its officers, directors, employees, agents, and contributors of HL7 Australia content from any claims, damages, losses, liabilities, costs, or expenses (including legal fees) arising out of or in connection with the User’s use of or reliance on HL7 Australia content.
+          </span>
+          <span>
+          HL7 Australia may not own all right, title, and interest, in contained and/or referenced intellectual property owned by third parties.
+          </span>
+          <span>
+          Licensing of utilised 3rd party software components and test content should be considered including:
+          </span>
+          <ul>
+            <li><a href="#">Inferno Framework</a>, <a href="#">AU Inferno Framework</a>, <a href="#">AU Core Inferno Test Kit</a>, <a href="#">AU Patient Summary Inferno Test Kit</a></li>
+            <li><a href="#">HL7 FHIR IG License and Legal</a>, <a href="#">HL7 Australia FHIR IG License and Legal</a></li>
+          </ul>
+          <span>
+          A full statement of relevant copyright and intellectual property policy can be found in <a href="#">HL7 Australia Intellectual Property Policy</a>
+          </span
+          </div>
   about:
     title: About Inferno on hl7.org.au
     breadcrumb: About

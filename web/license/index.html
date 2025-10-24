@@ -1,6 +1,6 @@
 ---
 layout: page
-current_page: About
+current_page: License
 ---
 
 <div class="content-container">
@@ -11,10 +11,10 @@ current_page: About
         </ul>
     </div>
     <div class="content" id="content">
-        <h1>{{ site.custom_pages.about.title }}</h1>
+        <h1>{{ site.custom_pages.license.title }}</h1>
         <div class="two-columns">
             <div class="content-blocks">
-                {% for block in site.custom_pages.about.blocks %}
+                {% for block in site.custom_pages.license.blocks %}
                 <a class="anchor" id="{{ block.anchor }}"></a>
                 <div class="card">
                     {% if block.logo_path || block.title %}
@@ -37,11 +37,11 @@ current_page: About
                 {% endfor %}
                 <a href="#content" class="btn btn-secondary">Return to top</a>
             </div>
-            {% if site.custom_pages.about.hide_toc != true %}
+            {% if site.custom_pages.license.hide_toc != true %}
             <div class="toc-block">
                 <h2>On this page</h2>
                 <ul>
-                    {% for block in site.custom_pages.about.blocks %}
+                    {% for block in site.custom_pages.license.blocks %}
                     <li><a href="#{{ block.anchor }}">{{ block.title }}</a></li>
                     {% endfor %}
                 </ul>
