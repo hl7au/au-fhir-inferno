@@ -170,7 +170,7 @@ nav .navbar .navbar-nav li.nav-item:hover,
 }
 
 .navbar-brand {
-  width: 265px;
+  width: 232px;
   font-size: 2rem;
 }
 
@@ -179,7 +179,7 @@ nav .navbar .navbar-nav li.nav-item:hover,
 }
 
 .navbar-brand img {
-  height: 50px;
+  height: 54px;
 }
 
 /* disclaimer bar */
@@ -199,8 +199,6 @@ nav .navbar .navbar-nav li.nav-item:hover,
     gap: 16px;
     justify-content: space-between;
 }
-
-.disclaimer-text .
 
 .disclaimer-text a {
   color: white;
