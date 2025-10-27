@@ -10,44 +10,56 @@ current_page: Test Kits
             <li>{{ page.current_page }}</li>
         </ul>
     </div>
-    <div class="tk-main-block" id="content">
-        <h1>Test Kits</h1>
-        {% assign test_kits = site.test_kits | reverse %}
-        <div class="tk-list-container">
-            {% for test_kit in test_kits %}
-            <div class="tk-list-card">
-                <div class="tk-header">
-                    <h3>{{ test_kit.title }}</h3>
-                    <img src="{{ test_kit.logo }}" />
-                </div>
-                <div class="tk-card-content">
-                    <div class="tk-text-block">
-                        <div>{{ test_kit.preview_text }}</div>
-                        <div>
-                            Canonical link: <a href="{{ test_kit.canonical_url }}">{{ test_kit.canonical_url }}</a>
-                        </div>
+    <div class="tk-content">
+        <div class="tk-main-block" id="content">
+            <h1>Test Kits</h1>
+            {% assign test_kits = site.test_kits | reverse %}
+            <div class="tk-list-container">
+                {% for test_kit in test_kits %}
+                <div class="tk-list-card">
+                    <div class="tk-header">
+                        <h3>{{ test_kit.title }}</h3>
+                        <img src="{{ test_kit.logo }}" />
                     </div>
-                    <div class="tk-meta-data">
-                        <div class="list">
-                            <div class="list-item">
-                                <b>Updated:</b> {{ test_kit.date }}
-                            </div>
-                            <div class="list-item">
-                                <b>Version:</b> {{ test_kit.version }}
+                    <div class="tk-card-content">
+                        <div class="tk-text-block">
+                            <div>{{ test_kit.preview_text }}</div>
+                            <div>
+                                Canonical link: <a href="{{ test_kit.canonical_url }}">{{ test_kit.canonical_url }}</a>
                             </div>
                         </div>
+                        <div class="tk-meta-data">
+                            <div class="list">
+                                <div class="list-item">
+                                    <b>Updated:</b> {{ test_kit.date }}
+                                </div>
+                                <div class="list-item">
+                                    <b>Version:</b> {{ test_kit.version }}
+                                </div>
+                            </div>
 
-                        <div class="tag">
-                            {{ test_kit.tags }}
+                            <div class="tag">
+                                {{ test_kit.tags }}
+                            </div>
                         </div>
                     </div>
-                </div>
 
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
+
         </div>
         <div class="tk-extra-block">
-            Hello, World!
+            <div class="tk-extra-card">
+                <div class="tk-extra-card-content">
+                    <h3>Getting started</h3>
+                    <span>
+                        Inferno tests are grouped into Test Kits, which are pre-configured test suites and validators that target specific certification criterion or FHIR Implementation Guides. Choose a Test Kit that applies to your systems to get started.
+                    </span>
+                </div>
+                <button class="btn btn-primary btn-wide">Read more information</button>
+            </div>
         </div>
     </div>
+
 </div>

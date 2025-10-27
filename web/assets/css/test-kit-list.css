@@ -4,13 +4,49 @@
     gap: 48px;
 }
 
+.tk-extra-block {
+    display: flex;
+    flex: .3;
+    flex-direction: column;
+    gap: 40px;
+
+    .tk-extra-card {
+        display: flex;
+        padding: 32px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 32px;
+        align-self: stretch;
+
+        border-radius: 12px;
+        border: 1px solid #E5E7EB;
+        background: #FFF;
+
+        .tk-extra-card-content {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+
+            h3 {
+                margin: 0px;
+                color: #2C3E50;
+                font-family: Inter, sans-serif;
+                font-size: 24px;
+                font-style: normal;
+                font-weight: 700;
+                line-height: 32px;
+            }
+        }
+    }
+}
+
 .tk-main-block {
     display: flex;
-    width: 981px;
     padding: 32px 24px;
     flex-direction: column;
     align-items: flex-start;
     gap: 48px;
+    flex: .7;
 
     border-radius: 12px;
     background: #FFF;

@@ -811,3 +811,7 @@ a {
     background: #C53616;
     color: #FFF;
 }
+
+.btn-wide {
+    width: 100%;
+}
