@@ -31,7 +31,7 @@ current_page: Test Kits
                         <div class="tk-meta-data">
                             <div class="list">
                                 <div class="list-item">
-                                    <b>Updated:</b> {{ test_kit.date }}
+                                    <b>Updated:</b> {{ test_kit.date | date: "%m/%d/%Y" }}
                                 </div>
                                 <div class="list-item">
                                     <b>Version:</b> {{ test_kit.version }}
@@ -59,7 +59,7 @@ current_page: Test Kits
                 </div>
                 <button class="btn btn-primary btn-wide">Read more information</button>
             </div>
+            {% include recent_sessions.html %}
         </div>
     </div>
-
 </div>
