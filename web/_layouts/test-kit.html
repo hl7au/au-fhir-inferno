@@ -48,7 +48,54 @@ layout: page
         </div>
     </div>
     <div class="tk-show-right-column">
+        <div class="form-container">
+            <form id="start-testing-form">
+                <h2 class="text-center fw-normal text-muted">Start Testing</h2>
+                <fieldset class="mb-3" {% if page.suites==nil or page.suites.size < 2 %}style="display:none" {% endif %}>
+                <legend class="form-title fs-6">Test Suite</legend>
+                {% for suite in page.suites %}
+                <div class="form-check">
+                    {% if forloop.first or suite.default %}
+                    <input class="form-check-input" type="radio" name="suite" id="{{ suite.id }}" value="{{ suite.id }}"
+                           checked>
+                    {% else %}
+                    <input class="form-check-input" type="radio" name="suite" id="{{ suite.id }}" value="{{ suite.id }}">
+                    {% endif %}
+                    <label class="form-check-label" for="{{ suite.id }}">
+                        {{ suite.title }}
+                    </label>
+                </div>
+                {% endfor %}
+                </fieldset>
+                {% for option_group in page.option_groups %}
+                <fieldset class="option-group mb-3" style="display: none"
+                          data-option-group-for-suites="{{ option_group.suites | join: " ," }}">
+                <legend class="form-title fs-6">{{ option_group.title }}</legend>
+                {% for option in option_group.options %}
+                <div class="form-check">
+                    {% if forloop.first or option.default %}
+                    <input class="form-check-input" type="radio" name="{{ option_group.id }}" id="{{ option.value }}"
+                           value="{{ option.value }}" checked>
+                    {% else %}
+                    <input class="form-check-input" type="radio" name="{{ option_group.id }}" id="{{ option.value }}"
+                           value="{{ option.value }}">
+                    {% endif %}
+                    <label class="form-check-label" for="{{ option.value }}">
+                        {{ option.label }}
+                    </label>
+                </div>
+                {% endfor %}
+                </fieldset>
+                {% endfor %}
 
+                <!-- Submit Button -->
+                <a class="btn btn-primary start-testing-button w-100" id="start-testing-button">
+                    <i class="bi bi-plus-circle"></i>
+                    Create Test Session
+                </a>
+            </form>
+        </div>
+<!--        {% include recent_sessions.html %}-->
     </div>
 </div>
 
