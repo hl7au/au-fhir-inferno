@@ -77,6 +77,10 @@
         border-radius: 12px;
         border: 1px solid #E5E7EB;
 
+        .tk-header-link {
+            text-decoration: none;
+        }
+
         .tk-header {
             display: flex;
             flex-direction: row;

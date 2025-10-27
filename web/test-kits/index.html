@@ -17,10 +17,12 @@ current_page: Test Kits
             <div class="tk-list-container">
                 {% for test_kit in test_kits %}
                 <div class="tk-list-card">
-                    <div class="tk-header">
-                        <h3>{{ test_kit.title }}</h3>
-                        <img src="{{ test_kit.logo }}" />
-                    </div>
+                        <a href="{{ test_kit.id }}" class="tk-header-link">
+                            <div class="tk-header">
+                                <h3>{{ test_kit.title }}</h3>
+                                <img src="{{ test_kit.logo }}" />
+                            </div>
+                        </a>
                     <div class="tk-card-content">
                         <div class="tk-text-block">
                             <div>{{ test_kit.preview_text }}</div>
