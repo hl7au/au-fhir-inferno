@@ -10,20 +10,44 @@ current_page: Test Kits
             <li>{{ page.current_page }}</li>
         </ul>
     </div>
-    <div class="content" id="content">
+    <div class="tk-main-block" id="content">
         <h1>Test Kits</h1>
         {% assign test_kits = site.test_kits | reverse %}
-        {% for test_kit in test_kits %}
-        <div>
-            {{ test_kit.title }}
-            {{ test_kit.test_kit_id }}
-            {{ test_kit.tags }}
-            {{ test_kit.date }}
-            {{ test_kit.version }}
-            {{ test_kit.canonical_url }}
-            {{ test_kit.logo }}
-            {{ test_kit.preview_text }}
+        <div class="tk-list-container">
+            {% for test_kit in test_kits %}
+            <div class="tk-list-card">
+                <div class="tk-header">
+                    <h3>{{ test_kit.title }}</h3>
+                    <img src="{{ test_kit.logo }}" />
+                </div>
+                <div class="tk-card-content">
+                    <div class="tk-text-block">
+                        <div>{{ test_kit.preview_text }}</div>
+                        <div>
+                            Canonical link: <a href="{{ test_kit.canonical_url }}">{{ test_kit.canonical_url }}</a>
+                        </div>
+                    </div>
+                    <div class="tk-meta-data">
+                        <div class="list">
+                            <div class="list-item">
+                                <b>Updated:</b> {{ test_kit.date }}
+                            </div>
+                            <div class="list-item">
+                                <b>Version:</b> {{ test_kit.version }}
+                            </div>
+                        </div>
+
+                        <div class="tag">
+                            {{ test_kit.tags }}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
+        <div class="tk-extra-block">
+            Hello, World!
+        </div>
     </div>
 </div>
