@@ -219,30 +219,6 @@ nav .navbar .navbar-nav li.nav-item:hover,
   }
 }
 
-/* Breadcrumbs */
-.breadcrumb {
-  background-color: transparent;
-  margin-bottom: 0;
-  padding: 0;
-  font-size: 1.1rem;
-}
-
-.breadcrumb .breadcrumb-item {
-  font-weight: bold;
-  color: #333;
-  text-transform: uppercase;
-  letter-spacing: 0.05rem;
-}
-
-.breadcrumb .breadcrumb-item a {
-  color: #036cae;
-  text-decoration: none;
-}
-
-.breadcrumb .breadcrumb-item.active {
-  color: #333;
-}
-
 /* Table of Contents */
 .toc-header {
     color: #2C3E50;
@@ -814,4 +790,37 @@ a {
 
 .btn-wide {
     width: 100%;
+}
+
+.breadcrumb {
+    color: var(--color-primary);
+    font-size: var(--font-size-lg);
+    font-style: normal;
+    font-weight: var(--font-weight-bold);
+    line-height: normal;
+
+    a {
+        color: var(--color-secondary);
+        font-size: var(--font-size-lg);
+        font-style: normal;
+        font-weight: var(--font-weight-bold);
+        line-height: normal;
+        text-decoration: none;
+    }
+
+    ul {
+        list-style-type: none;
+        padding: 0px;
+        margin: 0px;
+        overflow: hidden;
+    }
+
+    li {
+        float: left;
+    }
+
+    li:not(:last-child)::after {
+        content: "/";
+        margin: 0 8px;
+    }
 }
