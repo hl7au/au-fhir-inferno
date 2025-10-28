@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: inferno-app
   namespace: {{ .Values.namespace }}
+  annotations:
+    reloader.stakater.com/auto: "true"
 spec:
   replicas: 1
   selector:
@@ -54,7 +56,7 @@ spec:
         - secretRef:
             name: postgresql-secret
         resources:
-          requests: # defaults to 1m CPU and 2919Mi Memory if not specified, might be a memory leak since it tries to consume all memory on node
+          requests:
             memory: "2Gi"   # Minimum memory required for scheduling
             cpu: "500m"       # Minimum CPU required for scheduling
           limits:
