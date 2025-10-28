@@ -49,10 +49,10 @@ layout: page
     </div>
     <div class="tk-show-right-column">
         <div class="form-container">
-            <form id="start-testing-form">
-                <h2 class="text-center fw-normal text-muted">Start Testing</h2>
-                <fieldset class="mb-3" {% if page.suites==nil or page.suites.size < 2 %}style="display:none" {% endif %}>
-                <legend class="form-title fs-6">Test Suite</legend>
+            <form id="start-testing-form" class="tk-show-form">
+                <h2 class="tk-show-start-testing-block-title">Start Testing</h2>
+                <fieldset class="mb-3" {% if page.suites==nil %}style="display:none" {% endif %}>
+                <legend class="tk-show-start-testing-block-legend">Test Suite</legend>
                 {% for suite in page.suites %}
                 <div class="form-check">
                     {% if forloop.first or suite.default %}
@@ -89,7 +89,7 @@ layout: page
                 {% endfor %}
 
                 <!-- Submit Button -->
-                <a class="btn btn-primary start-testing-button w-100" id="start-testing-button">
+                <a class="btn btn-attention btn-wide" id="start-testing-button">
                     <i class="bi bi-plus-circle"></i>
                     Create Test Session
                 </a>
@@ -186,10 +186,16 @@ layout: page
   }
 
   .form-container {
-    border: 1px solid #e0e0e0;
-    border-radius: 10px;
-    padding: 10px 20px 20px;
-    /* Reduced top padding from 20px to 10px */
+      display: flex;
+      padding: 32px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 32px;
+      align-self: stretch;
+
+      border-radius: 12px;
+      border: 1px solid #E5E7EB;
+      background: #FFF;
   }
 
   .form-title {

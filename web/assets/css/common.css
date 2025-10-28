@@ -824,3 +824,10 @@ a {
         margin: 0 8px;
     }
 }
+
+.form-check-input {
+    &:checked {
+        background-color: #D94A2A;
+        border-color: #D94A2A;
+    }
+}
