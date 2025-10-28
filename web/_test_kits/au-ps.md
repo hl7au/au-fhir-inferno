@@ -9,7 +9,7 @@ canonical_url: "http://hl7.org.au/fhir/ps"
 logo: /assets/images/au-core-logo.png
 preview_text: The AU PS Test Kit validates the conformance of a server implementation to a specific version of the AU PS IG
 suites:
-  - title: 0.4.0-draft
+  - title: AU PS 0.4.0-draft
     id: au_ps_suite
 sections:
   - title: "Status"

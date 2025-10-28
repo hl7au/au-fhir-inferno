@@ -50,7 +50,10 @@ layout: page
     <div class="tk-show-right-column">
         <div class="form-container">
             <form id="start-testing-form" class="tk-show-form">
-                <h2 class="tk-show-start-testing-block-title">Start Testing</h2>
+                <div class="start-testing-block-title">
+                    <img src="/assets/images/rocket_launch.svg" width="24px" height="24px" />
+                    <h2 class="tk-show-start-testing-block-title">Start Testing</h2>
+                </div>
                 <fieldset class="mb-3" {% if page.suites==nil %}style="display:none" {% endif %}>
                 <legend class="tk-show-start-testing-block-legend">Test Suite</legend>
                 {% for suite in page.suites %}
@@ -95,7 +98,7 @@ layout: page
                 </a>
             </form>
         </div>
-<!--        {% include recent_sessions.html %}-->
+        {% include recent_sessions.html %}
     </div>
 </div>
 

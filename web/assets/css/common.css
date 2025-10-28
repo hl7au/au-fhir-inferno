@@ -831,3 +831,69 @@ a {
         border-color: #D94A2A;
     }
 }
+
+.recent-sessions-card {
+    display: flex;
+    padding: 32px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 32px;
+
+    border-radius: 16px;
+    border: 1px solid #E5E7EB;
+    background: #FFF;
+
+    .recent-sessions-card-body {
+        color: #2C3E50;
+        text-align: center;
+        font-family: Inter, sans-serif;
+        font-size: 16px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: 24px;
+    }
+
+    .recent-sessions-card-header {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        width: 100%;
+        align-items: center;
+        flex: 1 0 0;
+
+        a {
+            color: rgba(0, 0, 0, 0.25);
+            font-family: Inter, sans-serif;
+            font-size: 16px;
+            font-style: normal;
+            font-weight: 600;
+            line-height: 24px;
+            text-decoration: none;
+        }
+
+        .recent-sessions-card-header-title {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 12px;
+
+            color: #2C3E50;
+            font-family: Inter, sans-serif;
+            font-size: 24px;
+            font-style: normal;
+            font-weight: 700;
+            line-height: 32px;
+
+            img {
+                width: 24px;
+                height: 24px;
+            }
+        }
+    }
+}
+
+.start-testing-block-title {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+}
