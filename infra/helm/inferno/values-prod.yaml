@@ -5,12 +5,12 @@ ingress:
 
 
 inferno:
-  imageUrl: ghcr.io/hl7au/au-fhir-inferno:4fb8c855ad0ed235f8d2b79a56ac87e9d413747e-prod
+  imageUrl: ghcr.io/hl7au/au-fhir-inferno:5c7eabc3b378ca0147a781b6fd9cecab0046ba5f-prod
   usesWrapper: true
   validatorImageUri: markiantorno/validator-wrapper:latest
 
 nginx:
-  platformImageUri: ghcr.io/hl7au/au-fhir-inferno:4fb8c855ad0ed235f8d2b79a56ac87e9d413747e-nginx-prod
+  platformImageUri: ghcr.io/hl7au/au-fhir-inferno:5c7eabc3b378ca0147a781b6fd9cecab0046ba5f-nginx-prod
 
 
 externalSecrets:
