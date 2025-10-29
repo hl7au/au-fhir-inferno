@@ -105,6 +105,11 @@
     --padding-button: 12px 32px;
 }
 
+/* Global typography defaults: apply base font to all elements */
+html, body, button, input, textarea, select {
+    font-family: var(--font-family-base);
+}
+
 h3 {
     font-size: 1.25rem
 }
@@ -877,7 +882,6 @@ a {
     .recent-sessions-card-body {
         color: #2C3E50;
         text-align: center;
-        font-family: Inter, sans-serif;
         font-size: 16px;
         font-style: normal;
         font-weight: 400;
@@ -894,7 +898,6 @@ a {
 
         a {
             color: rgba(0, 0, 0, 0.25);
-            font-family: Inter, sans-serif;
             font-size: 16px;
             font-style: normal;
             font-weight: 600;
@@ -909,7 +912,6 @@ a {
             gap: 12px;
 
             color: #2C3E50;
-            font-family: Inter, sans-serif;
             font-size: 24px;
             font-style: normal;
             font-weight: 700;
@@ -958,7 +960,6 @@ a {
     gap: 64px;
     justify-content: space-between;
 
-    font-family: var(--font-family-base);
     align-self: stretch;
 
     .breadcrumb {
@@ -1132,7 +1133,6 @@ a {
 
         a {
             color: #6C757D;
-            font-family: 'Inter', sans-serif;
             font-size: 18px;
             font-style: normal;
             font-weight: 600;
@@ -1182,7 +1182,6 @@ a {
             h3 {
                 margin: 0px;
                 color: #2C3E50;
-                font-family: Inter, sans-serif;
                 font-size: 24px;
                 font-style: normal;
                 font-weight: 700;
@@ -1205,7 +1204,6 @@ a {
 
     h1 {
         color: #2C3E50;
-        font-family: Inter, sans-serif;
         font-size: 48px;
         font-style: normal;
         font-weight: 700;
@@ -1214,7 +1212,6 @@ a {
 }
 
 .tk-list-container {
-    font-family: Inter, sans-serif;
     display: flex;
     flex: .7;
     flex-direction: column;
@@ -1339,7 +1336,6 @@ a {
         background: #FFF;
 
         color: #2C3E50;
-        font-family: Inter, sans-serif;
         font-size: 18px;
         font-style: normal;
         font-weight: 400;
@@ -1375,7 +1371,6 @@ a {
 
                     h3 {
                         color: #2C3E50;
-                        font-family: Inter, sans-serif;
                         font-size: 48px;
                         font-style: normal;
                         font-weight: 700;
@@ -1394,7 +1389,6 @@ a {
                     justify-content: space-between;
 
                     color: #2C3E50;
-                    font-family: Inter, sans-serif;
                     font-size: 16px;
                     font-style: normal;
                     font-weight: 400;
@@ -1457,7 +1451,6 @@ a {
                     h4 {
                         margin: 0px;
                         color: #2C3E50;
-                        font-family: Inter, sans-serif;
                         font-size: 32px;
                         font-style: normal;
                         font-weight: 700;
@@ -1489,7 +1482,6 @@ a {
 
         .tk-show-start-testing-block-title {
             color: #2C3E50;
-            font-family: Inter, sans-serif;
             font-size: 24px;
             font-style: normal;
             font-weight: 700;
@@ -1501,7 +1493,6 @@ a {
             color: #2C3E50;
             text-align: left;
 
-            font-family: Inter, sans-serif;
             font-size: 14px;
             font-style: normal;
             font-weight: 600;
