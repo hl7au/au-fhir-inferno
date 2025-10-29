@@ -1,11 +1,12 @@
 name        = "inferno"
 environment = "prod"
-# imageUrl             = "ghcr.io/hl7au/au-fhir-core-inferno:bb8de66a310a6dcb800b71e9da83a2a6221346c3" # old working core image
-imageUrl                = "ghcr.io/hl7au/au-fhir-inferno:4fb8c855ad0ed235f8d2b79a56ac87e9d413747e-prod"       # use the image that is not tagged with -nginx
-platformImageUri        = "ghcr.io/hl7au/au-fhir-inferno:4fb8c855ad0ed235f8d2b79a56ac87e9d413747e-nginx-prod" # use the image that IS tagged with -nginx
-validatorImageUri       = "ghcr.io/beda-software/validator-wrapper:latest"
+## MOVED TO infra/helm/inferno/values-prod.yaml
+# imageUrl         = MOVED TO infra/helm/inferno/values-prod.yaml
+# platformImageUri = MOVED TO infra/helm/inferno/values-prod.yaml
+# validatorImageUri       = MOVED TO infra/helm/inferno/values-prod.yaml
 usesWrapper             = true
-cluster_name            = "sparked-k8s"
-vpc_name                = "sparked-k8s-vpc"
-snapshot_identifier     = "final-prod-inferno-postgresql-c46a1109"
+cluster_name            = "sparkey"
+vpc_name                = "sparkey-vpc"
+snapshot_identifier     = "prod-inferno-sparked-snapshot-manual"
 postgres_instance_class = "db.t4g.medium"
+rds_name                = "prod-inferno-postgresql"

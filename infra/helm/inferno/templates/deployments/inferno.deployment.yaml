@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: inferno-app
   namespace: {{ .Values.namespace }}
+  annotations:
+    reloader.stakater.com/auto: "true"
 spec:
   replicas: 1
   selector:
@@ -53,6 +55,13 @@ spec:
             name: postgresql-configmap
         - secretRef:
             name: postgresql-secret
+        resources:
+          requests:
+            memory: "2Gi"   # Minimum memory required for scheduling
+            cpu: "500m"       # Minimum CPU required for scheduling
+          limits:
+            memory: "2.5Gi"     # Maximum memory usage allowed
+            cpu: "1"       # Maximum CPU usage allowed
       - name: nginx
         image: {{ .Values.nginx.platformImageUri }}
         imagePullPolicy: Always

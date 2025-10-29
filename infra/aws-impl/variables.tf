@@ -14,6 +14,12 @@ variable "vpc_name" {
   default     = "fhir-k8s-dev-vpc"
 }
 
+variable "rds_name" {
+  description = "The name of the RDS instance"
+  type        = string
+  default     = ""
+}
+
 variable "environment" {
   description = "Environment"
   type        = string
@@ -32,16 +38,14 @@ variable "imageUrl" {
 }
 
 variable "platformImageUri" {
-  description = "Platform Image URI"
-  type        = string
-  default     = "ghcr.io/hl7au/au-fhir-inferno:8885d0c456d0fdfaa92a915410e54cd820adc0fc"
+  type = string
 
 }
 
 variable "validatorImageUri" {
   description = "Validator Image URI"
   type        = string
-  default     = "ghcr.io/beda-software/validator-wrapper:latest"
+  default     = "markiantorno/validator-wrapper:1.0.68"
 
 }
 
