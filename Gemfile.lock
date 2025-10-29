@@ -1,17 +1,27 @@
 GIT
-  remote: https://github.com/beda-software/au-ips-inferno
-  revision: 507ab792ec0a639d7e28e7389dcc51a4fc135cb0
-  ref: 507ab792ec0a639d7e28e7389dcc51a4fc135cb0
-  specs:
-    au_ips_inferno (0.0.1)
-      inferno_core (~> 0.6.1)
-
-GIT
   remote: https://github.com/beda-software/validation-test-kit
   revision: 3438159ae5860216d37c559725fbfdc316ad745c
   specs:
     validation_test_kit (0.0.1)
       inferno_core (>= 0.4.2)
+
+GIT
+  remote: https://github.com/hl7au/au-fhir-core-inferno
+  revision: 5d9069364f7a535b1d0073dc08ac817e4ccfcd66
+  ref: 5d9069364f7a535b1d0073dc08ac817e4ccfcd66
+  specs:
+    au_core_test_kit (1.2.0)
+      inferno_core (>= 0.6.1)
+      smart_app_launch_test_kit (>= 0.4.0)
+      tls_test_kit (~> 0.2.0)
+
+GIT
+  remote: https://github.com/hl7au/au-ps-inferno
+  revision: 6d33641ed0cf0aa189ba0d564352294e5e7eb059
+  ref: 6d33641ed0cf0aa189ba0d564352294e5e7eb059
+  specs:
+    au_ps_inferno (0.0.1)
+      inferno_core (~> 0.6.2)
 
 GEM
   remote: https://rubygems.org/
@@ -25,10 +35,6 @@ GEM
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
     aes_key_wrap (1.1.0)
-    au_core_test_kit (0.0.18)
-      inferno_core (>= 0.6.1)
-      smart_app_launch_test_kit (>= 0.4.0)
-      tls_test_kit (~> 0.2.0)
     base62-rb (0.3.1)
     base64 (0.2.0)
     bcp47 (0.3.3)
@@ -47,6 +53,7 @@ GEM
     cronex (0.15.0)
       tzinfo
       unicode (>= 0.4.4.5)
+    csv (3.3.5)
     database_cleaner (1.99.0)
     database_cleaner-sequel (1.99.0)
       database_cleaner (~> 1.99.0)
@@ -185,11 +192,12 @@ GEM
     httpclient (2.8.3)
     i18n (1.14.7)
       concurrent-ruby (~> 1.0)
-    inferno_core (0.6.1)
+    inferno_core (0.6.17)
       activesupport (~> 6.1.7.5)
       base62-rb (= 0.3.1)
       blueprinter (= 0.25.2)
       concurrent-ruby (= 1.3.4)
+      csv (~> 3.3.5)
       dotenv (~> 2.7)
       dry-configurable (= 1.0.0)
       dry-container (= 0.10.0)
@@ -202,23 +210,19 @@ GEM
       fhir_models (>= 4.2.2)
       hanami-controller (= 2.0.0)
       hanami-router (= 2.0.0)
+      mutex_m (~> 0.3.0)
       oj (= 3.11.0)
       pastel (~> 0.8.0)
       pry
       pry-byebug
       puma (~> 5.6.7)
       rake (~> 13.0)
+      roo (~> 2.10.1)
       sequel (~> 5.42.0)
       sidekiq (~> 7.2.4)
       sqlite3 (~> 1.4)
       thor (~> 1.2.1)
       tty-markdown (~> 0.7.1)
-    ipa_test_kit (0.4.1)
-      inferno_core (>= 0.4.37)
-      smart_app_launch_test_kit (~> 0.3)
-      tls_test_kit (~> 0.2.0)
-    ips_test_kit (0.10.2)
-      inferno_core (>= 0.4.37)
     jekyll (4.3.4)
       addressable (~> 2.4)
       colorator (~> 1.0)
@@ -271,6 +275,7 @@ GEM
     mustermann-contrib (1.1.2)
       hansi (~> 0.2.0)
       mustermann (= 1.1.2)
+    mutex_m (0.3.0)
     netrc (0.11.0)
     nio4r (2.7.4)
     nokogiri (1.18.2-aarch64-linux-gnu)
@@ -325,6 +330,9 @@ GEM
       mime-types (>= 1.16, < 4.0)
       netrc (~> 0.8)
     rexml (3.4.0)
+    roo (2.10.1)
+      nokogiri (~> 1)
+      rubyzip (>= 1.3.0, < 3.0.0)
     rouge (4.5.1)
     rspec (3.13.0)
       rspec-core (~> 3.13.0)
@@ -340,6 +348,7 @@ GEM
       rspec-support (~> 3.13.0)
     rspec-support (3.13.2)
     ruby2_keywords (0.0.5)
+    rubyzip (2.4.1)
     safe_yaml (1.0.5)
     sass-embedded (1.83.4-aarch64-linux-gnu)
       google-protobuf (~> 4.29)
@@ -425,13 +434,11 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
-  au_core_test_kit (~> 0.0.18)
-  au_ips_inferno!
+  au_core_test_kit!
+  au_ps_inferno!
   database_cleaner-sequel (~> 1.8)
   factory_bot (~> 6.1)
-  inferno_core (~> 0.6.1)
-  ipa_test_kit (~> 0.4.1)
-  ips_test_kit (~> 0.10.2)
+  inferno_core (~> 0.6.2)
   jekyll
   pg
   rspec (~> 3.10)

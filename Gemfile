@@ -4,7 +4,7 @@ source "https://rubygems.org"
 
 ruby '3.3.6'
 
-gem 'inferno_core', '~> 0.6.1'
+gem 'inferno_core', '~> 0.6.2'
 gem 'pg'
 
 # This loads the test kit suites
@@ -12,11 +12,9 @@ gem 'pg'
 # also point to git repos, or with some extra
 # Docker configuration relative directories
 
-gem 'au_core_test_kit', '~> 0.0.18'
-gem 'au_ips_inferno', git: 'https://github.com/beda-software/au-ips-inferno', ref: '507ab792ec0a639d7e28e7389dcc51a4fc135cb0'
+gem 'au_core_test_kit', git: 'https://github.com/hl7au/au-fhir-core-inferno', ref: '5d9069364f7a535b1d0073dc08ac817e4ccfcd66'
+gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno', ref: '6d33641ed0cf0aa189ba0d564352294e5e7eb059'
 gem 'validation_test_kit', git: 'https://github.com/beda-software/validation-test-kit'
-gem 'ips_test_kit', '~> 0.10.2'
-gem 'ipa_test_kit', '~> 0.4.1'
 
 gem 'sidekiq-cron'
 
