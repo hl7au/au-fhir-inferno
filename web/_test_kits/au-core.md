@@ -9,10 +9,6 @@ maturity: Low
 suites:
   - title: AU Core v1.0.0
     id: au_core_v100
-  - title: AU Core v1.1.0-preview
-    id: au_core_v110_preview
-  - title: AU Core v2.0.0-draft
-    id: au_core_v200_draft
   - title: AU Core v2.0.0-ballot
     id: au_core_v200_ballot
 ---
