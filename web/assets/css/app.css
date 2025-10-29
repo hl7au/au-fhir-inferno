@@ -189,6 +189,10 @@ a.anchor {
     visibility: hidden;
 }
 
+.content-wrapper {
+    padding: 0 120px;
+}
+
 .disclaimer-text {
     color: var(--color-disclaimer-text);
     font-size: var(--font-size-sm);
@@ -453,6 +457,7 @@ nav[data-toggle="toc"] .nav .nav {
     font-style: normal;
     font-weight: var(--font-weight-bold);
     line-height: normal;
+    margin-bottom: 0;
 }
 
 .breadcrumb a {
@@ -1038,7 +1043,11 @@ nav[data-toggle="toc"] .nav .nav {
     width: 100%;
 }
 
-@media only screen and (max-width: 600px) {
+@media only screen and (max-width: 980px) {
+    .content-wrapper {
+        padding: 0 16px;
+    }
+
     .navigation-container {
         padding: 16px;
         position: relative;
