@@ -108,6 +108,9 @@
 /* Global typography defaults: apply base font to all elements */
 html, body, button, input, textarea, select {
     font-family: var(--font-family-base);
+    font-size: var(--font-size-base);
+    font-style: var(--font-style-normal);
+    font-weight: var(--font-weight-regular);
 }
 
 h3 {
@@ -133,9 +136,6 @@ footer {
 
 footer p {
     color: var(--color-background);
-    font-size: var(--font-size-base);
-    font-style: var(--font-style-normal);
-    font-weight: var(--font-weight-regular);
     line-height: var(--line-height-base);
 }
 
@@ -154,16 +154,12 @@ footer .logo-block {
 
 footer a {
     color: var(--color-footer-link);
-    font-size: var(--font-size-base);
-    font-style: var(--font-style-normal);
-    font-weight: var(--font-weight-regular);
     line-height: var(--line-height-base);
 }
 
 footer h3 {
     color: var(--color-background);
     font-size: var(--font-size-lg);
-    font-style: var(--font-style-normal);
     font-weight: var(--font-weight-semibold);
     line-height: var(--line-height-relaxed);
 }
@@ -187,8 +183,6 @@ footer .footer-logo a:visited
 {
     color: var(--color-background);
     font-size: var(--font-size-sm);
-    font-style: var(--font-style-normal);
-    font-weight: var(--font-weight-regular);
     line-height: var(--line-height-tight);
 }
 
@@ -237,7 +231,6 @@ nav .navbar .navbar-nav li.nav-item:hover,
 .dropdown .dropdown-menu .nav-link {
     color: var(--color-secondary);
     font-size: var(--font-size-md);
-    font-style: var(--font-style-normal);
     font-weight: var(--font-weight-semibold);
     line-height: var(--line-height-normal);
 }
@@ -262,8 +255,6 @@ nav .navbar .navbar-nav li.nav-item:hover,
 .disclaimer-text {
     color: var(--color-disclaimer-text);
     font-size: var(--font-size-sm);
-    font-style: var(--font-style-normal);
-    font-weight: var(--font-weight-regular);
     line-height: var(--line-height-tight);
     background-color: var(--color-disclaimer);
     text-align: left;
@@ -288,7 +279,6 @@ nav .navbar .navbar-nav li.nav-item:hover,
 .toc-header {
     color: var(--color-text);
     font-size: var(--font-size-xl);
-    font-style: var(--font-style-normal);
     font-weight: var(--font-weight-bold);
     line-height: var(--line-height-xl);
     margin: 0px;
@@ -310,8 +300,6 @@ nav .navbar .navbar-nav li.nav-item:hover,
 .bd-toc .nav.navbar-nav .nav-link {
     color: var(--color-text);
     font-size: var(--font-size-md);
-    font-style: var(--font-style-normal);
-    font-weight: var(--font-weight-regular);
     line-height: var(--line-height-loose);
 }
 
@@ -613,7 +601,6 @@ nav[data-toggle="toc"] .nav .nav {
     color: var(--color-text);
     text-align: center;
     font-size: var(--font-size-2xl);
-    font-style: var(--font-style-normal);
     font-weight: var(--font-weight-bold);
     line-height: 36px;
 }
@@ -622,8 +609,6 @@ nav[data-toggle="toc"] .nav .nav {
     color: var(--color-text);
     text-align: center;
     font-size: var(--font-size-md);
-    font-style: var(--font-style-normal);
-    font-weight: var(--font-weight-regular);
     line-height: var(--line-height-relaxed);
 }
 
@@ -645,25 +630,18 @@ nav[data-toggle="toc"] .nav .nav {
 .features-new .card .card-title {
     color: var(--color-text);
     font-size: var(--font-size-lg);
-    font-style: var(--font-style-normal);
     font-weight: var(--font-weight-bold);
     line-height: var(--line-height-relaxed);
 }
 
 .features-new .card .card-text {
     color: var(--color-text);
-    font-size: var(--font-size-base);
-    font-style: var(--font-style-normal);
-    font-weight: var(--font-weight-regular);
     line-height: var(--line-height-base);
     text-align: left;
 }
 
 .features-new .card a {
     color: var(--color-accent);
-    font-size: var(--font-size-base);
-    font-style: var(--font-style-normal);
-    font-weight: var(--font-weight-regular);
     line-height: var(--line-height-base);
 }
 
@@ -704,7 +682,6 @@ nav[data-toggle="toc"] .nav .nav {
 .hero-block .card-block .card .card-title {
     color: var(--color-text);
     font-size: var(--font-size-xl);
-    font-style: var(--font-style-normal);
     font-weight: var(--font-weight-bold);
     line-height: var(--line-height-xl);
 }
@@ -712,8 +689,6 @@ nav[data-toggle="toc"] .nav .nav {
 .hero-block .card-block .card .card-text {
     color: var(--color-text);
     font-size: var(--font-size-md);
-    font-style: var(--font-style-normal);
-    font-weight: var(--font-weight-regular);
     line-height: var(--line-height-relaxed);
 }
 
@@ -726,7 +701,6 @@ nav[data-toggle="toc"] .nav .nav {
     margin-top: var(--footer-margin-top);
     color: var(--color-text);
     font-size: var(--font-size-3xl);
-    font-style: var(--font-style-normal);
     font-weight: var(--font-weight-bold);
     line-height: var(--line-height-3xl);
 }
@@ -735,24 +709,18 @@ nav[data-toggle="toc"] .nav .nav {
     margin-top: var(--spacing-xl);
     color: var(--color-text);
     font-size: var(--font-size-lg);
-    font-style: var(--font-style-normal);
-    font-weight: var(--font-weight-regular);
     line-height: var(--line-height-relaxed);
 }
 
 .hero-block .details-block .text {
     color: var(--color-text);
     font-size: var(--font-size-md);
-    font-style: var(--font-style-normal);
-    font-weight: var(--font-weight-regular);
     line-height: var(--line-height-relaxed);
 }
 
 a {
     color: var(--color-accent);
     font-size: var(--font-size-md);
-    font-style: var(--font-style-normal);
-    font-weight: var(--font-weight-regular);
     line-height: var(--line-height-relaxed);
 }
 
@@ -773,8 +741,6 @@ a {
     border-radius: var(--radius-sm);
     border: 0px;
 
-    font-size: var(--font-size-base);
-    font-style: var(--font-style-normal);
     font-weight: var(--font-weight-semibold);
     line-height: var(--line-height-base);
 }
@@ -1032,8 +998,6 @@ a {
                     background: var(--color-background);
                     margin-bottom: 24px;
 
-                    font-size: var(--font-size-base);
-
                     a {
                         text-decoration: none;
                     }
@@ -1093,9 +1057,7 @@ a {
 
                 a {
                     color: var(--color-primary);
-                    font-size: var(--font-size-base);
                     font-style: normal;
-                    font-weight: var(--font-weight-regular);
                     line-height: 29px;
                     text-decoration: none;
                 }
