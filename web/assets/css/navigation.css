@@ -34,3 +34,13 @@
         }
     }
 }
+
+@media (max-width: 800px) {
+    .navigation-container {
+        padding: 16px;
+    }
+
+    .navigation-links {
+        display: none !important;
+    }
+}
