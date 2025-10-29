@@ -1,2 +1,2 @@
-ignore_test_kits: [au_ps_test_kit]
+ignore_test_kits: []
 inferno_host: "https://inferno.hl7.org.au"

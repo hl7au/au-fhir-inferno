@@ -3,19 +3,21 @@ layout: test-kit
 title: AU Core Test Kit
 test_kit_id: au_core_test_kit
 tags: [ AU ]
-date: 2025-02-05
-version: 0.0.18
+date: 2025-08-06
+version: 1.2.0
 maturity: Low
 suites:
   - title: AU Core v1.0.0
     id: au_core_v100
+  - title: AU Core v2.0.0-ballot
+    id: au_core_v200_ballot
 ---
 
-The AU Core Test Kit validates the conformance of a server implementation to a specific version of the AU Core IG. Currently, Inferno can test against implementations of following versions of the AU Core IG: [v1.0.0](https://hl7.org.au/fhir/core/).
+The AU Core Test Kit validates the conformance of a server implementation to a specific version of the AU Core IG.
 
 <!-- break -->
 
-This test kit is open source and freely available for use or adoption by the health IT community including EHR vendors, health app developers, and testing labs. It is built using the [Inferno Framework](https://inferno-framework.github.io/inferno-core/). The Inferno Framework is designed for reuse and aims to make it easier to build test kits for any FHIR-based data exchange. 
+This test kit is open source and freely available for use or adoption by the health IT community including EHR vendors, health app developers, and testing labs. It is built using the [Inferno Framework](https://inferno-framework.github.io/inferno-core/). The Inferno Framework is designed for reuse and aims to make it easier to build test kits for any FHIR-based data exchange.
 
 ## Status
 
