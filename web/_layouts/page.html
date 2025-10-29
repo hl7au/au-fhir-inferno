@@ -8,11 +8,9 @@
 
 <body data-spy="scroll" data-target="#toc">
   <div class="flex-wrapper">
-    <div>
-      {% include navigation.html %}
-      <div class="content-wrapper">
-        {{ content }}
-      </div>
+    {% include navigation.html %}
+    <div class="content-wrapper">
+      {{ content }}
     </div>
     {% include footer.html %}
   </div>

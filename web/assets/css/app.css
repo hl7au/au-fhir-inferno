@@ -112,7 +112,7 @@ a {
 }
 
 footer {
-    margin-top: var(--footer-margin-top);
+    margin-top: 128px;
     background-color: var(--footer-bkg);
     padding: var(--spacing-2xl) var(--spacing-nav-horizontal);
     display: flex;
@@ -545,7 +545,7 @@ nav[data-toggle="toc"] .nav .nav {
 }
 
 .content-container {
-    margin: 64px 0px 128px 0px;
+    margin: 64px 0 0 0;
     display: flex;
     flex-direction: column;
     gap: 64px;
@@ -1130,6 +1130,10 @@ nav[data-toggle="toc"] .nav .nav {
         padding: var(--spacing-sm) var(--spacing-md);
     }
 
+    .breadcrumb {
+        display: none;
+    }
+
     .hero-block {
         flex-direction: column;
         margin-top: 32px;
@@ -1163,6 +1167,31 @@ nav[data-toggle="toc"] .nav .nav {
         margin-top: 32px;
     }
 
+    .content-container {
+        margin: 32px 0 0 0;
+    }
+
+    .content-container .content {
+        gap: 48px;
+    }
+
+
+    .content-container .content h1 {
+        margin: 0;
+    }
+
+    .content-container .content .two-columns .toc-block {
+        display: none;
+    }
+
+    .content-container .content .two-columns .content-blocks {
+        flex: 1;
+    }
+
+    .content-container .content .two-columns .content-blocks .card {
+        padding: 32px 16px;
+    }
+
     .features-new {
         margin-top: 48px;
     }
@@ -1183,6 +1212,10 @@ nav[data-toggle="toc"] .nav .nav {
 
     .features-new .card {
         flex: 1;
+    }
+
+    .content-container .content .two-columns .content-blocks .btn-secondary {
+        display: none;
     }
 
     footer {
