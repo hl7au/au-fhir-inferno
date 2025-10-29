@@ -742,6 +742,13 @@ nav[data-toggle="toc"] .nav .nav {
     gap: var(--spacing-lg);
 }
 
+.tk-extra-card-content-title-icon {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    align-items: center;
+}
+
 .tk-extra-card-content h3 {
     margin: 0px;
     color: var(--color-text);
