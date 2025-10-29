@@ -2,103 +2,105 @@
 layout: page
 ---
 
-<div class="breadcrumb">
-    <ul>
-        <li><a href="/">Home</a></li>
-        <li>{{ page.current_page }}</li>
-    </ul>
-</div>
-
-{% include toast.html %}
-
-<div class="tk-show-container">
-    <div class="tk-show-left-column">
-        <div class="tk-show-main-data">
-            <div class="tk-show-header">
-                <div class="tk-show-header-title-logo">
-                    <h3>{{ page.title }}</h3>
-                    <img src="{{ page.logo }}" />
-                </div>
-                <div class="tk-show-header-details">
-                    <div class="tk-show-header-details-list">
-                        <div><b>Updated:</b> {{ page.date | date: "%m/%d/%Y" }}</div>
-                        <div><b>Version:</b> {{ page.version }}</div>
-                    </div>
-                    <div class="tk-show-header-details-tags">
-                        {{ page.tags }}
-                    </div>
-                </div>
-            </div>
-            <div class="tk-show-description">
-                {{ page.content }}
-            </div>
-        </div>
-        <div class="tk-show-data-cards">
-            {% for section in page.sections %}
-            <div class="tk-show-data-card">
-                <div class="tk-show-data-card-header">
-                    <img src="{{ section.icon }}" />
-                    <h4>{{ section.title }}</h4>
-                </div>
-                <div>
-                    {{ section.content }}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
+<div class="content-container">
+    <div class="breadcrumb">
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li>{{ page.current_page }}</li>
+        </ul>
     </div>
-    <div class="tk-show-right-column">
-        <div class="form-container">
-            <form id="start-testing-form" class="tk-show-form">
-                <div class="start-testing-block-title">
-                    <img src="/assets/images/rocket_launch.svg" width="24px" height="24px" />
-                    <h2 class="tk-show-start-testing-block-title">Start Testing</h2>
-                </div>
-                <fieldset class="mb-3" {% if page.suites==nil %}style="display:none" {% endif %}>
-                <legend class="tk-show-start-testing-block-legend">Test Suite</legend>
-                {% for suite in page.suites %}
-                <div class="form-check">
-                    {% if forloop.first or suite.default %}
-                    <input class="form-check-input" type="radio" name="suite" id="{{ suite.id }}" value="{{ suite.id }}"
-                           checked>
-                    {% else %}
-                    <input class="form-check-input" type="radio" name="suite" id="{{ suite.id }}" value="{{ suite.id }}">
-                    {% endif %}
-                    <label class="form-check-label" for="{{ suite.id }}">
-                        {{ suite.title }}
-                    </label>
-                </div>
-                {% endfor %}
-                </fieldset>
-                {% for option_group in page.option_groups %}
-                <fieldset class="option-group mb-3" style="display: none"
-                          data-option-group-for-suites="{{ option_group.suites | join: " ," }}">
-                <legend class="form-title fs-6">{{ option_group.title }}</legend>
-                {% for option in option_group.options %}
-                <div class="form-check">
-                    {% if forloop.first or option.default %}
-                    <input class="form-check-input" type="radio" name="{{ option_group.id }}" id="{{ option.value }}"
-                           value="{{ option.value }}" checked>
-                    {% else %}
-                    <input class="form-check-input" type="radio" name="{{ option_group.id }}" id="{{ option.value }}"
-                           value="{{ option.value }}">
-                    {% endif %}
-                    <label class="form-check-label" for="{{ option.value }}">
-                        {{ option.label }}
-                    </label>
-                </div>
-                {% endfor %}
-                </fieldset>
-                {% endfor %}
 
-                <!-- Submit Button -->
-                <a class="btn btn-attention btn-wide" id="start-testing-button">
-                    <i class="bi bi-plus-circle"></i>
-                    Create Test Session
-                </a>
-            </form>
+    {% include toast.html %}
+
+    <div class="tk-show-container">
+        <div class="tk-show-left-column">
+            <div class="tk-show-main-data">
+                <div class="tk-show-header">
+                    <div class="tk-show-header-title-logo">
+                        <h3>{{ page.title }}</h3>
+                        <img src="{{ page.logo }}" />
+                    </div>
+                    <div class="tk-show-header-details">
+                        <div class="tk-show-header-details-list">
+                            <div><b>Updated:</b> {{ page.date | date: "%m/%d/%Y" }}</div>
+                            <div><b>Version:</b> {{ page.version }}</div>
+                        </div>
+                        <div class="tk-show-header-details-tags">
+                            {{ page.tags }}
+                        </div>
+                    </div>
+                </div>
+                <div class="tk-show-description">
+                    {{ page.content }}
+                </div>
+            </div>
+            <div class="tk-show-data-cards">
+                {% for section in page.sections %}
+                <div class="tk-show-data-card">
+                    <div class="tk-show-data-card-header">
+                        <img src="{{ section.icon }}" />
+                        <h4>{{ section.title }}</h4>
+                    </div>
+                    <div>
+                        {{ section.content }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
         </div>
-        {% include recent_sessions.html %}
+        <div class="tk-show-right-column">
+            <div class="form-container">
+                <form id="start-testing-form" class="tk-show-form">
+                    <div class="start-testing-block-title">
+                        <img src="/assets/images/rocket_launch.svg" width="24px" height="24px" />
+                        <h2 class="tk-show-start-testing-block-title">Start Testing</h2>
+                    </div>
+                    <fieldset class="mb-3" {% if page.suites==nil %}style="display:none" {% endif %}>
+                    <legend class="tk-show-start-testing-block-legend">Test Suite</legend>
+                    {% for suite in page.suites %}
+                    <div class="form-check">
+                        {% if forloop.first or suite.default %}
+                        <input class="form-check-input" type="radio" name="suite" id="{{ suite.id }}" value="{{ suite.id }}"
+                               checked>
+                        {% else %}
+                        <input class="form-check-input" type="radio" name="suite" id="{{ suite.id }}" value="{{ suite.id }}">
+                        {% endif %}
+                        <label class="form-check-label" for="{{ suite.id }}">
+                            {{ suite.title }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                    </fieldset>
+                    {% for option_group in page.option_groups %}
+                    <fieldset class="option-group mb-3" style="display: none"
+                              data-option-group-for-suites="{{ option_group.suites | join: " ," }}">
+                    <legend class="form-title fs-6">{{ option_group.title }}</legend>
+                    {% for option in option_group.options %}
+                    <div class="form-check">
+                        {% if forloop.first or option.default %}
+                        <input class="form-check-input" type="radio" name="{{ option_group.id }}" id="{{ option.value }}"
+                               value="{{ option.value }}" checked>
+                        {% else %}
+                        <input class="form-check-input" type="radio" name="{{ option_group.id }}" id="{{ option.value }}"
+                               value="{{ option.value }}">
+                        {% endif %}
+                        <label class="form-check-label" for="{{ option.value }}">
+                            {{ option.label }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                    </fieldset>
+                    {% endfor %}
+
+                    <!-- Submit Button -->
+                    <a class="btn btn-attention btn-wide" id="start-testing-button">
+                        <i class="bi bi-plus-circle"></i>
+                        Create Test Session
+                    </a>
+                </form>
+            </div>
+            {% include recent_sessions.html %}
+        </div>
     </div>
 </div>
 
