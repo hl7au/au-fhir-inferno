@@ -1068,7 +1068,7 @@ nav[data-toggle="toc"] .nav .nav {
 
 .tk-list-filters-block .text-search input {
     display: flex;
-    padding: 5px 12px;
+    padding: 5px 12px 5px 36px; /* extra left padding to make room for icon */
     align-items: center;
     gap: 8px;
     flex: 1 0 0;
@@ -1077,6 +1077,12 @@ nav[data-toggle="toc"] .nav .nav {
     border: 1px solid #E5E7EB;
     background: #FFF;
 
+    /* search icon inside input (shows while placeholder is shown) */
+    background-image: url('/assets/images/search.svg');
+    background-repeat: no-repeat;
+    background-position: 12px center;
+    background-size: 16px 16px;
+
     color: rgba(0, 0, 0, 0.25);
     text-overflow: ellipsis;
 
@@ -1084,6 +1090,11 @@ nav[data-toggle="toc"] .nav .nav {
     font-style: normal;
     font-weight: 400;
     line-height: 22px;
+}
+
+/* Hide icon when input has content (placeholder not shown) */
+.tk-list-filters-block .text-search input:not(:placeholder-shown) {
+    background-image: none;
 }
 
 .tk-list-filters-block .text-search input::placeholder {
