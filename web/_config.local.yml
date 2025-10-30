@@ -1,2 +1,2 @@
 ignore_test_kits: []
-inferno_host: "https://localhost"
+inferno_host: "http://localhost"
