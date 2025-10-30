@@ -51,6 +51,7 @@ jobs:
       uses: hashicorp/setup-terraform@v3
       with:
         terraform_wrapper: false
+        terraform_version: 1.11.4
 
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terraform Init
@@ -65,6 +66,23 @@ jobs:
     # Will fail the build if not
     - name: Terraform Format
       run: terraform fmt -check
+      working-directory: ${{ env.working-dir }}
+
+
+    # - name: Debug Environment
+    #   run: |
+    #     echo "Environment: $ENVIRONMENT"
+    #     echo "GitHub Ref: $GITHUB_REF"
+    #     echo "Working Directory: ${{ env.working-dir }}"
+    #     ls -la ${{ env.working-dir }}
+        
+    # - name: Verify AWS Credentials
+    #   run: |
+    #     aws sts get-caller-identity
+    #     aws eks describe-cluster --name ${{ vars.CLUSTER_NAME || 'sparked-k8s' }} --region ap-southeast-2
+
+    - name: Terraform Validate
+      run: terraform validate
       working-directory: ${{ env.working-dir }}
 
     # Generates an execution plan for Terraform
@@ -152,7 +170,7 @@ jobs:
     - name: Configure aws credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: arn:aws:iam::471112546300:role/inferno-github-actions-eks-role
+        role-to-assume: arn:aws:iam::471112546300:role/core-inferno-github-actions-eks-role
         aws-region: ap-southeast-2
 
     # Set environment variable based on branch or PR
@@ -170,6 +188,7 @@ jobs:
       uses: hashicorp/setup-terraform@v3
       with:
         terraform_wrapper: false
+        terraform_version: 1.11.4
 
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terraform Init
