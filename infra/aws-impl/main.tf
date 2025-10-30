@@ -2,79 +2,14 @@ locals {
   env_name  = "${var.environment}-${var.name}"
   manifests = fileset(path.module, "manifests/*.yaml")
 
-  rds_name = "${local.env_name}-postgresql"
-  region   = "ap-southeast-2"
+  rds_name = var.rds_name != null && var.rds_name != "" ? var.rds_name : "${local.env_name}-postgresql"
+
+  region = "ap-southeast-2"
 
   tags = {
     Name       = local.env_name
     GithubRepo = "https://github.com/hl7au/au-fhir-inferno"
   }
-}
-
-## Inferno Application
-resource "helm_release" "inferno" {
-  name             = local.env_name
-  chart            = "../helm/inferno"
-  namespace        = local.env_name
-  create_namespace = true
-  reset_values     = true
-
-  values = [
-    file("../helm/inferno/values.yaml"),
-  ]
-
-  set_sensitive {
-    name  = "postgresql.global.postgresql.auth.username"
-    value = jsondecode(data.aws_secretsmanager_secret_version.rds.secret_string)["username"]
-  }
-  set_sensitive {
-    name  = "postgresql.global.postgresql.auth.password"
-    value = jsondecode(data.aws_secretsmanager_secret_version.rds.secret_string)["password"]
-  }
-
-  set_sensitive {
-    name  = "postgresql.externaldbhost"
-    value = split(":", module.rds.db_instance_endpoint)[0] # rds module provides endpoint with the port but inferno expects only the hostname
-  }
-  set {
-    name  = "ingress.hostnames[0]"
-    value = "${var.environment}.inferno.sparked-fhir.com"
-  }
-
-  # External domain: if prod => "inferno.hl7.org.au"
-  set {
-    name  = "ingress.hostnames[1]"
-    value = var.environment == "prod" ? "inferno.hl7.org.au" : "inferno.${var.environment}.hl7.org.au"
-  }
-
-  set {
-    name  = "inferno.imageUrl"
-    value = var.imageUrl
-  }
-
-  set {
-    name  = "nginx.platformImageUri"
-    value = var.platformImageUri
-  }
-
-  set {
-    name  = "inferno.validatorImageUri"
-    value = var.validatorImageUri
-  }
-
-  set {
-    name  = "nginx.example"
-    value = "12345"
-  }
-
-  set {
-    name  = "inferno.usesWrapper"
-    value = var.usesWrapper
-  }
-
-  depends_on = [
-    module.rds,
-  ]
 }
 
 
@@ -93,7 +28,7 @@ module "rds" {
 
   # All available versions: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_PostgreSQL.html#PostgreSQL.Concepts
   engine         = "postgres"
-  engine_version = "16"
+  engine_version = "16.8"
   instance_class = var.postgres_instance_class
 
   allocated_storage = 20
@@ -111,6 +46,7 @@ module "rds" {
   maintenance_window = "Mon:00:00-Mon:03:00"
   # backup_window           = "03:00-06:00"
   # backup_retention_period = 1
+  manage_master_user_password_rotation = false
 
   performance_insights_enabled          = true
   performance_insights_retention_period = 7
