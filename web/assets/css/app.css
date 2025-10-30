@@ -1050,7 +1050,7 @@ nav[data-toggle="toc"] .nav .nav {
     width: 100%;
 }
 
-@media only screen and (max-width: 991px) {
+@media (max-width: 575px) {
     .content-wrapper {
         padding: 0 16px;
     }
@@ -1323,35 +1323,164 @@ nav[data-toggle="toc"] .nav .nav {
     }
 }
 
-/* Responsive breakpoints for larger screens */
-@media only screen and (min-width: 992px) {
-    .content-wrapper {
-        padding: 0 120px;
+@media (min-width: 576px) and (max-width: 767px) {
+    .hero-block {
+        gap: 40px;
     }
 
     .navigation-container {
-        padding: var(--spacing-sm) var(--spacing-nav-horizontal);
+        padding: 12px 40px;
     }
 
     .disclaimer-text {
-        padding: var(--spacing-sm) 144px;
+        padding: 12px 40px;
+    }
+
+    .content-wrapper {
+        padding: 0 40px;
     }
 
     footer {
-        padding: var(--spacing-2xl) var(--spacing-nav-horizontal);
+        padding: 12px 40px;
     }
 }
 
-@media only screen and (min-width: 1200px) {
-    .hero-block {
-        gap: var(--spacing-4xl);
+@media (max-width: 991px) {
+    /* Show hamburger, hide links by default */
+    .hamburger {
+        display: inline-flex;
+        width: 28px;
+        height: 22px;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        position: relative;
+        z-index: 1001; /* above menu */
+        margin-left: auto;
+    }
+    .hamburger span,
+    .hamburger span::before,
+    .hamburger span::after {
+        display: block;
+        background: var(--color-text);
+        height: 2px;
+        width: 100%;
+        border-radius: 2px;
+        position: absolute;
+        transition: transform .2s ease, opacity .2s ease;
+        content: '';
+    }
+    .hamburger span { top: 50%; transform: translateY(-50%); }
+    .hamburger span::before { top: -7px; }
+    .hamburger span::after { top: 7px; }
+
+    /* Hide nav links until toggled */
+    .navigation-container .navigation-links {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 16px;
+        background: var(--color-background);
+        border: 1px solid var(--color-border);
+        border-radius: 8px;
+
+        padding: 8px 4px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+        flex-direction: column;
+        gap: 8px;
+        z-index: 1000;
+    }
+    .navigation-container .navigation-links a {
+        color: rgba(0, 0, 0, 0.88);
+
+        font-family: Inter, sans-serif;
+        font-size: 14px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: 22px;
+        padding: 5px 12px;
     }
 
-    .tk-content {
+    .navigation-container .navigation-links a.active {
+        display: flex;
+        padding: 5px 12px;
+        align-items: center;
+        gap: 8px;
+        color: rgba(0, 0, 0, 0.88);
+
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.04);
+    }
+
+    .nav-toggle:not(:checked) ~ .navigation-links { display: none; }
+
+    #nav-toggle:checked ~ .navigation-links {
+        display: flex !important;
+    }
+
+    #nav-toggle:checked + label.hamburger span { background: transparent; }
+    #nav-toggle:checked + label.hamburger span::before {
+        transform: translateY(7px) rotate(45deg);
+    }
+    #nav-toggle:checked + label.hamburger span::after {
+        transform: translateY(-7px) rotate(-45deg);
+    }
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+    .hero-block .card-block {
+        flex: .5;
+    }
+    .hero-block .details-block {
+        flex: .5;
+    }
+
+    .hero-block {
         gap: 48px;
     }
 
-    .features-new .card {
-        flex: 0 0 calc((100% - 64px) / 3);
+    .navigation-container {
+        padding: 12px 64px;
+    }
+
+    .disclaimer-text {
+        padding: 12px 64px;
+    }
+
+    footer {
+        padding: 12px 64px;
+    }
+
+    .content-wrapper {
+        padding: 0 64px;
+    }
+}
+
+@media (min-width: 992px) and (max-width: 1199px) {
+    .hero-block .card-block {
+        flex: .5;
+    }
+    .hero-block .details-block {
+        flex: .5;
+    }
+
+    .hero-block {
+        gap: 64px;
+    }
+
+    .navigation-container {
+        padding: 12px 100px;
+    }
+
+    .disclaimer-text {
+        padding: 12px 100px;
+    }
+
+    .content-wrapper {
+        padding: 0 100px;
+    }
+
+    footer {
+        padding: 12px 100px;
     }
 }
