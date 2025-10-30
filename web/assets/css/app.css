@@ -1510,6 +1510,14 @@ nav[data-toggle="toc"] .nav .nav {
     .tk-extra-block {
         flex: .5;
     }
+
+    .tk-show-left-column {
+        flex: .5;
+    }
+
+    .tk-show-right-column {
+        flex: .5;
+    }
 }
 
 @media (min-width: 992px) and (max-width: 1199px) {
@@ -1566,6 +1574,14 @@ nav[data-toggle="toc"] .nav .nav {
     }
 
     .tk-extra-block {
+        flex: .4;
+    }
+
+    .tk-show-left-column {
+        flex: .6;
+    }
+
+    .tk-show-right-column {
         flex: .4;
     }
 }
