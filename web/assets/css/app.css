@@ -1343,9 +1343,35 @@ nav[data-toggle="toc"] .nav .nav {
     footer {
         padding: 12px 40px;
     }
+
+    .content-container {
+        margin: 16px 0 0 0;
+        gap: 16px;
+    }
+
+    .content-container .content .two-columns {
+        gap: 8px;
+    }
+
+    .content-container .content .two-columns .content-blocks .card {
+        padding: 6px 4px;
+    }
+
+    .content-container .content .two-columns .toc-block {
+        padding: 16px;
+    }
+
+    .tk-content {
+        gap: 30px;
+        flex-direction: column;
+    }
 }
 
 @media (max-width: 991px) {
+    .features-new .card {
+        flex: 0 0 calc((100% - 48px) / 2);
+    }
+
     /* Show hamburger, hide links by default */
     .hamburger {
         display: inline-flex;
@@ -1425,6 +1451,7 @@ nav[data-toggle="toc"] .nav .nav {
     #nav-toggle:checked + label.hamburger span::after {
         transform: translateY(-7px) rotate(-45deg);
     }
+
 }
 
 @media (min-width: 768px) and (max-width: 991px) {
@@ -1454,6 +1481,35 @@ nav[data-toggle="toc"] .nav .nav {
     .content-wrapper {
         padding: 0 64px;
     }
+
+    .content-container {
+        margin: 32px 0 0 0;
+        gap: 32px;
+    }
+
+    .content-container .content .two-columns {
+        gap: 16px;
+    }
+
+    .content-container .content .two-columns .content-blocks .card {
+        padding: 12px 10px;
+    }
+
+    .content-container .content .two-columns .toc-block {
+        padding: 20px;
+    }
+
+    .tk-content {
+        gap: 36px;
+    }
+
+    .tk-main-block {
+        flex: .5;
+    }
+
+    .tk-extra-block {
+        flex: .5;
+    }
 }
 
 @media (min-width: 992px) and (max-width: 1199px) {
@@ -1480,7 +1536,36 @@ nav[data-toggle="toc"] .nav .nav {
         padding: 0 100px;
     }
 
+    .content-container {
+        margin: 48px 0 0 0;
+        gap: 48px;
+    }
+
     footer {
         padding: 12px 100px;
+    }
+
+    .content-container .content .two-columns {
+        gap: 32px;
+    }
+
+    .content-container .content .two-columns .content-blocks .card {
+        padding: 18px 16px;
+    }
+
+    .content-container .content .two-columns .toc-block {
+        padding: 26px;
+    }
+
+    .tk-content {
+        gap: 42px;
+    }
+
+    .tk-main-block {
+        flex: .6;
+    }
+
+    .tk-extra-block {
+        flex: .4;
     }
 }
