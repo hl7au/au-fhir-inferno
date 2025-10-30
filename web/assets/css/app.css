@@ -795,6 +795,10 @@ nav[data-toggle="toc"] .nav .nav {
     background: var(--color-background);
 }
 
+.hide-item {
+    display: none;
+}
+
 .tk-header {
     display: flex;
     flex-direction: row;
@@ -1048,6 +1052,70 @@ nav[data-toggle="toc"] .nav .nav {
 
 .tk-show-form {
     width: 100%;
+}
+
+.tk-list-filters-block {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+}
+
+.tk-list-filters-block .text-search {
+    display: flex;
+    flex: .8;
+}
+
+.tk-list-filters-block .text-search input {
+    display: flex;
+    padding: 5px 12px;
+    align-items: center;
+    gap: 8px;
+    flex: 1 0 0;
+
+    border-radius: 8px;
+    border: 1px solid #E5E7EB;
+    background: #FFF;
+
+    color: rgba(0, 0, 0, 0.25);
+    text-overflow: ellipsis;
+
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 22px;
+}
+
+.tk-list-filters-block .text-search input::placeholder {
+    color: rgba(0, 0, 0, 0.25);
+
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 22px;
+}
+
+.tk-list-filters-block .tag-search {
+    display: flex;
+    flex: .2;
+}
+
+.tk-list-filters-block .tag-search select {
+    display: flex;
+    padding: 5px 12px;
+    align-items: center;
+    gap: 8px;
+
+    border-radius: 8px;
+    border: 1px solid #E5E7EB;
+    background: #FFF;
+
+    color: rgba(0, 0, 0, 0.25);
+
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 22px;
 }
 
 @media (max-width: 575px) {
