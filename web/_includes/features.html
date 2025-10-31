@@ -1,0 +1,18 @@
+{% if site.features_block %}
+<section class="features-new">
+    <a class="anchor" id="what-is-inferno"></a>
+    <h2>{{ site.features_block.name }}</h2>
+    <span class="sub-title">{{ site.features_block.description }}</span>
+
+    {% if site.features_block.items %}
+    <div class="list-block">
+        {% for item in site.features_block.items %}
+        <div class="card">
+            <span class="card-title">{{ item.name }}</span>
+            <span class="card-text">{{ item.description }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</section>
+{% endif %}
