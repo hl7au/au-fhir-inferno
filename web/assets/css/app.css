@@ -165,6 +165,7 @@ footer .footer-logo a {
     color: var(--color-background);
     font-size: var(--font-size-sm);
     line-height: var(--line-height-tight);
+    text-decoration: none;
 }
 
 footer .footer-logo a:hover,
