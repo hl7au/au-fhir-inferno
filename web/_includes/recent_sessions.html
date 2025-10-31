@@ -1,54 +1,15 @@
-<div class="card mb-4">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <div>
-      <span>Your Recent Sessions</span>
-      <a href="#" data-bs-toggle="modal" data-bs-target="#recent-session-info-modal" title="More information"
-        class="ms-1">
-        <i class="bi bi-question-circle"></i>
-      </a>
+<div class="recent-sessions-card">
+  <div class="recent-sessions-card-header">
+    <div class="recent-sessions-card-header-title">
+        <img src="/assets/images/history.svg" />
+        <span>Recent Sessions</span>
     </div>
-    <a href="#" id="clear-sessions" data-bs-toggle="tooltip" data-bs-placement="top" title="Clear sessions"
-      onclick="clearSessions()">
-      <i class="bi bi-trash-fill"></i>
+    <a href="#" id="clear-sessions" title="Clear sessions" onclick="clearSessions()">
+      Clear
     </a>
   </div>
   <ul class="list-group list-group-flush" id="sessions-container"></ul>
-  <div class="card-body" id="empty-sessions">
-    <p>No recent test sessions have been run from this browser.</p>
-    <p>If you run tests on {{ site.title }}, links to the 5 most recent test sessions will
-      be shown here.</p>
-  </div>
-</div>
-
-<!-- Info Modal -->
-<div class="modal fade" id="recent-session-info-modal" tabindex="-1" aria-labelledby="recent-session-info-modal-label"
-  aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="recent-session-info-modal-label">Your Recent Test Sessions</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p>
-          If you run tests on <strong>{{ site.title }}</strong>, links to the 5
-          most recent test sessions will be shown here.
-        </p>
-        <p>
-          This test session list is recorded in your browser's local storage and
-          is provided for convenience. Sessions will be listed here whenever a
-          new session is started. You can share the session by sending the
-          session URL to others.
-        </p>
-        <p>
-          Sessions that have been inactive for over a month are subject to
-          deletion. If you would like permanent access to your test session
-          data, please download and run the applicable test kit locally.
-        </p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
-    </div>
+  <div class="recent-sessions-card-body" id="empty-sessions">
+    No recent test sessions have been run from this browser
   </div>
 </div>

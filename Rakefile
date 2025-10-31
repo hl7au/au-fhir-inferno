@@ -49,6 +49,13 @@ namespace :web do
 
   end
 
+  desc 'Generate and serve the static web platform pages as dev'
+  task serve_dev: [:generate_dev] do
+
+    sh "jekyll serve --skip-initial-build --no-watch"
+
+  end
+
   desc 'Generate and serve the static web platform pages as production'
   task serve_prod: [:generate_prod] do
 

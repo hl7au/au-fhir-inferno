@@ -48,3 +48,9 @@ full_restart: down_app setup run
 full_restart_dev: down_app setup_dev run
 
 full_restart_prod: down_app setup_prod run
+
+serve_dev_local:
+	bundle exec rake web:serve_dev
+
+open_generated:
+	open _site/index.html

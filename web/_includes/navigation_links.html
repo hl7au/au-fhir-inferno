@@ -1,12 +1,10 @@
 {% for link in site.navigation_links %}
 {% assign page_parts = page.url | downcase | split: '/' %}
 {% assign current_group_url = "/" | append: page_parts[1] %}
-<li class="nav-item">
-  <a class="nav-link nav-link-lg{% if current_group_url == link.url %} active {% endif %}" href="{{ link.url }}">
+<a class="{% if current_group_url == link.url %} active {% endif %}" href="{{ link.url }}">
     {{ link.title }}
     {% if current_group_url == link.url %}
     <span class="visually-hidden">(current)</span>
     {% endif %}
-  </a>
-</li>
+</a>
 {% endfor %}

@@ -8,8 +8,8 @@
 
 <body data-spy="scroll" data-target="#toc">
   <div class="flex-wrapper">
-    <div>
-      {% include navigation.html %}
+    {% include navigation.html %}
+    <div class="content-wrapper">
       {{ content }}
     </div>
     {% include footer.html %}
@@ -22,6 +22,7 @@
     min-height: 100vh;
     flex-direction: column;
     justify-content: space-between;
+    background: #F8F9FA;
   }
 </style>
 

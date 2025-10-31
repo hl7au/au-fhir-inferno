@@ -1,28 +1,13 @@
-<a href="#content" class="visually-hidden-focusable">Skip to main content</a>
-<nav class="navbar navbar-expand-lg navbar-light bg-light align-items-end sticky-top">
-  <div class="container-fluid align-items-end">
-    <a class="navbar-brand" href="/">
-      <div>
-        <img src="/assets/images/assembled_logo@2x.png">
-      </div>
+<nav class="navigation-container">
+    <a href="/">
+        <img src="/assets/images/logo-new.png" class="logo" alt="Assembled Logo">
     </a>
-
-    <!-- static navigation menu -->
-    <div class="collapse navbar-collapse">
-      <ul class="navbar-nav ms-auto align-items-end">
+    <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Toggle navigation" />
+    <label for="nav-toggle" class="hamburger" aria-hidden="true">
+        <span></span>
+    </label>
+    <div class="navigation-links">
         {% include navigation_links.html %}
-      </ul>
     </div>
-
-    <!-- dropdown navigation menu -->
-    <div class="dropdown navbar-collapse">
-      <button class="navbar-toggler navbar-nav ms-auto" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <ul class="dropdown-menu">
-        {% include navigation_links.html %}
-      </ul>
-    </div>
-  </div>
 </nav>
 {% include disclaimer_bar.html %}

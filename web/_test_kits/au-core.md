@@ -5,46 +5,46 @@ test_kit_id: au_core_test_kit
 tags: [ AU ]
 date: 2025-08-06
 version: 1.2.0
-maturity: Low
+canonical_url: "http://hl7.org.au/fhir/core"
+logo: /assets/images/au-core-logo.png
+preview_text: The AU Core Test Kit validates the conformance of a server implementation to a specific version of the AU Core IG
 suites:
   - title: AU Core v1.0.0
     id: au_core_v100
   - title: AU Core v2.0.0-ballot
     id: au_core_v200_ballot
+sections:
+  - title: "Status"
+    icon: /assets/images/checklist.svg
+    content: >
+      <p>The AU Core Test Kit is actively developed and regularly updated. The test kit currently tests the following requirements:</p>
+      <ul>
+        <li>Support for Capability Statement</li>
+        <li>Support for all AU Core Profiles</li>
+        <li>Searches required for each resource</li>
+        <li>Support for Must Support Elements</li>
+        <li>Profile Validation</li>
+        <li>Reference Validation</li>
+      </ul>
+      <p>See the test descriptions within the test kit for detail on the specific validations performed as part of testing these requirements.</p>
+  - title: "Repository"
+    icon: /assets/images/code.svg
+    content: >
+      The AU Core Inferno Test Kit GitHub repository can be found <a href="https://github.com/hl7au/au-fhir-core-inferno">here</a>.
+  - title: "Providing Feedback and Reporting Issues"
+    icon: /assets/images/feedback.svg
+    content: >
+      <p>We welcome feedback on the tests, including but not limited to the following areas:</p>
+      <ul>
+      <li>Validation logic, such as potential bugs, lax checks, and unexpected failures.</li>
+      <li>Requirements coverage, such as requirements that have been missed, tests that necessitate features that the IG does not require, or other issues with the interpretation of the IG’s requirements.</li>
+      <li>User experience, such as confusing or missing information in the test UI.</li>
+      </ul>
+      <p>Please report any issues with this set of tests in the <a href="https://github.com/hl7au/au-fhir-core-inferno/issues">issues section</a> of the repository.</p>
+      <p>Please read this <a href="https://github.com/hl7au/au-fhir-core-inferno?tab=readme-ov-file#contributing-to-inferno-and-reporting-issues">README</a> section before providing feedback and reporting issues.</p>
 ---
 
-The AU Core Test Kit validates the conformance of a server implementation to a specific version of the AU Core IG.
-
-<!-- break -->
-
-This test kit is open source and freely available for use or adoption by the health IT community including EHR vendors, health app developers, and testing labs. It is built using the [Inferno Framework](https://inferno-framework.github.io/inferno-core/). The Inferno Framework is designed for reuse and aims to make it easier to build test kits for any FHIR-based data exchange.
-
-## Status
-
-The AU Core Test Kit is actively developed and regularly updated. The test kit currently tests the following requirements:
-
-* Support for Capability Statement
-* Support for all AU Core Profiles
-* Searches required for each resource
-* Support for Must Support Elements
-* Profile Validation
-* Reference Validation
-
-See the test descriptions within the test kit for detail on the specific validations performed as part of testing these requirements.
-
-## Repository
-
-The AU Core Test Kit GitHub repository can be found [here](https://github.com/hl7au/au-fhir-core-inferno).
-
-## Providing Feedback and Reporting Issues
-
-We welcome feedback on the tests, including but not limited to the following areas:
-
-* Validation logic, such as potential bugs, lax checks, and unexpected failures.
-* Requirements coverage, such as requirements that have been missed, tests that necessitate features that the IG does not require, or other issues with the interpretation of the IG’s requirements.
-* User experience, such as confusing or missing information in the test UI.
-
-Please report any issues with this set of tests in the [issues section](https://github.com/hl7au/au-fhir-core-inferno/issues) of the repository.
-
-Please read [this README](https://github.com/hl7au/au-fhir-core-inferno?tab=readme-ov-file#contributing-to-inferno-and-reporting-issues) section before providing feedback and reporting issues.
-
+<p>The AU Core Test Kit validates the conformance of a server implementation to a specific version of the AU Core IG.</p>
+<p>This test kit is open source and freely available for use or adoption by the health IT community, including EHR vendors, health app developers, and testing labs. It is built using the <a href="https://inferno-framework.github.io/">Inferno Framework</a>. The Inferno Framework is designed for reuse and aims to make it easier to build test kits for any FHIR-based data exchange.</p>
+<p>This test kit is based on the <a href="https://build.fhir.org/ig/hl7au/au-fhir-core/">AU Core Implementation Guide</a>, which defines the base set of profiles and requirements for Australian FHIR implementations. For detailed information on IG versions, change history, and publication status, see the <a href="https://hl7.org.au/fhir/core/history.html">AU Core IG History Page</a>.</p>
+<p>This project is licensed under the <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
