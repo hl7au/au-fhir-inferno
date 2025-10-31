@@ -855,6 +855,18 @@ nav[data-toggle="toc"] .nav .nav {
     gap: var(--spacing-lg);
 }
 
+.tk-meta-data .tag {
+    display: flex;
+    align-self: center;
+    padding: 1px 8px;
+    align-items: flex-end;
+    align-content: flex-end;
+    gap: var(--gap-xs);
+    border-radius: var(--radius-xs);
+    background: var(--color-background-gray);
+    font-size: var(--font-size-xs);
+}
+
 .tk-list-item {
     color: var(--color-text);
     font-size: var(--font-size-base);
@@ -967,9 +979,10 @@ nav[data-toggle="toc"] .nav .nav {
 
 .tk-show-header-details-tags {
     display: flex;
-    padding: 1px var(--spacing-sm);
-    justify-content: center;
-    align-items: center;
+    align-self: center;
+    padding: 1px 8px;
+    align-items: flex-end;
+    align-content: flex-end;
     gap: var(--gap-xs);
     border-radius: var(--radius-xs);
     background: var(--color-background-gray);
