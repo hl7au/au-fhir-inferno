@@ -1,0 +1,28 @@
+ingress:
+  hostnames:
+    - inferno.sparked-fhir.com
+    - inferno.hl7.org.au
+
+
+inferno:
+  imageUrl: ghcr.io/hl7au/au-fhir-inferno:d33f3eab6a77f99a69e0cce0f3aa71323fbb56a5-prod
+  usesWrapper: true
+  validatorImageUri: markiantorno/validator-wrapper:latest
+
+nginx:
+  platformImageUri: ghcr.io/hl7au/au-fhir-inferno:d33f3eab6a77f99a69e0cce0f3aa71323fbb56a5-nginx-prod
+
+
+externalSecrets:
+  enabled: true
+  roleArn: arn:aws:iam::471112546300:role/prod-inferno-external-secrets-sa
+  secretArn: arn:aws:secretsmanager:ap-southeast-2:471112546300:secret:rds!db-4a252b41-3b6b-475b-9b8c-161589839fe3-QZ8sT1
+  username: postgres
+  region: ap-southeast-2
+
+postgresql:
+  externaldbhost: prod-inferno-postgresql.creaskuwcgs3.ap-southeast-2.rds.amazonaws.com
+  global:
+    postgresql:
+      auth:
+        database: inferno

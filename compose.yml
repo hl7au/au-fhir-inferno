@@ -76,8 +76,6 @@ services:
     mem_limit: 100m
     restart: unless-stopped
   validator-api:
-    # image: pavelrozhkov/wrapper:6.3.11
-    # image: markiantorno/validator-wrapper:1.0.58-SNAPSHOT
     image: markiantorno/validator-wrapper:1.0.68
     environment:
       SESSION_CACHE_DURATION: -1
