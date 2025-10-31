@@ -12,7 +12,7 @@ description: >
 navigation_links:
 - title: Test Kits
   url: /test-kits
-- title: Resources/Guidance
+- title: Resources / Guidance
   url: /guidance
 - title: About
   url: /about
@@ -95,8 +95,8 @@ keep_files: ['.keep']
 
 custom_pages:
   guidance:
-    title: Resources/Guidance
-    breadcrumb: Resources/Guidance
+    title: Resources / Guidance
+    breadcrumb: Resources / Guidance
     hide_toc: false
     blocks:
       - title: Getting Started
