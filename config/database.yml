@@ -10,10 +10,10 @@ development:
 production:
   adapter: postgres
   host: <%= ENV['POSTGRES_HOST'] %>
-  post: <%= ENV['POSTGRES_PORT'] %>
+  post: <%= ENV['POSTGRES_PORT'] %> # this should probably be port not post? will check with pavel
   database: <%= ENV['POSTGRES_DB'] %>
   username: <%= ENV['POSTGRES_USER'] %>
-  password: <%= ENV['POSTGRES_PASSWORD'] %>
+  password: "<%= ENV['POSTGRES_PASSWORD'] %>"
 
 test:
   adapter: sqlite
