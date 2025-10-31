@@ -30,7 +30,7 @@ sections:
   - title: "Repository"
     icon: /assets/images/code.svg
     content: >
-      The AU Core Inferno Test Kit GitHub repository can be found <a href="#">here</a>.
+      The AU Core Inferno Test Kit GitHub repository can be found <a href="https://github.com/hl7au/au-fhir-core-inferno">here</a>.
   - title: "Providing Feedback and Reporting Issues"
     icon: /assets/images/feedback.svg
     content: >
@@ -40,11 +40,11 @@ sections:
       <li>Requirements coverage, such as requirements that have been missed, tests that necessitate features that the IG does not require, or other issues with the interpretation of the IG’s requirements.</li>
       <li>User experience, such as confusing or missing information in the test UI.</li>
       </ul>
-      <p>Please report any issues with this set of tests in the <a href="#">issues section</a> of the repository.</p>
-      <p>Please read this <a href="#">README</a> section before providing feedback and reporting issues.</p>
+      <p>Please report any issues with this set of tests in the <a href="https://github.com/hl7au/au-fhir-core-inferno/issues">issues section</a> of the repository.</p>
+      <p>Please read this <a href="https://github.com/hl7au/au-fhir-core-inferno?tab=readme-ov-file#contributing-to-inferno-and-reporting-issues">README</a> section before providing feedback and reporting issues.</p>
 ---
 
 <p>The AU Core Test Kit validates the conformance of a server implementation to a specific version of the AU Core IG.</p>
-<p>This test kit is open source and freely available for use or adoption by the health IT community, including EHR vendors, health app developers, and testing labs. It is built using the <a href="#">Inferno Framework</a>. The Inferno Framework is designed for reuse and aims to make it easier to build test kits for any FHIR-based data exchange.</p>
-<p>This test kit is based on the <a href="#">AU Core Implementation Guide</a>, which defines the base set of profiles and requirements for Australian FHIR implementations. For detailed information on IG versions, change history, and publication status, see the <a href="#">AU Core IG History Page</a>.</p>
-<p>This project is licensed under the <a href="#">Apache License, Version 2.0</a>.</p>
+<p>This test kit is open source and freely available for use or adoption by the health IT community, including EHR vendors, health app developers, and testing labs. It is built using the <a href="https://inferno-framework.github.io/">Inferno Framework</a>. The Inferno Framework is designed for reuse and aims to make it easier to build test kits for any FHIR-based data exchange.</p>
+<p>This test kit is based on the <a href="https://build.fhir.org/ig/hl7au/au-fhir-core/">AU Core Implementation Guide</a>, which defines the base set of profiles and requirements for Australian FHIR implementations. For detailed information on IG versions, change history, and publication status, see the <a href="https://hl7.org.au/fhir/core/history.html">AU Core IG History Page</a>.</p>
+<p>This project is licensed under the <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
