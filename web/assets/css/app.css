@@ -190,7 +190,7 @@ a.anchor {
 }
 
 .content-wrapper {
-    padding: 0 120px;
+    padding: 0 clamp(16px, -9.697px + 7.879vw, 120px);
 }
 
 .disclaimer-text {
@@ -550,7 +550,7 @@ nav[data-toggle="toc"] .nav .nav {
 }
 
 .content-container {
-    margin: 64px 0 0 0;
+    margin-top: clamp(16px, 4vw, 64px);
     display: flex;
     flex-direction: column;
     gap: 64px;
@@ -771,7 +771,7 @@ nav[data-toggle="toc"] .nav .nav {
 
 .tk-main-block h1 {
     color: var(--color-text);
-    font-size: var(--font-size-3xl);
+    font-size: clamp(32px, 1.5rem + 1.5vw, 48px);
     font-style: normal;
     font-weight: var(--font-weight-bold);
     line-height: normal;
@@ -930,7 +930,7 @@ nav[data-toggle="toc"] .nav .nav {
 
 .tk-show-header-title-logo h3 {
     color: var(--color-text);
-    font-size: var(--font-size-3xl);
+    font-size: clamp(32px, 1.5rem + 1.5vw, 48px);
     font-style: normal;
     font-weight: var(--font-weight-bold);
     line-height: normal;
@@ -1130,10 +1130,6 @@ nav[data-toggle="toc"] .nav .nav {
 }
 
 @media (max-width: 575px) {
-    .content-wrapper {
-        padding: 0 16px;
-    }
-
     .navigation-container {
         padding: 16px;
         position: relative;
@@ -1264,10 +1260,6 @@ nav[data-toggle="toc"] .nav .nav {
         margin-top: 32px;
     }
 
-    .content-container {
-        margin: 32px 0 0 0;
-    }
-
     .content-container .content {
         gap: 48px;
     }
@@ -1333,10 +1325,6 @@ nav[data-toggle="toc"] .nav .nav {
         gap: 8px;
     }
 
-    .tk-main-block h1 {
-        font-size: 32px;
-    }
-
     .tk-text-block {
         font-size: 16px;
     }
@@ -1360,7 +1348,6 @@ nav[data-toggle="toc"] .nav .nav {
     }
 
     .tk-show-header-title-logo h3 {
-        font-size: 32px;
         margin: 0;
     }
 
@@ -1415,16 +1402,11 @@ nav[data-toggle="toc"] .nav .nav {
         padding: 12px 40px;
     }
 
-    .content-wrapper {
-        padding: 0 40px;
-    }
-
     footer {
         padding: 12px 40px;
     }
 
     .content-container {
-        margin: 16px 0 0 0;
         gap: 16px;
     }
 
@@ -1557,12 +1539,7 @@ nav[data-toggle="toc"] .nav .nav {
         padding: 12px 64px;
     }
 
-    .content-wrapper {
-        padding: 0 64px;
-    }
-
     .content-container {
-        margin: 32px 0 0 0;
         gap: 32px;
     }
 
@@ -1619,12 +1596,7 @@ nav[data-toggle="toc"] .nav .nav {
         padding: 12px 100px;
     }
 
-    .content-wrapper {
-        padding: 0 100px;
-    }
-
     .content-container {
-        margin: 48px 0 0 0;
         gap: 48px;
     }
 
