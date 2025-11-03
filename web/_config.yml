@@ -176,8 +176,10 @@ custom_pages:
     title: License
     breadcrumb: License
     hide_toc: true
+    hide_title: true
     blocks:
       - content: >
+          <h1>License</h2>
           <span>
             HL7 Australia provides HL7 Australia content for informational and reference purposes.
             While HL7 Australia and the broader HL7 community endeavour to ensure the accuracy and reliability of HL7 Australia content, to the extent permitted by law, HL7 Australia:

@@ -6,7 +6,9 @@
     </ul>
   </div>
   <div class="content" id="content">
-    <h1>{{ site.custom_pages[page.page_key].title }}</h1>
+    {% if site.custom_pages[page.page_key].hide_title != true %}
+      <h1>{{ site.custom_pages[page.page_key].title }}</h1>
+    {% endif %}
     <div class="two-columns">
       <div class="content-blocks">
         {% for block in site.custom_pages[page.page_key].blocks %}
