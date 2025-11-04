@@ -103,66 +103,70 @@ custom_pages:
         anchor: getting-started
         logo_path: /assets/images/rocket_launch.svg
         content: >
-          <b>Available Test Kits</b>
-          <ul>
-            <li>
-              AU FHIR Core Inferno
-              <ul>
-                <li>Deployed  version: <a href="https://inferno.hl7.org.au/test-kits/au-core">https://inferno.hl7.org.au/test-kits/au-core</a></li>
-                <li>Source code repository: <a href="https://github.com/hl7au/au-fhir-core-inferno">https://github.com/hl7au/au-fhir-core-inferno</a></li>
-              </ul>
-            </li>
-            <li>
-              AU PS Inferno
-              <ul>
-                <li>Deployed  version: <a href="https://inferno.hl7.org.au/test-kits/au-ps">https://inferno.hl7.org.au/test-kits/au-ps</a></li>
-                <li>Source code repository: <a href="https://github.com/hl7au/au-ps-inferno">https://github.com/hl7au/au-ps-inferno</a></li>
-              </ul>
-            </li>
-          </ul>
+          <div>
+            <b>Available Test Kits</b>
+            <ul>
+              <li>
+                AU FHIR Core Inferno
+                <ul>
+                  <li>Deployed  version: <a href="https://inferno.hl7.org.au/test-kits/au-core">https://inferno.hl7.org.au/test-kits/au-core</a></li>
+                  <li>Source code repository: <a href="https://github.com/hl7au/au-fhir-core-inferno">https://github.com/hl7au/au-fhir-core-inferno</a></li>
+                </ul>
+              </li>
+              <li>
+                AU PS Inferno
+                <ul>
+                  <li>Deployed  version: <a href="https://inferno.hl7.org.au/test-kits/au-ps">https://inferno.hl7.org.au/test-kits/au-ps</a></li>
+                  <li>Source code repository: <a href="https://github.com/hl7au/au-ps-inferno">https://github.com/hl7au/au-ps-inferno</a></li>
+                </ul>
+              </li>
+            </ul>
+          </div>
       - title: Run Locally
         anchor: run-locally
         logo_path: /assets/images/build.svg
         content: >
-          You can also run a test kit on your own machine. To do this, choose one of the following repositories based on the test kit you want to use:
-          <ul>
-            <li>AU FHIR Core Inferno repository: <a href="https://github.com/hl7au/au-fhir-core-inferno">https://github.com/hl7au/au-fhir-core-inferno</a></li>
-            <li>AU PS Inferno repository: <a href="https://github.com/hl7au/au-ps-inferno">https://github.com/hl7au/au-ps-inferno</a></li>
-          </ul>
-          <b>Prerequisites</b>
-          <ul>
-            <li>Docker installed (Instructions: https://docs.docker.com/get-started/introduction)</li>
-            <li>At least 10 GB of memory allocated to Docker</li>
-          </ul>
-          <b>Setup Instructions</b>(All commands below should be run in your terminal)
-          <ol>
-            <li>
-              Clone the selected repository
-              <ol type="a">
-                <li><i>git clone repository-url</i></li>
-                <li><i>cd repository-directory</i></li>
-              </ol>
-            </li>
-            <li>
-              Set up the project. This installs dependencies and initializes the database.
-              <ol type="a">
-                <li><i>make setup</i></li>
-              </ol>
-            </li>
-            <li>
-              Start the application
-              <ol type="a">
-                <li><i>make run</i></li>
-              </ol>
-            </li>
-            <li>
-              Access the app
-              <ol type="a">
-                <li>Open <a href="http://localhost">http://localhost</a> in your browser.</li>
-                <li>The test suite will be available on the homepage.</li>
-              </ol>
-            </li>
-          </ol>
+          <div>
+            You can also run a test kit on your own machine. To do this, choose one of the following repositories based on the test kit you want to use:
+            <ul>
+              <li>AU FHIR Core Inferno repository: <a href="https://github.com/hl7au/au-fhir-core-inferno">https://github.com/hl7au/au-fhir-core-inferno</a></li>
+              <li>AU PS Inferno repository: <a href="https://github.com/hl7au/au-ps-inferno">https://github.com/hl7au/au-ps-inferno</a></li>
+            </ul>
+            <b>Prerequisites</b>
+            <ul>
+              <li>Docker installed (Instructions: <a href="https://docs.docker.com/get-started/introduction">https://docs.docker.com/get-started/introduction</a>)</li>
+              <li>At least 10 GB of memory allocated to Docker</li>
+            </ul>
+            <b>Setup Instructions</b>(All commands below should be run in your terminal)
+            <ol>
+              <li>
+                Clone the selected repository
+                <ol type="a">
+                  <li><i>git clone repository-url</i></li>
+                  <li><i>cd repository-directory</i></li>
+                </ol>
+              </li>
+              <li>
+                Set up the project. This installs dependencies and initializes the database.
+                <ol type="a">
+                  <li><i>make setup</i></li>
+                </ol>
+              </li>
+              <li>
+                Start the application
+                <ol type="a">
+                  <li><i>make run</i></li>
+                </ol>
+              </li>
+              <li>
+                Access the app
+                <ol type="a">
+                  <li>Open <a href="http://localhost">http://localhost</a> in your browser.</li>
+                  <li>The test suite will be available on the homepage.</li>
+                </ol>
+              </li>
+            </ol>
+          </div>
       - title: Test Kit Authoring
         anchor: test-kit-authoring
         logo_path: /assets/images/science.svg
@@ -201,10 +205,10 @@ custom_pages:
           </span>
           <ul>
             <li><a href="https://inferno-framework.github.io">Inferno Framework</a>, <a href="https://inferno.hl7.org.au/">AU Inferno Framework</a>, <a href="https://inferno.hl7.org.au/test-kits/au-core/">AU Core Inferno Test Kit</a>, <a href="https://inferno.hl7.org.au/test-kits/au-ps/">AU Patient Summary Inferno Test Kit</a></li>
-            <li><a href="#">HL7 FHIR IG License and Legal</a>, <a href="#">HL7 Australia FHIR IG License and Legal</a></li>
+            <li><a href="https://hl7.org/fhir/license.html">HL7 FHIR IG License and Legal</a>, <a href="https://hl7.org.au/fhir/license.html">HL7 Australia FHIR IG License and Legal</a></li>
           </ul>
           <span>
-            A full statement of relevant copyright and intellectual property policy can be found in <a href="#">HL7 Australia Intellectual Property Policy</a>
+            A full statement of relevant copyright and intellectual property policy can be found in <a href="https://hl7.org.au/fhir/hl7a_ip_policy.pdf">HL7 Australia Intellectual Property Policy</a>
           </span>
   about:
     title: About Inferno on hl7.org.au

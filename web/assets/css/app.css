@@ -200,7 +200,6 @@ a.anchor {
     color: var(--color-disclaimer-text);
     font-size: var(--font-size-sm);
     line-height: var(--line-height-tight);
-    background-color: var(--color-disclaimer);
     text-align: left;
     width: 100%;
     white-space: normal;
@@ -209,6 +208,8 @@ a.anchor {
     flex-direction: row;
     gap: var(--gap-md);
     justify-content: space-between;
+    border-bottom: 1px solid #BFDBFE;
+    background: #EBF5FB;
 }
 
 .disclaimer-text a {
@@ -456,7 +457,7 @@ nav[data-toggle="toc"] .nav .nav {
 
 .breadcrumb {
     color: var(--color-primary);
-    font-size: var(--font-size-lg);
+    font-size: 24px;
     font-style: normal;
     font-weight: var(--font-weight-bold);
     line-height: normal;
@@ -465,7 +466,6 @@ nav[data-toggle="toc"] .nav .nav {
 
 .breadcrumb a {
     color: var(--color-secondary);
-    font-size: var(--font-size-lg);
     font-style: normal;
     font-weight: var(--font-weight-bold);
     line-height: normal;
@@ -569,7 +569,7 @@ nav[data-toggle="toc"] .nav .nav {
 
 .content-container .content h1 {
     color: var(--color-primary);
-    font-size: var(--font-size-2xl);
+    font-size: 48px;
     font-style: normal;
     font-weight: var(--font-weight-bold);
     line-height: normal;
@@ -601,11 +601,12 @@ nav[data-toggle="toc"] .nav .nav {
     border: 0;
     background: var(--color-background);
     margin-bottom: var(--spacing-lg);
+    font-size: 18px;
 }
 
 .content-container .content .two-columns .content-blocks .card h2 {
     color: var(--color-primary);
-    font-size: var(--font-size-xl);
+    font-size: 32px;
     font-style: normal;
     font-weight: var(--font-weight-bold);
     line-height: 40px;
@@ -647,7 +648,7 @@ nav[data-toggle="toc"] .nav .nav {
 
 .content-container .content .two-columns .toc-block h2 {
     color: var(--color-primary);
-    font-size: var(--font-size-lg);
+    font-size: 24px;
     font-style: normal;
     font-weight: var(--font-weight-bold);
     line-height: var(--line-height-xl);
@@ -656,6 +657,7 @@ nav[data-toggle="toc"] .nav .nav {
 
 .content-container .content .two-columns .toc-block a {
     color: var(--color-primary);
+    font-size: 18px;
     font-style: normal;
     line-height: var(--line-height-loose);
 }
