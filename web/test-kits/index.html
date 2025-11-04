@@ -97,8 +97,6 @@ current_page: Test Kits
 
     document.getElementById('text-filter').addEventListener('input', () => {
         textInput = document.getElementById('text-filter').value.toLowerCase().trim();
-        console.log(textInput)
-        result =
         filterAll(textInput, standardInput);
     });
 
@@ -111,7 +109,6 @@ current_page: Test Kits
 
     /* Recent Sessions */
     const recentSessions = getSessions().slice(0, 5); // limit to 5 sessions
-    console.log('recentSessions', recentSessions);
 
     const emptySessions = document.getElementById('empty-sessions');
     showElement(recentSessions.length <= 0, emptySessions);
