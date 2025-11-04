@@ -570,7 +570,7 @@ nav[data-toggle="toc"] .nav .nav {
 
 .content-container .content h1 {
     color: var(--color-primary);
-    font-size: var(--font-size-2xl);
+    font-size: 48px;
     font-style: normal;
     font-weight: var(--font-weight-bold);
     line-height: normal;
@@ -602,11 +602,12 @@ nav[data-toggle="toc"] .nav .nav {
     border: 0;
     background: var(--color-background);
     margin-bottom: var(--spacing-lg);
+    font-size: 18px;
 }
 
 .content-container .content .two-columns .content-blocks .card h2 {
     color: var(--color-primary);
-    font-size: var(--font-size-xl);
+    font-size: 32px;
     font-style: normal;
     font-weight: var(--font-weight-bold);
     line-height: 40px;
