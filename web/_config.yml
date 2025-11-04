@@ -131,7 +131,7 @@ custom_pages:
           </ul>
           <b>Prerequisites</b>
           <ul>
-            <li>Docker installed (Instructions: https://docs.docker.com/get-started/introduction)</li>
+            <li>Docker installed (Instructions: <a href="https://docs.docker.com/get-started/introduction">https://docs.docker.com/get-started/introduction</a>)</li>
             <li>At least 10 GB of memory allocated to Docker</li>
           </ul>
           <b>Setup Instructions</b>(All commands below should be run in your terminal)
