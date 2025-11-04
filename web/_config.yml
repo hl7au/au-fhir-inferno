@@ -201,10 +201,10 @@ custom_pages:
           </span>
           <ul>
             <li><a href="https://inferno-framework.github.io">Inferno Framework</a>, <a href="https://inferno.hl7.org.au/">AU Inferno Framework</a>, <a href="https://inferno.hl7.org.au/test-kits/au-core/">AU Core Inferno Test Kit</a>, <a href="https://inferno.hl7.org.au/test-kits/au-ps/">AU Patient Summary Inferno Test Kit</a></li>
-            <li><a href="#">HL7 FHIR IG License and Legal</a>, <a href="#">HL7 Australia FHIR IG License and Legal</a></li>
+            <li><a href="https://hl7.org/fhir/license.html">HL7 FHIR IG License and Legal</a>, <a href="https://hl7.org.au/fhir/license.html">HL7 Australia FHIR IG License and Legal</a></li>
           </ul>
           <span>
-            A full statement of relevant copyright and intellectual property policy can be found in <a href="#">HL7 Australia Intellectual Property Policy</a>
+            A full statement of relevant copyright and intellectual property policy can be found in <a href="https://hl7.org.au/fhir/hl7a_ip_policy.pdf">HL7 Australia Intellectual Property Policy</a>
           </span>
   about:
     title: About Inferno on hl7.org.au
