@@ -2,6 +2,7 @@
 layout: test-kit
 title: AU Core Test Kit
 test_kit_id: au_core_test_kit
+maturity: 1
 tags: [ AU ]
 date: 2025-08-06
 version: 1.2.0

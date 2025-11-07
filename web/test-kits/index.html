@@ -23,11 +23,26 @@ current_page: Test Kits
                     <select class="form-select" id="fhir-filter" onchange="filterTag()">
                         {% assign sortedTags = site.test_kit_tags | sort: "name" %}
                         <option value="All Tags" selected>
-                            All Tags
+                            Select tag
                         </option>
                         {% for tag in sortedTags %}
                         <option value="{{ tag }}">
                             {{ tag }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                {% if site.test_kit_maturity %}
+                <div class="tag-search">
+                    <select class="form-select" id="fhir-maturity" onChange="filterMaturity()">
+                        {% assign sortedMaturity = site.test_kit_maturity | sort: "name" %}
+                        <option value="All Maturity" selected>
+                            Select Test Kit Maturity
+                        </option>
+                        {% for maturity in sortedMaturity %}
+                        <option value="{{ maturity }}">
+                            {{ maturity }}
                         </option>
                         {% endfor %}
                     </select>
@@ -65,7 +80,9 @@ current_page: Test Kits
                             </div>
                         </div>
                     </div>
-
+                    <div class="maturity" style="display: none">
+                        {{ test_kit.maturity }}
+                    </div>
                 </div>
                 {% endfor %}
             </div>
@@ -94,17 +111,25 @@ current_page: Test Kits
     // Set filter values
     let textInput = '';
     let standardInput = '';
+    let maturityInput = '';
 
     document.getElementById('text-filter').addEventListener('input', () => {
         textInput = document.getElementById('text-filter').value.toLowerCase().trim();
-        filterAll(textInput, standardInput);
+        filterAll(textInput, standardInput, maturityInput);
     });
 
     document.getElementById('fhir-filter').addEventListener('input', (e) => {
         $.each(e.target.selectedOptions, (index, obj) => {
             standardInput = obj.innerText.trim();
         });
-        filterAll(textInput, standardInput);
+        filterAll(textInput, standardInput, maturityInput);
+    });
+
+    document.getElementById('fhir-maturity').addEventListener('input', (e) => {
+        $.each(e.target.selectedOptions, (index, obj) => {
+            maturityInput = obj.innerText.trim();
+        });
+        filterAll(textInput, standardInput, maturityInput);
     });
 
     /* Recent Sessions */

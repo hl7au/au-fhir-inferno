@@ -39,6 +39,8 @@ quick_links:
 # tags in hosted Test Kits.
 test_kit_tags: [AU]
 
+test_kit_maturity: ["0", "1"]
+
 # You can pin one or several test kits to the top of the Test Kit list page
 # if you would like to draw attention to these over other Test Kits.
 pinned_test_kits: [au_core_test_kit]

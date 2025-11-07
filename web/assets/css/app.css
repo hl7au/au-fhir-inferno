@@ -1082,7 +1082,7 @@ nav[data-toggle="toc"] .nav .nav {
 
 .tk-list-filters-block .text-search {
     display: flex;
-    flex: .8;
+    flex: .6;
 }
 
 .tk-list-filters-block .text-search input {
