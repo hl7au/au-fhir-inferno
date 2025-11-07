@@ -142,4 +142,9 @@ current_page: Test Kits
     showElement(recentSessions.length > 0, sessionsContainer);
 
     populateSessions(recentSessions, 'sessions-container');
+
+    const clearSessionButton = document.getElementById('clear-sessions');
+    if (recentSessions.length > 0) {
+        clearSessionButton.classList.add('active-clear');
+    }
 </script>

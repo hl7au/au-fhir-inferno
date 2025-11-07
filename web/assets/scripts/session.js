@@ -33,12 +33,15 @@ const populateSessions = (sessions, containerId) => {
   sessions.forEach((session) => {
     const element = $($.parseHTML(`
       <li class="list-group-item">
-        <h6 class="mb-1">
-          <a href="${session.url}" class="text-decoration-none">
-            ${session.title}
-          </a>
-        </h6>
-        <small class="text-muted">${new Date(session.date).toLocaleString()}</small><br>
+        <a href="${session.url}" class="text-decoration-none">
+            <div>
+                <h6 class="mb-1">${session.title}</h6>
+                <small class="text-muted">${new Date(session.date).toLocaleString()}</small><br>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M9.00002 15.8746L12.88 11.9946L9.00002 8.11461C8.61002 7.72461 8.61002 7.09461 9.00002 6.70461C9.39002 6.31461 10.02 6.31461 10.41 6.70461L15 11.2946C15.39 11.6846 15.39 12.3146 15 12.7046L10.41 17.2946C10.02 17.6846 9.39002 17.6846 9.00002 17.2946C8.62002 16.9046 8.61002 16.2646 9.00002 15.8746Z" fill="#6C757D"/>
+            </svg>
+        </a>
       </li>
     `));
     $(`#${containerId}`).append(element);

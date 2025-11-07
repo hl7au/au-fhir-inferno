@@ -112,6 +112,26 @@ html, body, button, input, textarea, select {
     --bs-form-select-bg-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M10.3593 3H9.48037C9.42061 3 9.36436 3.0293 9.3292 3.07734L5.9999 7.66641L2.67061 3.07734C2.63545 3.0293 2.5792 3 2.51944 3H1.64053C1.56436 3 1.51983 3.08672 1.56436 3.14883L5.69639 8.84531C5.84639 9.05156 6.15342 9.05156 6.30225 8.84531L10.4343 3.14883C10.48 3.08672 10.4355 3 10.3593 3Z' fill='black' fill-opacity='0.45'/%3E%3C/svg%3E");
 }
 
+.list-group-flush {
+    width: 100%;
+}
+
+.list-group-item a {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    text-decoration: none;
+}
+
+.active-clear {
+    color: #D94A2A !important;
+}
+
+h6 {
+    color: #2C3E50;
+}
+
 a {
     text-decoration: none;
     color: var(--color-accent);
