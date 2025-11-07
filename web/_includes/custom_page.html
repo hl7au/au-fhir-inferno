@@ -39,7 +39,17 @@
         <h2>On this page</h2>
         <ul>
           {% for block in site.custom_pages[page.page_key].blocks %}
-          <li><a href="#{{ block.anchor }}">{{ block.title }}</a></li>
+            {% if block.ignore_toc != true %}
+            <li>
+                <a href="#{{ block.anchor }}">
+                    {% if block.toc_title %}
+                        {{ block.toc_title }}
+                    {% else %}
+                        {{ block.title }}
+                    {% endif %}
+                </a>
+            </li>
+            {% endif %}
           {% endfor %}
         </ul>
       </div>
