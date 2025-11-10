@@ -2,7 +2,7 @@
 const getTags = (tags, elem) => {
   Array.from(elem.children).forEach((e) => {
     if (e.className === 'tag') {
-      tags.push(e.innerText);
+      tags.push(e.innerText.trim());
     }
     getTags(tags, e);
   });
