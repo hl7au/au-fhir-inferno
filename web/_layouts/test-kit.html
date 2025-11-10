@@ -145,6 +145,11 @@ layout: page
 
   populateSessions(recentSessions, 'sessions-container');
 
+  const clearSessionButton = document.getElementById('clear-sessions');
+  if (recentSessions.length > 0) {
+      clearSessionButton.classList.add('active-clear');
+  }
+
   /* Full page vs narrow page styles */
   const leftColumn = document.getElementById('left-column');
   const rightColumn = document.getElementById('right-column');

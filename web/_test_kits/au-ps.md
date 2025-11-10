@@ -2,6 +2,7 @@
 layout: test-kit
 title: AU PS Test Kit
 test_kit_id: au_ps_suite
+maturity: 0
 tags: [ AU ]
 date: 2025-08-29
 version: 0.1.1.pre
