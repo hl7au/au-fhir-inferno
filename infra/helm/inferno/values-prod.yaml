@@ -6,6 +6,7 @@ ingress:
 redirectIngress:
   enabled: true
   hostnames:
+    - dev.inferno.sparked-fhir.com
     - inferno.dev.hl7.org.au
   targetUrl: "https://inferno.hl7.org.au"
 
