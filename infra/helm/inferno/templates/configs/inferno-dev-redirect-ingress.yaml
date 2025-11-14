@@ -1,0 +1,33 @@
+{{- if .Values.redirectIngress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: inferno-dev-redirect
+  namespace: {{ .Values.namespace }}
+  annotations:
+    acme.cert-manager.io/http01-edit-in-place: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/permanent-redirect: "{{ .Values.redirectIngress.targetUrl }}"
+    external-dns.alpha.kubernetes.io/hostname: "{{ join "," .Values.redirectIngress.hostnames }}"
+spec:
+  ingressClassName: {{ .Values.controller.ingressClass }}
+  tls:
+    - hosts:
+        {{- range .Values.redirectIngress.hostnames }}
+        - {{ . }}
+        {{- end }}
+      secretName: inferno-dev-redirect-tls
+  rules:
+    {{- range .Values.redirectIngress.hostnames }}
+    - host: {{ . }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nginx
+                port:
+                  number: 80
+    {{- end }}
+{{- end }}

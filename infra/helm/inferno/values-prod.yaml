@@ -3,6 +3,11 @@ ingress:
     - inferno.sparked-fhir.com
     - inferno.hl7.org.au
 
+redirectIngress:
+  enabled: true
+  hostnames:
+    - inferno.dev.hl7.org.au
+  targetUrl: "https://inferno.hl7.org.au"
 
 inferno:
   imageUrl: ghcr.io/hl7au/au-fhir-inferno:277a9d980a95811b9ac84ccd2c255d16e1adee35-prod
