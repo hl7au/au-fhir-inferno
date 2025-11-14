@@ -5,15 +5,7 @@ metadata:
   name: inferno-dev-redirect
   namespace: {{ .Values.namespace }}
   annotations:
-    acme.cert-manager.io/http01-edit-in-place: "true"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    nginx.ingress.kubernetes.io/server-snippet: |
-      location /.well-known/acme-challenge/ {
-        # Allow cert-manager challenges to pass through without redirect
-      }
-      location / {
-        return 301 {{ .Values.redirectIngress.targetUrl }}$request_uri;
-      }
     external-dns.alpha.kubernetes.io/hostname: "{{ join "," .Values.redirectIngress.hostnames }}"
 spec:
   ingressClassName: {{ .Values.controller.ingressClass }}
@@ -32,7 +24,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: nginx
+                name: redirect-nginx
                 port:
                   number: 80
     {{- end }}

@@ -1,0 +1,24 @@
+{{- if .Values.redirectIngress.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redirect-nginx-config
+  namespace: {{ .Values.namespace }}
+data:
+  default.conf: |
+    server {
+      listen 80;
+      server_name _;
+
+      # Allow ACME challenges to pass through
+      location /.well-known/acme-challenge/ {
+        root /usr/share/nginx/html;
+        try_files $uri =404;
+      }
+
+      # Redirect all other traffic
+      location / {
+        return 301 {{ .Values.redirectIngress.targetUrl }}$request_uri;
+      }
+    }
+{{- end }}
