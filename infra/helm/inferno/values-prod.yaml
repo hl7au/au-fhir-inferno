@@ -11,12 +11,12 @@ redirectIngress:
   targetUrl: "https://inferno.hl7.org.au"
 
 inferno:
-  imageUrl: ghcr.io/hl7au/au-fhir-inferno:2abf8d0cce02923857d9335e6d700eef79e800b6-prod
+  imageUrl: ghcr.io/hl7au/au-fhir-inferno:513e4c7d7f3fc397b44caed8c11fac6fbf1b2e76-prod
   usesWrapper: true
   validatorImageUri: markiantorno/validator-wrapper:latest
 
 nginx:
-  platformImageUri: ghcr.io/hl7au/au-fhir-inferno:2abf8d0cce02923857d9335e6d700eef79e800b6-nginx-prod
+  platformImageUri: ghcr.io/hl7au/au-fhir-inferno:513e4c7d7f3fc397b44caed8c11fac6fbf1b2e76-nginx-prod
 
 
 externalSecrets:
