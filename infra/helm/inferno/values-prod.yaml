@@ -13,7 +13,7 @@ redirectIngress:
 inferno:
   imageUrl: ghcr.io/hl7au/au-fhir-inferno:513e4c7d7f3fc397b44caed8c11fac6fbf1b2e76-prod
   usesWrapper: true
-  validatorImageUri: markiantorno/validator-wrapper:latest
+  validatorImageUri: markiantorno/validator-wrapper:1.0.68
 
 nginx:
   platformImageUri: ghcr.io/hl7au/au-fhir-inferno:513e4c7d7f3fc397b44caed8c11fac6fbf1b2e76-nginx-prod
