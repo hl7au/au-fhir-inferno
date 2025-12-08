@@ -4,7 +4,7 @@ metadata:
   name: inferno-redis
   namespace: {{ .Values.namespace }}
 spec:
-  replicas: 1
+  replicas: 1 # need clustering for multiple replicas
   selector:
     matchLabels:
       app: inferno-redis
