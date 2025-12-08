@@ -4,7 +4,7 @@ metadata:
   name: validator-api
   namespace: {{ .Values.namespace }}
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: validator-api
@@ -46,8 +46,8 @@ spec:
           readOnly: true
         resources:
           requests: 
-            memory: "7Gi"   
+            memory: "9Gi"   
             cpu: "250m"       
           limits:
-            memory: "8Gi"    # Increase from 4Gi to 6Gi
+            memory: "10Gi"    # Increase from 4Gi to 6Gi
             cpu: "500m"
