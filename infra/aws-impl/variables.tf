@@ -32,23 +32,6 @@ variable "name" {
   default     = "inferno"
 }
 
-variable "imageUrl" {
-  description = "Image URL"
-  type        = string
-}
-
-variable "platformImageUri" {
-  type = string
-
-}
-
-variable "validatorImageUri" {
-  description = "Validator Image URI"
-  type        = string
-  default     = "markiantorno/validator-wrapper:1.0.68"
-
-}
-
 variable "usesWrapper" {
   description = "Boolean to determine if the application is a wrapper of inferno or just the core inferno test kit"
   type        = bool

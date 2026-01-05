@@ -1,0 +1,91 @@
+# presets take about 3.5 min to load on first startup, downloads are cached
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: validator-api
+  namespace: {{ .Values.namespace }}
+spec:
+  serviceName: validator-api  # Required for StatefulSet
+  replicas: 1
+  selector:
+    matchLabels:
+      app: validator-api
+  template:
+    metadata:
+      labels:
+        app: validator-api
+    spec:
+      securityContext:
+        fsGroup: 1000  # Ensures volumes are writable by ktor user (UID 1000)
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      containers:
+      - name: validator-api
+        image: {{ .Values.inferno.validatorImageUri }}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3500
+        volumeMounts:
+        - name: fhir-package-cache
+          mountPath: /home/ktor/.fhir/packages
+          subPath: packages  # Avoid EXT4 lost+found directory
+        - name: terminology-cache
+          mountPath: /tmp/default-tx-cache
+          subPath: cache  # Avoid EXT4 lost+found directory
+        resources:
+          requests:
+            memory: "3Gi"    # Increased for single replica handling all presets
+            cpu: "1000m"     # Increased from 250m to fix CPU throttling (4x)
+          limits:
+            memory: "3.5Gi"  # Increased - with 1 replica needs more heap for all presets
+            cpu: "2000m"     # Increased from 500m to fix CPU throttling (4x)
+        startupProbe:
+          httpGet:
+            path: /
+            port: 3500
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3500
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3500
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+  volumeClaimTemplates:
+  - metadata:
+      name: fhir-package-cache
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.validator }}
+      {{- if .Values.validator.storageClassName }}
+      storageClassName: {{ .Values.validator.storageClassName }}
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: 5Gi
+  - metadata:
+      name: terminology-cache
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.validator }}
+      {{- if .Values.validator.storageClassName }}
+      storageClassName: {{ .Values.validator.storageClassName }}
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: 2Gi

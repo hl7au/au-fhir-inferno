@@ -14,6 +14,9 @@ inferno:
   externalValidatorUrl: null  # This can be overridden during chart deployment
   validatorImageUri: "markiantorno/validator-wrapper:1.0.68"
 
+validator:
+  storageClassName: "gp3-encrypted"  # Use default EBS storage class for validator caches
+
 controller:
   enabled: false # Set to true to enable the ingress controller if you have not already installed it, multiple ingress controllers can be installed via https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
   ingressClass: "nginx"
