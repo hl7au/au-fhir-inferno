@@ -30,10 +30,9 @@ spec:
         - secretRef:
             name: postgresql-secret        
         resources:
-          requests: # defaults to 1m CPU and 2919Mi Memory if not specified, might be a memory leak since it tries to consume all memory on node
-            memory: "512Mi"   # Minimum memory required for scheduling
-            cpu: "250m"       # Minimum CPU required for scheduling
+          requests:
+            memory: "512Mi"   # Actual usage: ~485Mi
+            cpu: "100m"       # Down from 250m - actual usage <10m, peaks at 52m
           limits:
-            memory: "1Gi"     # Maximum memory usage allowed
-            cpu: "500m"       # Maximum CPU usage allowed
- 
+            memory: "1Gi"   
+            cpu: "200m"

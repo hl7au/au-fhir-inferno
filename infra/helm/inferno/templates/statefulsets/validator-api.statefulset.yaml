@@ -1,4 +1,5 @@
 # presets take about 3.5 min to load on first startup, downloads are cached
+# Free memory 142960928 is less than 250000000. Re-initializing validationService
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -34,10 +35,10 @@ spec:
           subPath: cache  # Avoid EXT4 lost+found directory
         resources:
           requests:
-            memory: "3Gi"    # Increased for single replica handling all presets
+            memory: "6Gi"  # Single replica needs more memory for all presets (peaked at 3.4Gi)
             cpu: "1000m"     # Increased from 250m to fix CPU throttling (4x)
           limits:
-            memory: "3.5Gi"  # Increased - with 1 replica needs more heap for all presets
+            memory: "8Gi"    # Safety margin for single replica (14% headroom vs 4% at 3.5Gi)
             cpu: "2000m"     # Increased from 500m to fix CPU throttling (4x)
         startupProbe:
           httpGet:
@@ -53,17 +54,17 @@ spec:
             port: 3500
           initialDelaySeconds: 5
           periodSeconds: 5
-          timeoutSeconds: 3
+          timeoutSeconds: 10      # Increased from 3s - allow time during preset loading
           successThreshold: 1
-          failureThreshold: 3
+          failureThreshold: 6     # Increased from 3 - allows 30s (6*5) before marking unready
         livenessProbe:
           httpGet:
             path: /
             port: 3500
           initialDelaySeconds: 60
           periodSeconds: 30
-          timeoutSeconds: 5
-          failureThreshold: 3
+          timeoutSeconds: 10      # Increased from 5s - preset loading can block briefly
+          failureThreshold: 5     # Increased from 3 - allows 150s (5*30) before restart
   volumeClaimTemplates:
   - metadata:
       name: fhir-package-cache
