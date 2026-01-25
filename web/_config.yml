@@ -248,7 +248,6 @@ custom_pages:
             For a more comprehensive list of Test Kits built using the Inferno Framework, including those not available to be executed on this site, the Inferno team maintains a list of publicly available, open source Test Kits on the <a href="https://inferno-framework.github.io/community/" target="_blank">Inferno Framework community page</a>.
           </span>
       - title: Contact
-        toc_title: Contact the Team
         anchor: contact
         logo_path: /assets/images/group.svg
         content: >
