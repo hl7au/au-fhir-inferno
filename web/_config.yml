@@ -127,7 +127,6 @@ custom_pages:
       - title: Run Locally
         anchor: run-locally
         logo_path: /assets/images/build.svg
-        ignore_toc: true
         content: >
           <div>
             You can also run a test kit on your own machine. To do this, choose one of the following repositories based on the test kit you want to use:
