@@ -231,7 +231,6 @@ a.anchor {
     display: flex;
     flex-direction: row;
     gap: var(--gap-md);
-    justify-content: space-between;
     border-bottom: 1px solid #BFDBFE;
     background: #EBF5FB;
 }
