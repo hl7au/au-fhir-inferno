@@ -53,7 +53,10 @@ const clearSessions = () => {
   location.reload();
 };
 
-const createSession = () => {
+const createSession = (target) => {
+
+  showSpinner(target);
+
   // Get Suite ID
   const suiteId = Array.from(document.getElementsByTagName('input'))
     .filter((elem) => elem.checked && elem.name === 'suite')
@@ -86,6 +89,7 @@ const createSession = () => {
       }
     })
     .catch((e) => {
+      restoreText(target);
       showToast(e);
     });
 };

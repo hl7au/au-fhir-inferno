@@ -231,7 +231,6 @@ a.anchor {
     display: flex;
     flex-direction: row;
     gap: var(--gap-md);
-    justify-content: space-between;
     border-bottom: 1px solid #BFDBFE;
     background: #EBF5FB;
 }
@@ -1606,4 +1605,20 @@ nav[data-toggle="toc"] .nav .nav {
     .tk-show-right-column {
         flex: .4;
     }
+}
+
+ /* For adding/removing a spinner onto/from a button */
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #ccc;
+    border-top: 2px solid #333;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
 }

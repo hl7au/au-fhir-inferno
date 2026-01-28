@@ -45,4 +45,23 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 
+// For adding/removing a spinner onto/from a button
+const showSpinner = (button) => {
+  if (!button.dataset.originalText) {
+      button.dataset.originalText = button.textContent;
+  }
 
+  button.disabled = true;
+  button.textContent = "";
+
+  const spinner = document.createElement("span");
+  spinner.className = "spinner";
+  spinner.setAttribute("aria-hidden", "true");
+
+  button.appendChild(spinner);
+}
+
+const restoreText = (button) => {
+  button.disabled = false;
+  button.textContent = button.dataset.originalText || "";
+}

@@ -108,8 +108,8 @@ layout: page
 
 <script>
   // Hook up the start testing button with the function
-  $('#start-testing-button').click(() => {
-    createSession();
+  $('#start-testing-button').click((e) => {
+    createSession(e.currentTarget);
   });
 
   // Handle hiding/unhiding the options depending on which suite is selected

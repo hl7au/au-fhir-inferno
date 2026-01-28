@@ -41,7 +41,6 @@ sections:
       <li>Requirements coverage, such as requirements that have been missed, tests that necessitate features that the IG does not require, or other issues with the interpretation of the IG’s requirements.</li>
       <li>User experience, such as confusing or missing information in the test UI.</li>
       </ul>
-      <p>See the test descriptions within the test kit for detail on the specific validations performed as part of testing these requirements.</p>
       <p>Please report any issues with this set of tests in the <a href="https://github.com/hl7au/au-fhir-core-inferno/issues">issues section</a> of the repository.</p>
       <p>Please read this <a href="https://github.com/hl7au/au-fhir-core-inferno?tab=readme-ov-file#contributing-to-inferno-and-reporting-issues">README</a> section before providing feedback and reporting issues.</p>
 ---
