@@ -17,17 +17,6 @@ inferno:
 validator:
   storageClassName: "gp3-encrypted"  # Use default EBS storage class for validator caches
 
-controller:
-  enabled: false # Set to true to enable the ingress controller if you have not already installed it, multiple ingress controllers can be installed via https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/
-  ingressClass: "nginx"
-  ingressClassResource:
-    name: nginx
-    enabled: true
-    default: false
-  service:
-    annotations:
-      service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
-
 postgresql:
   enabled: false # enable if not using rds from aws-impl
   externaldbhost: null # This can be overridden during chart deployment

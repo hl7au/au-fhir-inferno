@@ -1,0 +1,28 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: inferno-route
+  namespace: {{ .Values.namespace }}
+spec:
+  parentRefs:
+    - name: main-gateway
+      namespace: default
+  hostnames:
+    {{- range .Values.ingress.hostnames }}
+    - {{ . | quote }}
+    {{- end }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /hl7validatorapi
+      backendRefs:
+        - name: validator-api
+          port: 3500
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: nginx
+          port: 80
