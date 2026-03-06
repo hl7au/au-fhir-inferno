@@ -14,7 +14,7 @@ gem 'pg'
 
 # gem 'au_core_test_kit', git: 'https://github.com/hl7au/au-fhir-core-inferno', ref: '5d9069364f7a535b1d0073dc08ac817e4ccfcd66'
 gem 'au_core_test_kit', '~> 1.3.1'
-gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno', ref: 'fa0db2b46ee26e293d1023bc605b91f0f4d3c33d'
+gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno', ref: '550b6f784a7c6f2b9880c027ffa042d2f24e45b5'
 gem 'validation_test_kit', git: 'https://github.com/beda-software/validation-test-kit'
 
 gem 'sidekiq-cron'
