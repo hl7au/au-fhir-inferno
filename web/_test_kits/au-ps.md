@@ -4,7 +4,7 @@ title: AU PS Test Kit
 test_kit_id: au_ps_suite
 maturity: 0
 tags: [ AU ]
-date: 2026-03-06
+date: 2026-03-09
 version: 1.0.0-ballot
 canonical_url: "http://hl7.org.au/fhir/ps"
 logo: /assets/images/au-core-logo.png
