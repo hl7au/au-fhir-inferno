@@ -42,6 +42,11 @@ namespace :web do
     generate_static(["web/_config.yml", "web/_config.dev.yml"])
   end
 
+  desc 'Generate the static platform web site as local'
+  task :generate_local do
+    generate_static(["web/_config.yml", "web/_config.local.yml"])
+  end
+
   desc 'Generate and serve the static web platform pages'
   task serve: [:generate] do
 
@@ -58,6 +63,13 @@ namespace :web do
 
   desc 'Generate and serve the static web platform pages as production'
   task serve_prod: [:generate_prod] do
+
+    sh "jekyll serve --skip-initial-build --no-watch"
+
+  end
+
+  desc 'Generate and serve the static web platform pages as local'
+  task serve_local: [:generate_local] do
 
     sh "jekyll serve --skip-initial-build --no-watch"
 

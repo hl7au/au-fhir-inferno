@@ -30,6 +30,9 @@ generate_dev:
 generate_prod:
 	$(compose) -f compose.generate.yml run inferno bundle exec rake web:generate_prod
 
+generate_local:
+	$(compose) -f compose.generate.yml run inferno bundle exec rake web:generate_local
+
 migrate:
 	$(compose) run inferno_web /opt/inferno/migrate.sh
 
@@ -41,6 +44,8 @@ setup_dev: pull build generate_dev migrate
 
 setup_prod: pull build generate_prod migrate
 
+setup_local: pull build generate_local migrate
+
 run: build up
 
 full_restart: down_app setup run
@@ -48,6 +53,8 @@ full_restart: down_app setup run
 full_restart_dev: down_app setup_dev run
 
 full_restart_prod: down_app setup_prod run
+
+full_restart_local: down_app setup_local run
 
 serve_dev_local:
 	bundle exec rake web:serve_dev
