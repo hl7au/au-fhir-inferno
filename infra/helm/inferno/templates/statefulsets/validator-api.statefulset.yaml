@@ -33,11 +33,11 @@ spec:
           subPath: cache  # Avoid EXT4 lost+found directory
         resources:
           requests:
-            memory: "6Gi"  # Single replica needs more memory for all presets (peaked at 3.4Gi)
-            cpu: "1000m"     # Increased from 250m to fix CPU throttling (4x)
+            memory: "8Gi"
+            cpu: "1000m" 
           limits:
-            memory: "8Gi"    # Safety margin for single replica (14% headroom vs 4% at 3.5Gi)
-            cpu: "2000m"     # Increased from 500m to fix CPU throttling (4x)
+            memory: "10Gi"
+            cpu: "2000m"
         startupProbe:
           httpGet:
             path: /
