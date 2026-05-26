@@ -16,6 +16,8 @@ inferno:
 
 validator:
   storageClassName: "gp3-encrypted"  # Use default EBS storage class for validator caches
+  packageCacheSize: "20Gi"           # FHIR package cache (downloads accumulate over time)
+  terminologyCacheSize: "4Gi"        # Terminology cache
 
 postgresql:
   enabled: false # enable if not using rds from aws-impl

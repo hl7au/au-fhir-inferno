@@ -78,7 +78,7 @@ spec:
       {{- end }}
       resources:
         requests:
-          storage: 5Gi
+          storage: {{ (.Values.validator).packageCacheSize | default "20Gi" }}
   - metadata:
       name: terminology-cache
     spec:
@@ -90,4 +90,4 @@ spec:
       {{- end }}
       resources:
         requests:
-          storage: 2Gi
+          storage: {{ (.Values.validator).terminologyCacheSize | default "4Gi" }}
