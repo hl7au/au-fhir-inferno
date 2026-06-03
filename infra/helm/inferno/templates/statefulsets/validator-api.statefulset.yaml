@@ -13,6 +13,8 @@ spec:
     metadata:
       labels:
         app: validator-api
+      annotations:
+        instrumentation.opentelemetry.io/inject-java: "monitoring/auto-instrumentation"
     spec:
       securityContext:
         fsGroup: 1000  # Ensures volumes are writable by ktor user (UID 1000)
