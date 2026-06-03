@@ -99,6 +99,14 @@ data:
           proxy_pass http://inferno:4567;
         }
 
+        location /performance {
+          proxy_pass http://inferno:4567;
+        }
+
+        location /api/performance {
+          proxy_pass http://inferno:4567;
+        }
+
         location /hl7validatorapi/ {
           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
           proxy_set_header Host $http_host;

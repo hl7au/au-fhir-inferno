@@ -7,14 +7,11 @@
           <span class="header-title">Inferno on hl7.org.au</span>
         </a>
       </div>
-      <%#
-      # Uncomment if you would like these links active
       <div class="header-text web-header-text">
         <div>
-          <a href="https://example.com">Info Link 1</a> <br>
-          <a href="https://example2.com">Ifno Link 2</a>
+          <a id="perf-link" href="/performance" style="opacity:0.6">Performance</a>
         </div>
-      </div> %>
+      </div>
     </div>
   </div>
 
@@ -104,6 +101,18 @@
     document.querySelector('title'),
     { subtree: true, characterData: true, childList: true }
   );
+
+  /* Update Performance link with session ID when on a session page */
+  (function() {
+    const match = location.pathname.match(/\/test_sessions\/([^\/]+)/);
+    if (match) {
+      const link = document.getElementById('perf-link');
+      if (link) {
+        link.href = '/performance?session=' + match[1];
+        link.style.opacity = '1';
+      }
+    }
+  })();
 
   /* Open and close banner info */
   const toggleBannerInfo = () => {

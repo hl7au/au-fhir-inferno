@@ -12,14 +12,21 @@ gem 'pg'
 # also point to git repos, or with some extra
 # Docker configuration relative directories
 
-# gem 'au_core_test_kit', git: 'https://github.com/hl7au/au-fhir-core-inferno', ref: '5d9069364f7a535b1d0073dc08ac817e4ccfcd66'
-gem 'au_core_test_kit', '~> 1.4.0'
+gem 'au_core_test_kit', git: 'https://github.com/hl7au/au-fhir-core-inferno', ref: '80fa347488d645d09025cbd664378df28f0bb469'
+# gem 'au_core_test_kit', '~> 1.4.0'
 gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno', ref: '7dce73a0cd35fcc4ba84b15526f1b3345a9c9aaf'
 gem 'validation_test_kit', git: 'https://github.com/beda-software/validation-test-kit'
 gem 'inferno_suite_generator', github: 'hl7au/inferno_suite_generator', ref: 'b7d35902727343e898cd8d03dff600823b15384c'
 
 
 gem 'sidekiq-cron'
+
+# OpenTelemetry — worker emits spans to Alloy → Tempo
+gem 'opentelemetry-sdk'
+gem 'opentelemetry-exporter-otlp'
+gem 'opentelemetry-instrumentation-faraday'
+gem 'opentelemetry-instrumentation-net_http'
+gem 'opentelemetry-instrumentation-sidekiq'
 
 group :development, :test do
   gem 'jekyll'

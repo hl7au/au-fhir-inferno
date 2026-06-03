@@ -6,6 +6,16 @@ GIT
       inferno_core (>= 0.4.2)
 
 GIT
+  remote: https://github.com/hl7au/au-fhir-core-inferno
+  revision: 80fa347488d645d09025cbd664378df28f0bb469
+  ref: 80fa347488d645d09025cbd664378df28f0bb469
+  specs:
+    au_core_test_kit (1.4.1)
+      inferno_core (>= 1.0.6)
+      smart_app_launch_test_kit (>= 0.4.0)
+      tls_test_kit (~> 0.2.0)
+
+GIT
   remote: https://github.com/hl7au/au-ps-inferno
   revision: 7dce73a0cd35fcc4ba84b15526f1b3345a9c9aaf
   ref: 7dce73a0cd35fcc4ba84b15526f1b3345a9c9aaf
@@ -35,10 +45,6 @@ GEM
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
     aes_key_wrap (1.1.0)
-    au_core_test_kit (1.4.0)
-      inferno_core (>= 1.0.6)
-      smart_app_launch_test_kit (>= 0.4.0)
-      tls_test_kit (~> 0.2.0)
     base62-rb (0.3.1)
     base64 (0.2.0)
     bcp47 (0.3.3)
@@ -174,6 +180,8 @@ GEM
     google-protobuf (4.29.3-x86_64-linux)
       bigdecimal
       rake (>= 13)
+    googleapis-common-protos-types (1.23.0)
+      google-protobuf (~> 4.26)
     hanami-controller (2.0.0)
       dry-configurable (~> 1.0, < 2)
       dry-core (~> 1.0)
@@ -310,6 +318,37 @@ GEM
       multi_xml (~> 0.5)
       rack (>= 1.2, < 4)
     oj (3.11.0)
+    opentelemetry-api (1.10.0)
+      logger
+    opentelemetry-common (0.25.0)
+      opentelemetry-api (~> 1.0)
+    opentelemetry-exporter-otlp (0.34.0)
+      google-protobuf (>= 3.18)
+      googleapis-common-protos-types (~> 1.3)
+      opentelemetry-api (~> 1.1)
+      opentelemetry-common (~> 0.20)
+      opentelemetry-sdk (~> 1.10)
+      opentelemetry-semantic_conventions
+    opentelemetry-instrumentation-base (0.26.1)
+      opentelemetry-api (~> 1.7)
+      opentelemetry-common (~> 0.21)
+      opentelemetry-registry (~> 0.1)
+    opentelemetry-instrumentation-faraday (0.33.0)
+      opentelemetry-instrumentation-base (~> 0.25)
+    opentelemetry-instrumentation-net_http (0.29.0)
+      opentelemetry-instrumentation-base (~> 0.25)
+    opentelemetry-instrumentation-sidekiq (0.29.0)
+      opentelemetry-instrumentation-base (~> 0.25)
+    opentelemetry-registry (0.6.0)
+      opentelemetry-api (~> 1.1)
+    opentelemetry-sdk (1.12.0)
+      logger
+      opentelemetry-api (~> 1.1)
+      opentelemetry-common (~> 0.20)
+      opentelemetry-registry (~> 0.2)
+      opentelemetry-semantic_conventions
+    opentelemetry-semantic_conventions (1.38.0)
+      opentelemetry-api (~> 1.0)
     pastel (0.8.0)
       tty-color (~> 0.5)
     pathutil (0.16.2)
@@ -443,13 +482,18 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
-  au_core_test_kit (~> 1.4.0)
+  au_core_test_kit!
   au_ps_inferno!
   database_cleaner-sequel (~> 1.8)
   factory_bot (~> 6.1)
   inferno_core (~> 1.0.6)
   inferno_suite_generator!
   jekyll
+  opentelemetry-exporter-otlp
+  opentelemetry-instrumentation-faraday
+  opentelemetry-instrumentation-net_http
+  opentelemetry-instrumentation-sidekiq
+  opentelemetry-sdk
   pg
   rspec (~> 3.10)
   sidekiq-cron
