@@ -5,31 +5,35 @@ on:
     branches:
       - master
       - prod
+      - development
   pull_request:
     branches:
-    - master
+      - master
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+
 jobs:
   build-and-push-images:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
-    strategy:
-      matrix:
-        environment: [dev, prod]
-        include:
-          - environment: dev
-            rake_task: web:generate_dev
-            env_file: .env.development
-          - environment: prod
-            rake_task: web:generate_prod
-            env_file: .env
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set environment from branch
+        id: config
+        run: |
+          if [ "$GITHUB_REF" = "refs/heads/development" ]; then
+            echo "environment=dev" >> $GITHUB_OUTPUT
+            echo "rake_task=web:generate_dev" >> $GITHUB_OUTPUT
+          else
+            echo "environment=prod" >> $GITHUB_OUTPUT
+            echo "rake_task=web:generate_prod" >> $GITHUB_OUTPUT
+          fi
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
@@ -37,43 +41,55 @@ jobs:
           ruby-version: '3.3.6'
 
       - name: Install dependencies
-        run: |
-          bundle install
+        run: bundle install
 
-      - name: Use correct environment file
-        run: |
-          if [ "${{ matrix.environment }}" = "dev" ]; then
-            cp ${{ matrix.env_file }} .env
-          fi
-
+      - name: Use dev environment file
+        if: github.ref == 'refs/heads/development'
+        run: cp .env.development .env
 
       - name: Generate static content
-        run: |
-          bundle exec rake ${{ matrix.rake_task }}
+        run: bundle exec rake ${{ steps.config.outputs.rake_task }}
 
-      - name: Log in to the Container registry
+      - name: Log in to Container registry
         uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Extract metadata (tags, labels) for Docker
+
+      - name: Extract metadata
         id: meta
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-      - name: Build and push Docker image (With commit hash)
+
+      - name: Build and push app image
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
           context: .
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-${{ matrix.environment }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-${{ steps.config.outputs.environment }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Build and push Nginx Docker image
+      - name: Build and push Nginx image
         uses: docker/build-push-action@v2
         with:
           context: .
           file: ./nginx.Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-nginx-${{ matrix.environment }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-nginx-${{ steps.config.outputs.environment }}
+
+      - name: Update image tags in values-dev.yaml
+        if: github.ref == 'refs/heads/development' && github.event_name == 'push'
+        run: |
+          sed -i "s|imageUrl:.*|imageUrl: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-${{ steps.config.outputs.environment }}|" infra/helm/inferno/values-dev.yaml
+          sed -i "s|platformImageUri:.*|platformImageUri: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-nginx-${{ steps.config.outputs.environment }}|" infra/helm/inferno/values-dev.yaml
+
+      - name: Commit and push updated image tags
+        if: github.ref == 'refs/heads/development' && github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add infra/helm/inferno/values-dev.yaml
+          git commit -m "chore: update dev image to ${{ github.sha }} [skip ci]"
+          git push origin development
