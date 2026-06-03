@@ -43,7 +43,7 @@ module InfernoPlatformTemplate
     # ------------------------------------------------------------------
     # JSON API
     # ------------------------------------------------------------------
-    get '/api/performance/test_sessions/:id' do
+    get '/test_sessions/:id' do
       content_type :json
       headers 'Access-Control-Allow-Origin' => '*'
 
@@ -108,7 +108,7 @@ module InfernoPlatformTemplate
     # ------------------------------------------------------------------
     # HTML performance page
     # ------------------------------------------------------------------
-    get '/performance' do
+    get '/' do
       content_type :html
       PERFORMANCE_HTML
     end

@@ -1,6 +1,6 @@
 require 'inferno'
 require_relative 'lib/inferno_platform_template/request_timing'
-require_relative 'lib/performance_app'
+require_relative 'lib/inferno_platform_template/performance_app'
 
 use Rack::Static,
     urls: Inferno::Utils::StaticAssets.static_assets_map,
