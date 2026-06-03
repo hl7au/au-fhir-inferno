@@ -7,6 +7,13 @@ inferno:
   imageUrl: ghcr.io/hl7au/au-fhir-inferno:b372a8275a3653f844b93eda2c7be6ea87e8c4fa-dev
   usesWrapper: true
   validatorImageUri: markiantorno/validator-wrapper:latest
+  replicas: 1  # ignored when autoscaling.enabled=true
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
 
 nginx:
   platformImageUri: ghcr.io/hl7au/au-fhir-inferno:b372a8275a3653f844b93eda2c7be6ea87e8c4fa-nginx-dev

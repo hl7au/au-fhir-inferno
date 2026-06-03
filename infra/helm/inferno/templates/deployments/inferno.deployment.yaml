@@ -6,7 +6,9 @@ metadata:
   annotations:
     reloader.stakater.com/auto: "true"
 spec:
-  replicas: 3
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.inferno.replicas | default 1 }}
+  {{- end }}
   selector:
     matchLabels:
       app: inferno-app

@@ -15,6 +15,12 @@ inferno:
   usesWrapper: true
   validatorImageUri: markiantorno/validator-wrapper:1.0.68
 
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
 nginx:
   platformImageUri: ghcr.io/hl7au/au-fhir-inferno:ebb70785929d4c2f189dec7b515e7d46ba6904f1-nginx-prod
 
