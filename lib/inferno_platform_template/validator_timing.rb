@@ -1,5 +1,4 @@
 require 'securerandom'
-require 'inferno/dsl/fhir_validation'
 
 # Records wall-clock round-trip time for every validator API call made during
 # test execution. Stored in the `validator_timing` table (added by migration
@@ -35,4 +34,4 @@ module InfernoPlatformTemplate
   end
 end
 
-Inferno::DSL::FhirValidation.prepend(InfernoPlatformTemplate::ValidatorTimingPatch)
+Inferno::DSL::FHIRValidation.prepend(InfernoPlatformTemplate::ValidatorTimingPatch)
