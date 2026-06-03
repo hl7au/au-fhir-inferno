@@ -5,6 +5,10 @@ metadata:
   namespace: {{ .Values.namespace }}
 spec:
   type: NodePort
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 3600
   ports:
     - port: 3500
       protocol: TCP
