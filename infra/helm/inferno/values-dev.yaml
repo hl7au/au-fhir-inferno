@@ -7,7 +7,12 @@ inferno:
   imageUrl: ghcr.io/hl7au/au-fhir-inferno:b372a8275a3653f844b93eda2c7be6ea87e8c4fa-dev
   usesWrapper: true
   validatorImageUri: markiantorno/validator-wrapper:latest
-  replicas: 1  # ignored when autoscaling.enabled=true
+  replicas: 1
+  workerReplicas: 1
+
+validator:
+  replicas: 1
+  storageClassName: "gp3-encrypted"
 
 autoscaling:
   enabled: false
