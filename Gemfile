@@ -19,6 +19,7 @@ gem 'validation_test_kit', git: 'https://github.com/beda-software/validation-tes
 gem 'inferno_suite_generator', github: 'hl7au/inferno_suite_generator', ref: 'b7d35902727343e898cd8d03dff600823b15384c'
 
 
+gem 'sinatra'
 gem 'sidekiq-cron'
 
 # OpenTelemetry — worker emits spans to Alloy → Tempo
