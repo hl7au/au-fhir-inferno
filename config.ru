@@ -1,5 +1,7 @@
 require 'inferno'
+require_relative 'lib/inferno_platform_template/patches'
 require_relative 'lib/inferno_platform_template/request_timing'
+require_relative 'lib/inferno_platform_template/validator_timing'
 require_relative 'lib/inferno_platform_template/performance_app'
 
 use Rack::Static,

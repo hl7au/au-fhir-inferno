@@ -2,7 +2,9 @@ require 'inferno'
 require 'sidekiq-cron'
 
 require_relative 'lib/inferno_platform_template/delete_old_sessions'
+require_relative 'lib/inferno_platform_template/patches'
 require_relative 'lib/inferno_platform_template/request_timing'
+require_relative 'lib/inferno_platform_template/validator_timing'
 
 # Configure OpenTelemetry for inferno-worker spans.
 # Env vars set by the Helm chart:

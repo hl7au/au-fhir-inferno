@@ -1,15 +1,13 @@
 require 'sinatra/base'
 require 'json'
 require 'sequel'
+require 'uri'
 
 module InfernoPlatformTemplate
   class PerformanceApp < Sinatra::Base
-    TX_SERVER_URL   = ENV.fetch('TX_SERVER_URL', '').freeze
-    VALIDATOR_URL   = ENV.fetch('FHIR_RESOURCE_VALIDATOR_URL', 'http://validator-api:3500').freeze
+    TX_SERVER_URL = ENV.fetch('TX_SERVER_URL', '').freeze
+    VALIDATOR_URL = ENV.fetch('FHIR_RESOURCE_VALIDATOR_URL', 'http://validator-api:3500').freeze
 
-    # ------------------------------------------------------------------
-    # DB connection (lazy, reuses Sequel's existing pool if already open)
-    # ------------------------------------------------------------------
     def self.db
       @db ||= if Sequel::DATABASES.any?
                 Sequel::DATABASES.first
@@ -25,19 +23,12 @@ module InfernoPlatformTemplate
               end
     end
 
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-    def categorise(url)
-      return 'unknown' if url.nil? || url.empty?
-      return 'validator'    if url.start_with?(VALIDATOR_URL)
-      return 'terminology'  if !TX_SERVER_URL.empty? && url.start_with?(TX_SERVER_URL)
-      'fhir_server'
-    end
-
-    def format_ms(ms)
-      return nil if ms.nil?
-      ms < 1000 ? "#{ms}ms" : "#{'%.1f' % (ms / 1000.0)}s"
+    def extract_host(url)
+      return nil if url.nil? || url.empty?
+      uri = URI.parse(url)
+      "#{uri.scheme}://#{uri.host}#{uri.port && ![80, 443].include?(uri.port) ? ":#{uri.port}" : ''}"
+    rescue URI::InvalidURIError
+      nil
     end
 
     # ------------------------------------------------------------------
@@ -50,58 +41,105 @@ module InfernoPlatformTemplate
       session_id = params[:id]
       db = self.class.db
 
-      unless db.table_exists?(:requests)
-        halt 503, { error: 'requests table not found' }.to_json
-      end
+      halt 503, { error: 'requests table not found' }.to_json unless db.table_exists?(:requests)
 
-      # Check session exists
-      sessions_table = db.table_exists?(:test_sessions) ? :test_sessions : nil
-      if sessions_table && db[sessions_table].where(id: session_id).empty?
+      if db.table_exists?(:test_sessions) && db[:test_sessions].where(id: session_id).empty?
         halt 404, { error: 'session not found' }.to_json
       end
 
-      # Fetch outgoing requests for session
       cols = db[:requests].columns
       has_duration = cols.include?(:duration_ms)
 
-      rows = db[:requests]
-        .where(test_session_id: session_id)
-        .where(direction: 'outgoing')
-        .select(*[:id, :url, :status, :created_at, :result_id, (has_duration ? :duration_ms : nil)].compact)
-        .order(:created_at)
-        .all
+      has_results = db.table_exists?(:results)
+      result_cols = has_results ? db[:results].columns : []
+      has_test_id = result_cols.include?(:test_id)
 
-      # Build response
-      categorised = rows.map do |r|
-        cat = categorise(r[:url])
+      base_query = db[:requests].where(
+        test_session_id: session_id,
+        direction: 'outgoing'
+      )
+
+      rows = if has_results && has_test_id
+               base_query
+                 .left_join(:results, { id: Sequel[:requests][:result_id] }, table_alias: :r)
+                 .select(
+                   Sequel[:requests][:id],
+                   Sequel[:requests][:url],
+                   Sequel[:requests][:status],
+                   Sequel[:requests][:created_at],
+                   Sequel[:requests][:result_id],
+                   *(has_duration ? [Sequel[:requests][:duration_ms]] : []),
+                   Sequel[:r][:test_id]
+                 )
+                 .order(Sequel[:requests][:created_at])
+                 .all
+             else
+               base_query
+                 .select(*[
+                   :id, :url, :status, :created_at, :result_id,
+                   (has_duration ? :duration_ms : nil)
+                 ].compact)
+                 .order(:created_at)
+                 .all
+             end
+
+      timed_count = 0
+      fhir_ms     = 0
+      by_server   = {}
+
+      requests_out = rows.map do |r|
+        host = extract_host(r[:url])
+        ms   = r[:duration_ms]
+
+        if ms
+          timed_count += 1
+          fhir_ms     += ms
+          if host
+            by_server[host] ||= { count: 0, total_ms: 0 }
+            by_server[host][:count]    += 1
+            by_server[host][:total_ms] += ms
+          end
+        end
+
         {
           url:         r[:url],
           status:      r[:status],
-          duration_ms: r[:duration_ms],
-          category:    cat,
+          duration_ms: ms,
+          host:        host,
+          test_id:     r[:test_id],
           created_at:  r[:created_at]&.iso8601
         }
       end
 
-      summary = { fhir_server_ms: 0, terminology_ms: 0, validator_ms: 0, unknown_ms: 0 }
-      timed_count = 0
-      categorised.each do |r|
-        next unless r[:duration_ms]
-        timed_count += 1
-        key = :"#{r[:category]}_ms"
-        summary[key] = (summary[key] || 0) + r[:duration_ms]
+      by_server_sorted = by_server.sort_by { |_, v| -v[:total_ms] }
+        .map { |host, v| { host: host, count: v[:count], total_ms: v[:total_ms] } }
+
+      # Validator timing
+      validator_ms    = 0
+      validator_calls = 0
+      has_validator_timing = db.table_exists?(:validator_timing)
+      if has_validator_timing
+        vt_rows = db[:validator_timing].where(test_session_id: session_id).all
+        validator_calls = vt_rows.size
+        validator_ms    = vt_rows.sum { |r| r[:duration_ms] || 0 }
       end
-      summary[:total_ms] = summary.values.sum
 
       {
-        session_id:          session_id,
-        tx_server_url:       TX_SERVER_URL,
-        validator_url:       VALIDATOR_URL,
-        total_requests:      rows.size,
-        requests_with_timing: timed_count,
-        has_duration_column: has_duration,
-        summary:             summary,
-        requests:            categorised
+        session_id:              session_id,
+        tx_server_url:           TX_SERVER_URL,
+        validator_url:           VALIDATOR_URL,
+        total_requests:          rows.size,
+        requests_with_timing:    timed_count,
+        has_duration_column:     has_duration,
+        has_validator_timing:    has_validator_timing,
+        summary: {
+          fhir_ms:          fhir_ms,
+          validator_ms:     validator_ms,
+          fhir_requests:    rows.size,
+          validator_calls:  validator_calls,
+          by_server:        by_server_sorted
+        },
+        requests: requests_out
       }.to_json
     end
 
@@ -113,9 +151,6 @@ module InfernoPlatformTemplate
       PERFORMANCE_HTML
     end
 
-    # ------------------------------------------------------------------
-    # HTML template (inline so it ships with the image, no extra assets)
-    # ------------------------------------------------------------------
     PERFORMANCE_HTML = <<~HTML
       <!DOCTYPE html>
       <html lang="en">
@@ -139,52 +174,78 @@ module InfernoPlatformTemplate
           button:hover { background: #164070; }
           #status { margin-top: 12px; font-size: 0.9rem; color: #6c757d; }
           #results { display: none; }
-          .summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          .scope-note { background: #e8f0fb; border: 1px solid #b8d0f0; border-radius: 6px;
+                        padding: 12px 16px; font-size: 0.85rem; color: #1d5090; margin-bottom: 16px; }
+          .scope-note strong { font-weight: 600; }
+
+          /* Summary grid */
+          .summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
                           gap: 12px; margin-bottom: 20px; }
           .stat-card { background: #f8f9fa; border-radius: 6px; padding: 14px; text-align: center;
                        border: 1px solid #e9ecef; }
+          .stat-card.highlight { background: #e8f0fb; border-color: #b8d0f0; }
           .stat-value { font-size: 1.6rem; font-weight: 700; color: #1d5090; }
           .stat-label { font-size: 0.78rem; color: #6c757d; margin-top: 4px; text-transform: uppercase;
                         letter-spacing: 0.05em; }
-          .breakdown { margin-bottom: 20px; }
-          .breakdown h3 { font-size: 1rem; margin-bottom: 12px; color: #343a40; }
+
+          /* System breakdown stacked bar */
+          .breakdown-section h3 { font-size: 1rem; margin-bottom: 16px; color: #343a40; }
+          .breakdown-row { margin-bottom: 14px; }
+          .breakdown-row-label { display: flex; justify-content: space-between; align-items: baseline;
+                                  margin-bottom: 5px; }
+          .breakdown-row-name { font-size: 0.88rem; font-weight: 600; color: #343a40; }
+          .breakdown-row-meta { font-size: 0.82rem; color: #6c757d; }
+          .bar-track { background: #e9ecef; border-radius: 4px; height: 26px; overflow: hidden; }
+          .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+          .bar-fill.fhir      { background: #2F6BAC; }
+          .bar-fill.validator { background: #1a9e7a; }
+          .stacked-legend { display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+          .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: #495057; }
+          .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+          .legend-dot.fhir      { background: #2F6BAC; }
+          .legend-dot.validator { background: #1a9e7a; }
+          .verdict { margin-top: 14px; padding: 10px 14px; border-radius: 6px;
+                     font-size: 0.88rem; background: #f8f9fa; border: 1px solid #e9ecef; color: #495057; }
+          .verdict strong { color: #212529; }
+
+          /* FHIR server sub-breakdown */
+          .sub-breakdown h3 { font-size: 1rem; margin-bottom: 12px; color: #343a40; }
           .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-          .bar-label { width: 120px; font-size: 0.85rem; color: #495057; text-align: right;
-                       flex-shrink: 0; }
-          .bar-track { flex: 1; background: #e9ecef; border-radius: 4px; height: 22px; overflow: hidden; }
-          .bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
-          .bar-fill.fhir_server  { background: #2F6BAC; }
-          .bar-fill.terminology  { background: #20c997; }
-          .bar-fill.validator    { background: #fd7e14; }
-          .bar-fill.unknown      { background: #adb5bd; }
-          .bar-value { width: 90px; font-size: 0.82rem; color: #6c757d; flex-shrink: 0; }
+          .bar-label { width: 280px; font-size: 0.82rem; color: #495057; text-align: right;
+                       flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+          .bar-track-sm { flex: 1; background: #e9ecef; border-radius: 4px; height: 22px; overflow: hidden; }
+          .bar-fill-sm { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+          .bar-fill-sm.s0 { background: #2F6BAC; }
+          .bar-fill-sm.s1 { background: #4a90c4; }
+          .bar-fill-sm.s2 { background: #6baed6; }
+          .bar-fill-sm.s3 { background: #9ecae1; }
+          .bar-fill-sm.s4 { background: #c6dbef; }
+          .bar-value { width: 130px; font-size: 0.82rem; color: #6c757d; flex-shrink: 0; }
+
+          /* Request table */
           table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
           th { background: #f8f9fa; padding: 8px 10px; text-align: left; border-bottom: 2px solid #dee2e6;
                font-weight: 600; cursor: pointer; user-select: none; white-space: nowrap; }
           th:hover { background: #e9ecef; }
           td { padding: 7px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
           tr:hover td { background: #f8f9fa; }
-          .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;
-                   font-weight: 600; color: white; }
-          .badge.fhir_server  { background: #2F6BAC; }
-          .badge.terminology  { background: #20c997; }
-          .badge.validator    { background: #fd7e14; color: #212529; }
-          .badge.unknown      { background: #adb5bd; color: #212529; }
-          .status-ok   { color: #198754; font-weight: 600; }
-          .status-err  { color: #dc3545; font-weight: 600; }
-          .url-cell { max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+          .status-ok  { color: #198754; font-weight: 600; }
+          .status-err { color: #dc3545; font-weight: 600; }
+          .url-cell { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+          .test-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                       font-size: 0.78rem; color: #6c757d; }
           .no-timing { color: #adb5bd; font-style: italic; }
           .warning-box { background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px;
                          padding: 12px 16px; font-size: 0.85rem; margin-bottom: 16px; }
           @media (max-width: 700px) {
-            .bar-label { width: 80px; font-size: 0.78rem; }
+            .bar-label { width: 120px; font-size: 0.78rem; }
             .summary-grid { grid-template-columns: repeat(2, 1fr); }
           }
         </style>
       </head>
       <body>
         <h1>Inferno Performance Analysis</h1>
-        <p class="subtitle">Per-request HTTP timing breakdown for a test session</p>
+        <p class="subtitle">FHIR server and validator API timing recorded by the Inferno worker</p>
 
         <div class="card">
           <div class="input-row">
@@ -195,22 +256,40 @@ module InfernoPlatformTemplate
         </div>
 
         <div id="results">
+          <div class="scope-note">
+            <strong>What's tracked:</strong>
+            (1) Every HTTP request the worker makes to the <strong>FHIR server under test</strong>, and
+            (2) every <strong>validator API</strong> call (worker → validator-api pod). These are the two
+            largest time sinks that live outside your FHIR server.
+            Terminology server calls are made internally by the validator JVM — not visible here.
+            For a full end-to-end trace see the <strong>Inferno Run Analysis</strong> Grafana dashboard.
+          </div>
+
           <div class="card">
             <div class="summary-grid" id="summaryGrid"></div>
           </div>
-          <div class="card breakdown">
-            <h3>Time distribution (outgoing HTTP only)</h3>
+
+          <div class="card">
+            <div class="breakdown-section">
+              <h3>Was it my server or the infra?</h3>
+              <div id="systemBreakdown"></div>
+            </div>
+          </div>
+
+          <div class="card sub-breakdown">
+            <h3>FHIR wait by server</h3>
             <div id="barChart"></div>
           </div>
+
           <div class="card">
-            <h3 style="margin-bottom:14px;">All outgoing requests</h3>
+            <h3 style="margin-bottom:14px;">All outgoing FHIR requests</h3>
             <div id="warningBox"></div>
             <div style="overflow-x:auto;">
               <table id="reqTable">
                 <thead>
                   <tr>
                     <th onclick="sortTable(0)">URL</th>
-                    <th onclick="sortTable(1)">Category</th>
+                    <th onclick="sortTable(1)">Test</th>
                     <th onclick="sortTable(2)">Status</th>
                     <th onclick="sortTable(3)">Duration</th>
                     <th onclick="sortTable(4)">Time</th>
@@ -231,23 +310,11 @@ module InfernoPlatformTemplate
             if (ms < 1000) return ms + 'ms';
             return (ms / 1000).toFixed(1) + 's';
           }
-
           function fmtMsPlain(ms) {
-            if (ms == null) return '';
+            if (ms == null) return '—';
             if (ms < 1000) return ms + 'ms';
             return (ms / 1000).toFixed(1) + 's';
           }
-
-          function categoryLabel(cat) {
-            return { fhir_server: 'FHIR Server', terminology: 'Terminology', validator: 'Validator', unknown: 'Other' }[cat] || cat;
-          }
-
-          const CATEGORY_COLORS = {
-            fhir_server: '#2F6BAC',
-            terminology: '#20c997',
-            validator: '#fd7e14',
-            unknown: '#adb5bd'
-          };
 
           async function loadSession() {
             const id = document.getElementById('sessionInput').value.trim();
@@ -258,7 +325,7 @@ module InfernoPlatformTemplate
               const res = await fetch('/api/performance/test_sessions/' + encodeURIComponent(id));
               if (!res.ok) {
                 const err = await res.json().catch(() => ({ error: res.statusText }));
-                setStatus((err.error || res.statusText), 'error'); return;
+                setStatus(err.error || res.statusText, 'error'); return;
               }
               currentData = await res.json();
               renderResults(currentData);
@@ -276,38 +343,90 @@ module InfernoPlatformTemplate
 
           function renderResults(data) {
             const s = data.summary;
-            const total = s.total_ms || 0;
-            const categories = [
-              { key: 'fhir_server', label: 'FHIR Server' },
-              { key: 'terminology', label: 'Terminology' },
-              { key: 'validator',   label: 'Validator' },
-              { key: 'unknown',     label: 'Other' }
-            ].filter(c => s[c.key + '_ms'] > 0);
+            const fhirMs = s.fhir_ms || 0;
+            const valMs  = s.validator_ms || 0;
 
             // Summary cards
             const grid = document.getElementById('summaryGrid');
+            const pct = data.total_requests > 0
+              ? Math.round((data.requests_with_timing / data.total_requests) * 100)
+              : 0;
             grid.innerHTML = [
-              { value: fmtMs(total),             label: 'Total HTTP time' },
-              { value: data.total_requests,       label: 'Outgoing requests' },
-              { value: data.requests_with_timing, label: 'Requests with timing' },
-              { value: fmtMs(s.fhir_server_ms),  label: 'FHIR Server' },
-              { value: fmtMs(s.terminology_ms),  label: 'Terminology' },
-              { value: fmtMs(s.validator_ms),    label: 'Validator' }
-            ].map(c => `<div class="stat-card"><div class="stat-value">${c.value}</div><div class="stat-label">${c.label}</div></div>`).join('');
+              { value: fmtMsPlain(fhirMs), label: 'FHIR server wait', highlight: true },
+              { value: fmtMsPlain(valMs),  label: 'Validator API wait', highlight: true },
+              { value: data.total_requests,                          label: 'FHIR requests' },
+              { value: s.validator_calls || 0,                       label: 'Validator calls' },
+              { value: data.requests_with_timing + ' (' + pct + '%)', label: 'FHIR requests timed' }
+            ].map(c =>
+              `<div class="stat-card${c.highlight ? ' highlight' : ''}">
+                <div class="stat-value">${c.value}</div>
+                <div class="stat-label">${c.label}</div>
+              </div>`
+            ).join('');
 
-            // Bar chart
+            // System breakdown bars
+            const breakdown = document.getElementById('systemBreakdown');
+            const total = fhirMs + valMs;
+            if (total === 0) {
+              breakdown.innerHTML = '<p style="color:#6c757d;font-size:0.85rem;">No timing data for this session yet.</p>';
+            } else {
+              const fhirPct = ((fhirMs / total) * 100).toFixed(1);
+              const valPct  = ((valMs  / total) * 100).toFixed(1);
+
+              // Verdict text
+              let verdict = '';
+              if (valMs === 0) {
+                verdict = 'Validator timing not yet recorded for this session (run a new session to see it).';
+              } else if (fhirMs > valMs * 3) {
+                verdict = `<strong>Your FHIR server</strong> was the dominant time sink — ${fhirPct}% of instrumented wait time.`;
+              } else if (valMs > fhirMs * 3) {
+                verdict = `The <strong>validator API</strong> was the dominant time sink — ${valPct}% of instrumented wait time. This is infra overhead, not your server.`;
+              } else {
+                verdict = `Time is split fairly evenly: FHIR server ${fhirPct}%, Validator API ${valPct}% of instrumented wait.`;
+              }
+
+              breakdown.innerHTML = `
+                <div class="breakdown-row">
+                  <div class="breakdown-row-label">
+                    <span class="breakdown-row-name">Your FHIR server</span>
+                    <span class="breakdown-row-meta">${fmtMsPlain(fhirMs)} &nbsp;·&nbsp; ${s.fhir_requests} requests &nbsp;·&nbsp; ${fhirPct}%</span>
+                  </div>
+                  <div class="bar-track"><div class="bar-fill fhir" style="width:${fhirPct}%"></div></div>
+                </div>
+                <div class="breakdown-row">
+                  <div class="breakdown-row-label">
+                    <span class="breakdown-row-name">Validator API (infra)</span>
+                    <span class="breakdown-row-meta">${fmtMsPlain(valMs)} &nbsp;·&nbsp; ${s.validator_calls || 0} calls &nbsp;·&nbsp; ${valPct}%</span>
+                  </div>
+                  <div class="bar-track"><div class="bar-fill validator" style="width:${valPct}%"></div></div>
+                </div>
+                <div class="stacked-legend">
+                  <span class="legend-item"><span class="legend-dot fhir"></span>FHIR server (your system)</span>
+                  <span class="legend-item"><span class="legend-dot validator"></span>Validator API (Sparked infra)</span>
+                </div>
+                <div class="verdict">${verdict}</div>
+              `;
+            }
+
+            // FHIR by-server sub-breakdown
             const chart = document.getElementById('barChart');
-            chart.innerHTML = categories.map(c => {
-              const ms = s[c.key + '_ms'] || 0;
-              const pct = total > 0 ? ((ms / total) * 100).toFixed(1) : 0;
-              return `<div class="bar-row">
-                <div class="bar-label">${c.label}</div>
-                <div class="bar-track"><div class="bar-fill ${c.key}" style="width:${pct}%"></div></div>
-                <div class="bar-value">${fmtMs(ms)} (${pct}%)</div>
-              </div>`;
-            }).join('') || '<p style="color:#6c757d;font-size:0.85rem;">No timing data available yet — requests may have been recorded before the duration_ms migration was applied.</p>';
+            const servers = s.by_server || [];
+            if (servers.length === 0) {
+              chart.innerHTML = '<p style="color:#6c757d;font-size:0.85rem;">No timing data available yet.</p>';
+            } else {
+              chart.innerHTML = servers.map((sv, i) => {
+                const barPct = fhirMs > 0 ? ((sv.total_ms / fhirMs) * 100).toFixed(1) : 0;
+                const label = sv.host || 'unknown';
+                const countLabel = sv.count + ' req · ' + fmtMsPlain(sv.total_ms) + ' (' + barPct + '%)';
+                return `<div class="bar-row">
+                  <div class="bar-label" title="${label}">${label}</div>
+                  <div class="bar-track-sm"><div class="bar-fill-sm s${i % 5}" style="width:${barPct}%"></div></div>
+                  <div class="bar-value">${countLabel}</div>
+                </div>`;
+              }).join('');
+            }
 
-            // Warning if no timing data
+            // Warning if partial timing
             const warn = document.getElementById('warningBox');
             if (data.requests_with_timing < data.total_requests) {
               const missing = data.total_requests - data.requests_with_timing;
@@ -316,7 +435,6 @@ module InfernoPlatformTemplate
               warn.innerHTML = '';
             }
 
-            // Request table
             renderTable(data.requests);
             document.getElementById('results').style.display = 'block';
           }
@@ -326,9 +444,12 @@ module InfernoPlatformTemplate
             tbody.innerHTML = reqs.map(r => {
               const statusClass = r.status && r.status < 400 ? 'status-ok' : 'status-err';
               const ts = r.created_at ? new Date(r.created_at).toLocaleTimeString() : '';
+              const testLabel = r.test_id
+                ? `<span title="${r.test_id}">${r.test_id.split('-').slice(-1)[0] || r.test_id}</span>`
+                : '<span style="color:#adb5bd">—</span>';
               return `<tr>
                 <td class="url-cell" title="${r.url || ''}">${r.url || ''}</td>
-                <td><span class="badge ${r.category}">${categoryLabel(r.category)}</span></td>
+                <td class="test-cell">${testLabel}</td>
                 <td class="${statusClass}">${r.status || '—'}</td>
                 <td>${fmtMs(r.duration_ms)}</td>
                 <td>${ts}</td>
@@ -340,7 +461,7 @@ module InfernoPlatformTemplate
             if (!currentData) return;
             sortDir[col] = !sortDir[col];
             const reqs = [...currentData.requests];
-            const keys = ['url', 'category', 'status', 'duration_ms', 'created_at'];
+            const keys = ['url', 'test_id', 'status', 'duration_ms', 'created_at'];
             reqs.sort((a, b) => {
               const va = a[keys[col]] ?? '';
               const vb = b[keys[col]] ?? '';
@@ -351,7 +472,6 @@ module InfernoPlatformTemplate
             renderTable(reqs);
           }
 
-          // Auto-load from URL param
           (function() {
             const params = new URLSearchParams(location.search);
             const id = params.get('session') || params.get('session_id');
