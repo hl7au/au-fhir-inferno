@@ -1,7 +1,6 @@
 ingress:
   hostnames:
-    - dev.inferno.sparked-fhir.com
-    - inferno.dev.hl7.org.au
+    - development.inferno.sparked-fhir.com
 
 inferno:
   imageUrl: ghcr.io/hl7au/au-fhir-inferno:e0b06657ce44c063d43a68425902c3c1fbd876eb-dev
