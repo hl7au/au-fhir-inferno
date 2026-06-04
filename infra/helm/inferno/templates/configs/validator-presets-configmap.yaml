@@ -7,51 +7,95 @@ data:
   presets.json: |
     [
       {
-        "name": "au-core-v1.0.0",
-        "cliContext": {
+        "key": "AU_CORE_V1_0_0",
+        "localizedLabels": { "en": "AU Core v1.0.0" },
+        "validationContext": {
           "sv": "4.0.1",
-          "doNative": false,
+          "igs": ["hl7.fhir.au.core#1.0.0"],
           "extensions": ["any"],
+          "doNative": false,
           "disableDefaultResourceFetcher": false,
           "txServer": {{ .Values.inferno.terminologyServer | quote }},
-          "noEcosystem": true,
-          "igs": ["hl7.fhir.au.core#1.0.0"]
-        }
+          "noEcosystem": true
+        },
+        "igPackageInfo": [
+          {
+            "id": "hl7.fhir.au.core",
+            "version": "1.0.0",
+            "fhirVersion": "4.0.1",
+            "url": "http://hl7.org.au/fhir/core/ImplementationGuide/hl7.fhir.au.core"
+          }
+        ],
+        "extensionSet": ["any"],
+        "profileSet": []
       },
       {
-        "name": "au-core-v2.0.0",
-        "cliContext": {
+        "key": "AU_CORE_V2_0_0",
+        "localizedLabels": { "en": "AU Core v2.0.0" },
+        "validationContext": {
           "sv": "4.0.1",
-          "doNative": false,
+          "igs": ["hl7.fhir.au.core#2.0.0"],
           "extensions": ["any"],
+          "doNative": false,
           "disableDefaultResourceFetcher": false,
           "txServer": {{ .Values.inferno.terminologyServer | quote }},
-          "noEcosystem": true,
-          "igs": ["hl7.fhir.au.core#2.0.0"]
-        }
+          "noEcosystem": true
+        },
+        "igPackageInfo": [
+          {
+            "id": "hl7.fhir.au.core",
+            "version": "2.0.0",
+            "fhirVersion": "4.0.1",
+            "url": "http://hl7.org.au/fhir/core/ImplementationGuide/hl7.fhir.au.core"
+          }
+        ],
+        "extensionSet": ["any"],
+        "profileSet": []
       },
       {
-        "name": "au-ps-v1.0.0-preview",
-        "cliContext": {
+        "key": "AU_PS_V1_0_0_PREVIEW",
+        "localizedLabels": { "en": "AU PS v1.0.0-preview" },
+        "validationContext": {
           "sv": "4.0.1",
-          "doNative": false,
+          "igs": ["hl7.fhir.au.ps#1.0.0-preview"],
           "extensions": ["any"],
+          "doNative": false,
           "disableDefaultResourceFetcher": false,
           "txServer": {{ .Values.inferno.terminologyServer | quote }},
-          "noEcosystem": true,
-          "igs": ["hl7.fhir.au.ps#1.0.0-preview"]
-        }
+          "noEcosystem": true
+        },
+        "igPackageInfo": [
+          {
+            "id": "hl7.fhir.au.ps",
+            "version": "1.0.0-preview",
+            "fhirVersion": "4.0.1",
+            "url": "http://hl7.org.au/fhir/ps/ImplementationGuide/hl7.fhir.au.ps"
+          }
+        ],
+        "extensionSet": ["any"],
+        "profileSet": []
       },
       {
-        "name": "smart-app-launch-v2.2.0",
-        "cliContext": {
+        "key": "SMART_APP_LAUNCH_V2_2_0",
+        "localizedLabels": { "en": "SMART App Launch v2.2.0" },
+        "validationContext": {
           "sv": "4.0.1",
-          "doNative": false,
+          "igs": ["hl7.fhir.uv.smart-app-launch#2.2.0"],
           "extensions": ["any"],
+          "doNative": false,
           "disableDefaultResourceFetcher": false,
           "txServer": {{ .Values.inferno.terminologyServer | quote }},
-          "noEcosystem": true,
-          "igs": ["hl7.fhir.uv.smart-app-launch#2.2.0"]
-        }
+          "noEcosystem": true
+        },
+        "igPackageInfo": [
+          {
+            "id": "hl7.fhir.uv.smart-app-launch",
+            "version": "2.2.0",
+            "fhirVersion": "4.0.1",
+            "url": "http://hl7.org/fhir/smart-app-launch/ImplementationGuide/hl7.fhir.uv.smart-app-launch"
+          }
+        ],
+        "extensionSet": ["any"],
+        "profileSet": []
       }
     ]
