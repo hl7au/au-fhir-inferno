@@ -5,7 +5,7 @@ ingress:
 inferno:
   imageUrl: ghcr.io/hl7au/au-fhir-inferno:8ee51f48c180445167e4d0b039f9df713b86ba5b-dev
   usesWrapper: true
-  validatorImageUri: markiantorno/validator-wrapper:latest
+  validatorImageUri: markiantorno/validator-wrapper:1.0.68
   replicas: 1
   workerReplicas: 1
 
