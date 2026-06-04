@@ -75,8 +75,8 @@ spec:
             port: 3500
           initialDelaySeconds: 60
           periodSeconds: 30
-          timeoutSeconds: 10      # Increased from 5s - preset loading can block briefly
-          failureThreshold: 5     # Increased from 3 - allows 150s (5*30) before restart
+          timeoutSeconds: 30      # baseEngine generateSnapshot() saturates Ktor threads briefly
+          failureThreshold: 10    # allows 300s (10*30) before restart - covers full preset+session init
   volumeClaimTemplates:
   - metadata:
       name: fhir-package-cache
