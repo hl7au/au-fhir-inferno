@@ -1,0 +1,40 @@
+{{- if .Values.validatorAutoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: validator-api
+  namespace: {{ .Values.namespace }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: validator-api
+  minReplicas: {{ .Values.validatorAutoscaling.minReplicas }}
+  maxReplicas: {{ .Values.validatorAutoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.validatorAutoscaling.targetCPUUtilizationPercentage }}
+  behavior:
+    scaleUp:
+      # Conservative scale-up: each new validator pod takes 5–10 min to warm up presets
+      # and build base engines before it can serve requests efficiently. Scaling too
+      # aggressively means new pods are created but not ready to help for minutes.
+      stabilizationWindowSeconds: 120
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 300  # Add at most 1 pod every 5 minutes
+    scaleDown:
+      # Long cooldown to preserve warm sessions. A pod with cached sessions serves
+      # requests in ~3s; a freshly started pod takes 5–10 min to reach that state.
+      # Scaling down discards warm session caches — let load subside for 20 min first.
+      stabilizationWindowSeconds: 1200
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 300  # Remove at most 1 pod every 5 minutes
+{{- end }}

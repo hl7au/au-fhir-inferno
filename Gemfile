@@ -12,7 +12,7 @@ gem 'pg'
 # also point to git repos, or with some extra
 # Docker configuration relative directories
 
-gem 'au_core_test_kit', git: 'https://github.com/hl7au/au-fhir-core-inferno', ref: 'f5bd55fbb67a7a664a74683e8d00cd478093c5e2'
+gem 'au_core_test_kit', git: 'https://github.com/hl7au/au-fhir-core-inferno', ref: '1446b9bf9016cbcf27871175ea69dd32c698c940'
 # gem 'au_core_test_kit', '~> 1.4.0'
 gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno', ref: '7dce73a0cd35fcc4ba84b15526f1b3345a9c9aaf'
 gem 'validation_test_kit', git: 'https://github.com/beda-software/validation-test-kit'

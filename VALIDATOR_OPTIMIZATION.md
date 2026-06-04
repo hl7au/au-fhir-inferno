@@ -119,32 +119,45 @@ See [docs/noecosystem-performance-analysis.md](docs/noecosystem-performance-anal
 - Mounted the ConfigMap into the validator pod at `/presets/`
 - Set `VALIDATION_SERVICE_PRESETS_FILE_PATH=/presets/presets.json` env var
 
-**IGs pre-warmed** (derived from observed session logs):
+**IGs pre-warmed** (derived from observed session logs, trimmed to suites actively used):
 
-| Preset | IG |
-|---|---|
-| `au-core-v1.0.0` | `hl7.fhir.au.core#1.0.0` |
-| `au-core-v2.0.0` | `hl7.fhir.au.core#2.0.0` |
-| `au-ps-v1.0.0-preview` | `hl7.fhir.au.ps#1.0.0-preview` |
-| `smart-app-launch-v2.2.0` | `hl7.fhir.uv.smart-app-launch#2.2.0` |
+| Preset key | IG | Suite |
+|---|---|---|
+| `AU_CORE_V2_0_0` | `hl7.fhir.au.core#2.0.0` | au_core v2.0.0 |
+| `AU_CORE_V1_0_0` | `hl7.fhir.au.core#1.0.0` | au_core v1.0.0 |
+| `AU_PS_V1_0_0_PREVIEW` | `hl7.fhir.au.ps#1.0.0-preview` | au_ps |
 
-Each preset includes `noEcosystem: true` and the `txServer` value from `inferno.terminologyServer` (templated via Helm), ensuring the pre-warmed session matches what Inferno will request at runtime. Transitive dependency packages (~83 total, ~4.5GB) are downloaded automatically as part of the preset session initialisation.
+Ordered with v2.0.0 first — it loads the larger/newer terminology packages (`hl7.terminology.r4#7.1.0`). Once those are in JVM heap, subsequent presets that share packages load significantly faster.
+
+Each preset includes `noEcosystem: true` and the `txServer` value from `inferno.terminologyServer` (templated via Helm). Transitive dependency packages (~83 total, ~4.5GB) are downloaded automatically on first startup then cached on the PVC.
 
 **Why ConfigMap over baking packages into the Docker image:**
 - The prod package cache is 4.5GB — embedding it would make image push/pull impractical
 - ConfigMap keeps IG version management in the same IaC repo as deployment config, updated without a Docker build
 - Packages persist in the PVC after first startup, so subsequent restarts are instant regardless
 
-**Measured improvement (warm PVC):**
+**Measured improvement across all optimisation stages:**
 
-The presets pre-load parsed resources into JVM heap. When Inferno's user session then initialises for the same IGs, the JVM reuses the already-parsed packages rather than re-reading them from disk. Loading 4,000+ resources per terminology package from disk takes significant time even on a local SSD.
+The full CapabilityStatement timing progression (CapabilityStatement is the first validation in a test run and always triggers a new session on the first run after a pod restart — the clearest signal of session init cost):
 
-| Scenario | Cold session init (CapabilityStatement) |
-|---|---|
-| Before presets (warm PVC) | **103s** |
-| After presets (warm PVC) | **32s** (3× improvement) |
+| Scenario | CapabilityStatement | Per-test avg |
+|---|---|---|
+| Baseline — no presets, no `baseEngine` (warm PVC) | **103s** | ~1.3s |
+| + Presets (JVM heap warm from preset loading) | **32s** | ~1.3s |
+| + `baseEngine` (fast copy constructor, first run after restart) | **18s** | ~0.8s |
+| Warm cache (same pod, second run — session already cached) | **3s** | ~0.3s |
 
-Subsequent validations in the same session remain fast (20–100ms) in both cases — the gain is specifically in first-session initialisation.
+**Full suite comparison — dev (all optimisations) vs prod (no AU Core presets):**
+
+| | Dev (`:latest` + AU Core presets + `baseEngine`) | Prod (`1.0.68` + default jar presets) |
+|---|---|---|
+| Tests | 374 | 241 |
+| Duration | **5m00s** | **5m15s** |
+| Per-test avg | **~0.80s** | **~1.31s** |
+| CapabilityStatement (cold session) | **18s** | **36s** |
+| Speedup | **1.6× faster per test** | baseline |
+
+Prod's default jar presets (DEFAULT/IPS/IPS_AU/CDA/US_CCDA) load in seconds but have no AU Core base engine. When Inferno sends `baseEngine: 'AU_CORE_V2_0_0'`, prod doesn't find it and falls back to a full disk rebuild for every new session.
 
 **Fresh PVC benefit (rolling updates):** Without presets, the first user after a pod replacement waits for network package downloads (~1–2 min). With presets, downloads happen during the startup window before the readiness probe passes — users never see them.
 
@@ -189,6 +202,10 @@ No. Once a session is cached and Inferno reuses the same `sessionId`, every subs
 1. **First startup** — preset loading builds each base engine once from disk; `InvokeValidatorSession` per suite creates the Inferno-side session (fast copy via `baseEngine`)
 2. **Pod restart** — session cache is in-memory and lost; presets re-warm the base engines during the startup window before the readiness probe passes
 3. **Session eviction** (>4 concurrent active sessions) — fast with `baseEngine`, slow without
+
+**`InvokeValidatorSession` warmup and session eviction:**
+
+At Inferno startup, each test suite triggers an `InvokeValidatorSession` Sidekiq job that validates an empty `FHIR::Patient` resource to pre-create the validator session. With 4 suites and a 4-slot session cache, these warmup jobs can temporarily compete and evict each other's sessions. Each eviction costs ~35s (baseEngine copy constructor + `generateSnapshot()` CPU work) rather than appearing in the actual test run. The test run's session (`78348027` / actual user session) typically survives undisturbed once all warmup is complete. Trimming presets to only the actively-used suites (3 instead of 5) reduces this startup competition.
 
 ---
 

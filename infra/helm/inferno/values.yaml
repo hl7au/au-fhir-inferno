@@ -17,6 +17,25 @@ inferno:
 validator:
   storageClassName: "gp3-encrypted"  # Use default EBS storage class for validator caches
 
+# Validator autoscaling — disabled by default.
+#
+# Each new validator pod takes 5–10 minutes to warm up (preset loading + base engine
+# construction + InvokeValidatorSession warmup). HPA reacts too slowly for sudden
+# spikes — by the time a new pod is warm the load is already over.
+#
+# RECOMMENDED: Pre-scale manually before known high-load events (connectathons, demos):
+#   kubectl scale statefulset validator-api -n <namespace> --replicas=3
+# Or update validator.replicas in the environment-specific values file and deploy.
+#
+# If enabling HPA, use conservative thresholds. CPU during steady-state validation
+# is ~1 core per pod (55% of the 2000m limit). During startup it spikes to 2000m.
+# Set targetCPU at ~60% to avoid triggering scale-up from startup spikes.
+validatorAutoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 60
+
 postgresql:
   enabled: false # enable if not using rds from aws-impl
   externaldbhost: null # This can be overridden during chart deployment
