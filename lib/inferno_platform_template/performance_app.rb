@@ -111,6 +111,33 @@ module InfernoPlatformTemplate
       by_server_sorted = by_server.sort_by { |_, v| -v[:total_ms] }
         .map { |host, v| { host: host, count: v[:count], total_ms: v[:total_ms] } }
 
+      # Group by test section (second dash-segment of test_id) and individual test
+      # test_id format: <suite>-<group>-<test>  e.g. au_core_v200-capability_statement-tls_check
+      by_group_map = {}
+      requests_out.each do |r|
+        tid = r[:test_id]
+        ms  = r[:duration_ms]
+        next unless tid
+
+        parts  = tid.split('-')
+        group  = parts.length >= 2 ? parts[1..-2].join('-') : parts[0]
+        group  = parts[0] if group.nil? || group.empty?
+
+        by_group_map[group] ||= { group: group, count: 0, total_ms: 0, tests: {} }
+        by_group_map[group][:count]    += 1
+        by_group_map[group][:total_ms] += (ms || 0)
+
+        by_group_map[group][:tests][tid] ||= { test_id: tid, count: 0, total_ms: 0 }
+        by_group_map[group][:tests][tid][:count]    += 1
+        by_group_map[group][:tests][tid][:total_ms] += (ms || 0)
+      end
+
+      by_group = by_group_map.values
+        .sort_by { |g| -g[:total_ms] }
+        .map do |g|
+          g.merge(tests: g[:tests].values.sort_by { |t| -t[:total_ms] }.first(30))
+        end
+
       # Validator timing
       validator_ms         = 0
       validator_calls      = 0
@@ -166,7 +193,8 @@ module InfernoPlatformTemplate
           validator_ms:    validator_ms,
           fhir_requests:   rows.size,
           validator_calls: validator_calls,
-          by_server:       by_server_sorted
+          by_server:       by_server_sorted,
+          by_group:        by_group
         },
         requests: requests_out
       }.to_json
@@ -515,6 +543,84 @@ module InfernoPlatformTemplate
           }
           .verdict strong { color: var(--c-accent); }
 
+          /* ── Test group breakdown ───────────────────── */
+          .tg-group {
+            border: 1px solid var(--c-border);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            overflow: hidden;
+          }
+          .tg-group-head {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 16px;
+            background: #FAFAFA;
+            cursor: pointer;
+            user-select: none;
+          }
+          .tg-group-head:hover { background: #F3F4F6; }
+          .tg-toggle {
+            font-size: 0.7rem;
+            color: var(--c-muted);
+            flex-shrink: 0;
+            transition: transform 0.2s;
+            display: inline-block;
+          }
+          .tg-toggle.open { transform: rotate(90deg); }
+          .tg-name {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--c-text);
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .tg-bar-wrap {
+            flex: 1;
+            max-width: 200px;
+            background: var(--c-border);
+            border-radius: 4px;
+            height: 8px;
+            overflow: hidden;
+          }
+          .tg-bar-fill { height: 100%; border-radius: 4px; background: var(--c-fhir); }
+          .tg-meta { font-size: 0.78rem; color: var(--c-muted); white-space: nowrap; flex-shrink: 0; }
+          .tg-tests {
+            display: none;
+            padding: 0 16px 12px 16px;
+            background: white;
+          }
+          .tg-tests.open { display: block; }
+          .tg-test-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 0;
+            border-bottom: 1px solid #F3F4F6;
+          }
+          .tg-test-row:last-child { border-bottom: none; }
+          .tg-test-name {
+            flex: 1;
+            font-size: 0.8rem;
+            color: var(--c-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: 'Courier New', Consolas, monospace;
+          }
+          .tg-test-bar-wrap {
+            width: 120px;
+            background: var(--c-border);
+            border-radius: 3px;
+            height: 6px;
+            overflow: hidden;
+            flex-shrink: 0;
+          }
+          .tg-test-bar-fill { height: 100%; border-radius: 3px; background: #6aa3de; }
+          .tg-test-meta { font-size: 0.77rem; color: var(--c-muted); white-space: nowrap; width: 110px; flex-shrink: 0; text-align: right; }
+
           /* ── Sub breakdown ───────────────────────────── */
           .sb-row {
             display: flex;
@@ -720,6 +826,21 @@ module InfernoPlatformTemplate
               <div id="breakdown"></div>
             </div>
 
+            <!-- By test group -->
+            <div class="card">
+              <div class="card-head">
+                <h2>FHIR wait by test section</h2>
+                <span class="card-sub" id="by-group-sub"></span>
+              </div>
+              <div id="by-group-filter-wrap" style="margin-bottom:14px; display:none;">
+                <input id="by-group-filter" type="text" placeholder="Filter sections…"
+                  oninput="filterGroups(this.value)"
+                  style="padding:7px 12px; border:1px solid var(--c-border); border-radius:6px;
+                         font-size:0.85rem; font-family:var(--font); width:100%; max-width:340px; outline:none;" />
+              </div>
+              <div id="by-group"></div>
+            </div>
+
             <!-- By server -->
             <div class="card">
               <div class="card-head">
@@ -872,6 +993,7 @@ module InfernoPlatformTemplate
               </div>`).join('');
 
             renderBreakdown(fhirMs, valMs, s);
+            renderByGroup(s.by_group || [], fhirMs);
             renderByServer(s.by_server || [], fhirMs);
 
             // Table warning
@@ -929,6 +1051,74 @@ module InfernoPlatformTemplate
                 <span class="leg-item"><span class="leg-dot val"></span>Validator API (Sparked infra)</span>
               </div>
               <div class="verdict">${verdict}</div>`;
+          }
+
+          // ── humanise a snake_case test segment ─────────────────────────
+          function humanise(s) {
+            return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          }
+
+          // ── strip the suite prefix (first dash-segment) ─────────────────
+          function stripSuite(testId) {
+            const parts = testId.split('-');
+            return parts.length > 1 ? parts.slice(1).join('-') : testId;
+          }
+
+          let _allGroups = [];
+
+          function renderByGroup(groups, fhirMs) {
+            _allGroups = groups;
+            document.getElementById('by-group-sub').textContent =
+              groups.length ? `${groups.length} section${groups.length !== 1 ? 's' : ''}` : '';
+            const filterWrap = document.getElementById('by-group-filter-wrap');
+            filterWrap.style.display = groups.length > 4 ? '' : 'none';
+            renderGroupList(groups, fhirMs);
+          }
+
+          function renderGroupList(groups, fhirMs) {
+            const el = document.getElementById('by-group');
+            if (!groups.length) {
+              el.innerHTML = '<div class="empty-state">No test-attributed timing data yet — requests need a completed result to be linked to a test.</div>';
+              return;
+            }
+            el.innerHTML = groups.map((g, gi) => {
+              const gPct = pct(g.total_ms, fhirMs);
+              const groupLabel = humanise(g.group);
+              const tests = (g.tests || []).map((t, ti) => {
+                const tPct = pct(t.total_ms, g.total_ms);
+                const tLabel = stripSuite(t.test_id);
+                return `<div class="tg-test-row">
+                  <div class="tg-test-name" title="${t.test_id}">${tLabel}</div>
+                  <div class="tg-test-bar-wrap"><div class="tg-test-bar-fill" style="width:${tPct}%"></div></div>
+                  <div class="tg-test-meta">${fmtMsPlain(t.total_ms)} · ${t.count} req</div>
+                </div>`;
+              }).join('');
+              return `<div class="tg-group" data-label="${groupLabel.toLowerCase()}">
+                <div class="tg-group-head" onclick="toggleGroup(this)">
+                  <span class="tg-toggle">▶</span>
+                  <span class="tg-name" title="${g.group}">${groupLabel}</span>
+                  <div class="tg-bar-wrap"><div class="tg-bar-fill" style="width:${gPct}%"></div></div>
+                  <span class="tg-meta">${fmtMsPlain(g.total_ms)} · ${g.count} req · ${gPct}%</span>
+                </div>
+                <div class="tg-tests">${tests}</div>
+              </div>`;
+            }).join('');
+          }
+
+          function toggleGroup(headEl) {
+            const toggle = headEl.querySelector('.tg-toggle');
+            const tests  = headEl.nextElementSibling;
+            const open   = tests.classList.toggle('open');
+            toggle.classList.toggle('open', open);
+          }
+
+          function filterGroups(query) {
+            const q = query.toLowerCase().trim();
+            const fhirMs = currentData?.summary?.fhir_ms || 0;
+            const filtered = q
+              ? _allGroups.filter(g => g.group.toLowerCase().includes(q))
+              : _allGroups;
+            renderGroupList(filtered, fhirMs);
           }
 
           function renderByServer(servers, fhirMs) {
