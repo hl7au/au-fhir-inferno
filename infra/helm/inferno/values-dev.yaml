@@ -3,7 +3,7 @@ ingress:
     - development.inferno.sparked-fhir.com
 
 inferno:
-  imageUrl: ghcr.io/hl7au/au-fhir-inferno:e8b5dc030655893d98dd5ac3d7f86c4d29510011-dev
+  imageUrl: ghcr.io/hl7au/au-fhir-inferno:5739ebc553cb9c13f128cf1f3d38f725630a2cee-dev
   usesWrapper: true
   validatorImageUri: markiantorno/validator-wrapper:1.0.68
   replicas: 1
@@ -20,7 +20,7 @@ autoscaling:
   targetCPUUtilizationPercentage: 70
 
 nginx:
-  platformImageUri: ghcr.io/hl7au/au-fhir-inferno:e8b5dc030655893d98dd5ac3d7f86c4d29510011-nginx-dev
+  platformImageUri: ghcr.io/hl7au/au-fhir-inferno:5739ebc553cb9c13f128cf1f3d38f725630a2cee-nginx-dev
 
 
 externalSecrets:
