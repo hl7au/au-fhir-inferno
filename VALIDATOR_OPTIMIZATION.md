@@ -135,7 +135,22 @@ Each preset includes `noEcosystem: true` and the `txServer` value from `inferno.
 - ConfigMap keeps IG version management in the same IaC repo as deployment config, updated without a Docker build
 - Packages persist in the PVC after first startup, so subsequent restarts are instant regardless
 
-**Updating presets when IG versions change:** Edit `validator-presets-configmap.yaml` and roll the StatefulSet. The new pod will download the new packages during its startup window.
+**Measured improvement (warm PVC):**
+
+The presets pre-load parsed resources into JVM heap. When Inferno's user session then initialises for the same IGs, the JVM reuses the already-parsed packages rather than re-reading them from disk. Loading 4,000+ resources per terminology package from disk takes significant time even on a local SSD.
+
+| Scenario | Cold session init (CapabilityStatement) |
+|---|---|
+| Before presets (warm PVC) | **103s** |
+| After presets (warm PVC) | **32s** (3× improvement) |
+
+Subsequent validations in the same session remain fast (20–100ms) in both cases — the gain is specifically in first-session initialisation.
+
+**Fresh PVC benefit (rolling updates):** Without presets, the first user after a pod replacement waits for network package downloads (~1–2 min). With presets, downloads happen during the startup window before the readiness probe passes — users never see them.
+
+**Updating presets when IG versions change:** Edit `validator-presets-configmap.yaml` and roll the StatefulSet. The new pod downloads the new packages during its startup window.
+
+**Known limitation:** Preset session IDs are not reused by Inferno's own `InvokeValidatorSession` warmup (different UUIDs). The benefit comes from JVM memory warming, not session ID reuse.
 
 ---
 

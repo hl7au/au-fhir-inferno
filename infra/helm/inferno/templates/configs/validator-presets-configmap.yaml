@@ -7,29 +7,6 @@ data:
   presets.json: |
     [
       {
-        "key": "AU_CORE_V1_0_0",
-        "localizedLabels": { "en": "AU Core v1.0.0" },
-        "validationContext": {
-          "sv": "4.0.1",
-          "igs": ["hl7.fhir.au.core#1.0.0"],
-          "extensions": ["any"],
-          "doNative": false,
-          "disableDefaultResourceFetcher": false,
-          "txServer": {{ .Values.inferno.terminologyServer | quote }},
-          "noEcosystem": true
-        },
-        "igPackageInfo": [
-          {
-            "id": "hl7.fhir.au.core",
-            "version": "1.0.0",
-            "fhirVersion": "4.0.1",
-            "url": "http://hl7.org.au/fhir/core/ImplementationGuide/hl7.fhir.au.core"
-          }
-        ],
-        "extensionSet": ["any"],
-        "profileSet": []
-      },
-      {
         "key": "AU_CORE_V2_0_0",
         "localizedLabels": { "en": "AU Core v2.0.0" },
         "validationContext": {
@@ -45,6 +22,29 @@ data:
           {
             "id": "hl7.fhir.au.core",
             "version": "2.0.0",
+            "fhirVersion": "4.0.1",
+            "url": "http://hl7.org.au/fhir/core/ImplementationGuide/hl7.fhir.au.core"
+          }
+        ],
+        "extensionSet": ["any"],
+        "profileSet": []
+      },
+      {
+        "key": "AU_CORE_V1_0_0",
+        "localizedLabels": { "en": "AU Core v1.0.0" },
+        "validationContext": {
+          "sv": "4.0.1",
+          "igs": ["hl7.fhir.au.core#1.0.0"],
+          "extensions": ["any"],
+          "doNative": false,
+          "disableDefaultResourceFetcher": false,
+          "txServer": {{ .Values.inferno.terminologyServer | quote }},
+          "noEcosystem": true
+        },
+        "igPackageInfo": [
+          {
+            "id": "hl7.fhir.au.core",
+            "version": "1.0.0",
             "fhirVersion": "4.0.1",
             "url": "http://hl7.org.au/fhir/core/ImplementationGuide/hl7.fhir.au.core"
           }
