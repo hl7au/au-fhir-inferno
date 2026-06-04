@@ -20,6 +20,10 @@ spec:
         fsGroup: 1000  # Ensures volumes are writable by ktor user (UID 1000)
       nodeSelector:
         kubernetes.io/arch: amd64
+      volumes:
+      - name: validator-presets
+        configMap:
+          name: validator-presets
       containers:
       - name: validator-api
         image: {{ .Values.inferno.validatorImageUri }}
@@ -27,6 +31,8 @@ spec:
         env:
         - name: JAVA_TOOL_OPTIONS
           value: "-Xmx8g"
+        - name: VALIDATION_SERVICE_PRESETS_FILE_PATH
+          value: "/presets/presets.json"
         ports:
         - containerPort: 3500
         volumeMounts:
@@ -36,6 +42,9 @@ spec:
         - name: terminology-cache
           mountPath: /tmp/default-tx-cache
           subPath: cache  # Avoid EXT4 lost+found directory
+        - name: validator-presets
+          mountPath: /presets
+          readOnly: true
         resources:
           requests:
             memory: "10Gi"

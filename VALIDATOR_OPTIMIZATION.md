@@ -1,171 +1,168 @@
-# Validator Startup Optimization
+# Validator Configuration & Optimisation
 
-## Changes Made
+Documents all configuration decisions made to the HAPI FHIR validator-wrapper deployment, why they were made, and what effect they had. Changes are listed chronologically.
 
-### 1. Persistent Caches (Two Separate Caches)
+## Current Architecture
 
-StatefulSet automatically creates per-pod persistent volumes using `volumeClaimTemplates`.
+The validator runs as a **StatefulSet** (2 replicas in prod, 1 in dev), each pod with its own persistent volumes for package and terminology caches. A Kubernetes Service with `sessionAffinity: ClientIP` ensures each Inferno pod always hits the same validator pod.
 
-#### Package Cache
-- **Created by**: volumeClaimTemplates in StatefulSet
-- **Mount**: `/home/ktor/.fhir/packages` with `subPath: packages`
-- **SubPath**: Avoids EXT4 `lost+found` directory that causes initialization errors
-- **Impact**: Each pod gets its own cache, reused across pod restarts
-- **Storage**: 5Gi EBS gp3-encrypted (ReadWriteOnce per pod)
+---
 
-#### Terminology Cache
-- **Created by**: volumeClaimTemplates in StatefulSet
-- **Mount**: `/tmp/default-tx-cache` with `subPath: cache`
-- **SubPath**: Avoids EXT4 `lost+found` directory that causes initialization errors
-- **Impact**: Each pod caches its own terminology validation results
-- **Storage**: 2Gi EBS gp3-encrypted (ReadWriteOnce per pod)
+## Changes
 
-### 2. Health Probes
-- **Startup Probe**: Allows up to 5 minutes for initial package downloads
-- **Readiness Probe**: Ensures traffic only routes to ready validators
-- **Liveness Probe**: Restarts unhealthy pods
+### 1. Deployment → StatefulSet (with persistent caches)
 
-### 3. Resource Configuration (Optimized)
-- **Memory**: 2.5Gi request / 3Gi limit (optimized - auto heap ~2.4Gi via MaxRAMPercentage=79)
-- **CPU**: 1000m request / 2000m limit (4x increase to eliminate CPU throttling)
-- **Java Heap**: Auto-calculated at 79% of container memory limit
-- **Savings**: 1Gi memory per pod (2Gi total), while fixing CPU bottleneck
+**Why:** Each validator pod caches downloaded FHIR packages and terminology validation results to disk. Without persistence, every pod restart re-downloaded all packages (~2–3 minutes per restart). With a Deployment, PVCs cannot be bound per-replica, so all pods would have to share one cache or start cold.
 
-### 4. StatefulSet Configuration
-- **Changed**: Deployment → StatefulSet
-- **Replicas**: 2 (each pod gets its own persistent cache)
-- **Storage**: Using gp3-encrypted EBS volumes (ReadWriteOnce per pod)
-- **Updates**: Rolling updates with zero downtime
-- **Security**: fsGroup: 1000 ensures volumes are writable by ktor user
-- **Benefits**: Each pod maintains its own cache, survives restarts
+**What changed:**
+- Converted from `Deployment` to `StatefulSet`
+- Added two `volumeClaimTemplates` per pod:
 
-## Expected Performance Improvements
+| Cache | Mount | Size | Purpose |
+|---|---|---|---|
+| `fhir-package-cache` | `/home/ktor/.fhir/packages` | 5Gi | Downloaded IG packages (hl7.fhir.au.core, etc.) |
+| `terminology-cache` | `/tmp/default-tx-cache` | 2Gi | Terminology validation results from tx.dev |
 
-### First Deployment (With 2 Replicas)
-- Each pod downloads packages to its own cache
-- **Both pods download in parallel** (total cluster time: ~30-60 seconds with CPU optimization)
-- Each pod: ~30-60 seconds to download and start (vs 2-3 min with CPU throttling)
-- **No traffic** routed until each pod is truly ready (health probes)
+Both mounts use `subPath:` to avoid EXT4 `lost+found` causing initialisation errors on fresh volumes.
 
-### Subsequent Restarts (Per Pod)
-- **~10-15 seconds** instead of 2+ minutes (packages already cached)
-- Only JVM startup and context initialization needed
-- **This is where you'll see the biggest improvement!**
+**Result:** Pod restarts go from ~2–3 minutes (re-downloading packages) to ~10–15 seconds (JVM start only).
 
-### Rolling Updates
-- ✅ **Zero downtime**: Old pod stays running while new pod starts
-- New pod gets a fresh PVC, downloads packages (~30-60 sec with optimized CPU)
-- After new pod is ready, old pod terminates
-- Much faster than before due to CPU optimization
-
-### Performance Impact of Optimizations
-**Before (CPU throttled):**
-- Load average: 3.00 on 0.5 CPU → severe throttling
-- First deployment: ~2-3 minutes per pod
-- Memory: 1.7Gi used of 4Gi limit (43% utilization)
-
-**After (optimized):**
-- CPU: 2.0 available (4x increase) → no throttling
-- First deployment: ~30-60 seconds per pod (4-6x faster)
-- Memory: 2.5Gi/3Gi (better utilization, 1Gi savings per pod)
-
-## Deployment
-
-The configuration is ready to deploy with your existing gp3-encrypted storage class:
-
+**Note on cache invalidation:** The terminology cache persists across pod restarts. If the tx server configuration changes (e.g. SMART-on-FHIR advertised/removed), the cache must be manually cleared before restarting:
 ```bash
-helm upgrade inferno ./infra/helm/inferno \
-  -f values.yaml \
-  -n <your-namespace>
+kubectl exec -n <namespace> validator-api-0 -- find /tmp/default-tx-cache -type f -delete
+kubectl exec -n <namespace> validator-api-1 -- find /tmp/default-tx-cache -type f -delete
+kubectl rollout restart statefulset/validator-api -n <namespace>
 ```
 
-### Storage Configuration
-- Uses `gp3-encrypted` (your default EBS storage class)
-- **Per-pod PVCs**: Each of 2 pods gets 5Gi package cache + 2Gi terminology cache
-- Total storage: 14Gi (7Gi per pod × 2 pods)
-- PVCs automatically created/managed by StatefulSet
-- PVCs persist even when pods are deleted (survive restarts)
+---
 
-### Scaling
-- **Scale up**: New pods download their own packages on first start
-- **Scale down**: PVCs remain (can be manually deleted if needed)
-- Pods are named `validator-api-0`, `validator-api-1`, etc.
+### 2. CPU resource increase (4×)
 
-## Verification
+**Why:** Under the original `250m` CPU request / `500m` limit, the validator pod ran at load average 3.00 against 0.5 available CPU — severe throttling. Package downloads and validation both stalled.
 
-After deployment, check startup time:
-```bash
-# Watch both pods startup
-kubectl logs -f statefulset/validator-api -n <namespace> --all-containers=true
+**What changed:**
+- CPU request: `250m` → `1000m`
+- CPU limit: `500m` → `2000m`
+- Memory adjusted separately to right-size heap allocation
 
-# Watch a specific pod
-kubectl logs -f validator-api-0 -n <namespace>
+**Result:** First startup dropped from ~2–3 minutes to ~30–60 seconds. Ongoing validation throughput increased significantly.
 
-# Check if package cache is working (should see fewer "Installing" messages on restart)
-kubectl logs validator-api-0 -n <namespace> | grep -i "installing"
+---
 
-# Verify package cache is using persistent volume
-kubectl exec validator-api-0 -n <namespace> -- ls -lh /home/ktor/.fhir/packages
+### 3. Health probes tuned
 
-# Check terminology cache
-kubectl exec validator-api-0 -n <namespace> -- ls -lh /tmp/default-tx-cache
+**Why:** The default probe timings were too aggressive for a JVM app that downloads FHIR packages on first start. Pods were being killed and restarted before they were ready.
 
-# Verify PVCs are bound (should see 4 PVCs total: 2 package + 2 terminology)
-kubectl get pvc -n <namespace> | grep validator
+**What changed:**
 
-# Check StatefulSet status
-kubectl get statefulset validator-api -n <namespace>
+| Probe | Key setting | Value | Reason |
+|---|---|---|---|
+| Startup | `failureThreshold: 30`, `periodSeconds: 10` | Up to 5 min | Allows initial package downloads |
+| Readiness | `failureThreshold: 6`, `periodSeconds: 5` | 30s budget | Prevents premature traffic routing |
+| Liveness | `failureThreshold: 5`, `periodSeconds: 30` | 2.5 min budget | Allows brief hangs during preset loading |
+
+---
+
+### 4. Session affinity: ClientIP
+
+**Why:** With 2 validator replicas and a standard round-robin Service, requests from the same Inferno session were distributed across both pods. The validator-wrapper caches validation sessions in memory (`SESSION_CACHE_DURATION: -1` = never expire). A session created on `validator-api-0` would not be found on `validator-api-1`, causing the validator to spin up a new session on every other request — discarding the cache benefit entirely and reloading IG packages each time.
+
+**What changed** (`infra/helm/inferno/templates/services/validator-api.service.yaml`):
+```yaml
+spec:
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 3600   # 1 hour
 ```
 
-Expected on first deployment (both pods):
-- Multiple "Installing hl7.fhir..." messages (packages downloading)
-- Terminology cache directory being created
-- Both pods download in parallel (~2-3 minutes each)
+**How it works:** Kubernetes hashes the client IP (the Inferno app or worker pod IP) and routes all requests from that IP to the same validator pod. The 1-hour timeout matches the typical duration of a full AU Core test suite run.
 
-Expected on pod restarts (per pod):
-- No "Installing" messages (packages already cached)
-- Fast startup (~10-15 seconds to ready)
+**Result:** Session cache hits on every validation request after the first. Without this, each validation call that landed on the "wrong" pod would create a new session — loading the IG from scratch and adding ~1–2 minutes per cold start.
 
-Expected PVCs:
+---
+
+### 5. noEcosystem: true (au_core_test_kit 1.4.1)
+
+**Why:** The HAPI FHIR validator's ecosystem feature queries a terminology registry (tx-reg) to discover external servers for code validation, then attempts to connect to those servers. When the validator used `tx.dev.hl7.org.au` (an Ontoserver with SMART-on-FHIR advertised in its capability statement), it attempted SMART authentication, stored an empty token on failure, then forwarded that empty `Authorization: Bearer ` header to all discovered servers (`tx.hl7.org.au`, `tx.ontoserver.csiro.au`). Both Ontoserver instances reject malformed tokens with 401 even on public paths, due to Spring Security validating the token before `permitAll()` rules apply.
+
+This caused:
+- An ~8-minute startup delay before any resource validation (ecosystem initialisation)
+- ~1-second per-validation overhead (ecosystem server lookup on each code)
+- Intermittent HTTP 500 errors from the validator when SMART credentials were populated
+
+**What changed** (`au_core_test_kit` 1.4.0 → 1.4.1, commit `80fa347`):
+```ruby
+cli_context do
+  txServer ENV.fetch('TX_SERVER_URL', 'https://tx.dev.hl7.org.au/fhir')
+  disableDefaultResourceFetcher false
+  noEcosystem true   # ← added
+end
 ```
-fhir-package-cache-validator-api-0    5Gi    gp3-encrypted
-fhir-package-cache-validator-api-1    5Gi    gp3-encrypted
-terminology-cache-validator-api-0     2Gi    gp3-encrypted
-terminology-cache-validator-api-1     2Gi    gp3-encrypted
-```
 
-## Resource Summary
+Applied to all three suites: `v1.0.0`, `v2.0.0`, and `validation_suite`.
 
-| Resource | Before | After | Change |
-|----------|--------|-------|--------|
-| CPU Request | 250m | 1000m | +750m (4x) |
-| CPU Limit | 500m | 2000m | +1500m (4x) |
-| Memory Request | 3.5Gi | 2.5Gi | -1Gi |
-| Memory Limit | 4Gi | 3Gi | -1Gi |
-| **Per-pod savings** | - | -1Gi memory | Better CPU utilization |
-| **Total savings (2 pods)** | - | -2Gi memory | Eliminates CPU throttling |
+**Result:** AU Core v1.0.0 test suite runtime reduced from 9m28s (prod, ecosystem enabled) to 5m44s (dev, noEcosystem). Under worst-case conditions (cold cache + SMART credentials populated) the improvement is much larger — previously ~90 minutes with cascading 500 errors.
 
-## Rollback
+**Trade-off:** The validator uses only `tx.dev.hl7.org.au` for all code validation — no federation to `tx.hl7.org.au` or `tx.ontoserver.csiro.au`. As long as tx.dev has the required AU IG content (which it does via AHTS and AEHRC syndication), this is safe.
 
-If issues occur, you can rollback by:
-1. Reverting to the Deployment (use git to restore old deployment file)
-2. Deleting StatefulSet: `kubectl delete statefulset validator-api -n <namespace>`
-3. Deleting PVCs: `kubectl delete pvc -l app=validator-api -n <namespace>`
-4. Reverting resource changes to original values
+See [docs/noecosystem-performance-analysis.md](docs/noecosystem-performance-analysis.md) for the full timing comparison.
+
+---
+
+### 6. Presets: pre-warm IG package cache on startup
+
+**Why:** The validator downloads IG dependency packages during the first session creation after a pod starts. On a fresh PVC (rolling update, new pod), this means ~1–2 minutes of package downloads before the first user validation completes. Presets trigger session creation during the startup window — before the readiness probe passes — so users never see the cold-start cost.
+
+**What changed:**
+- Added `infra/helm/inferno/templates/configs/validator-presets-configmap.yaml` — a ConfigMap containing a `presets.json` that pre-creates sessions for each supported IG version
+- Mounted the ConfigMap into the validator pod at `/presets/`
+- Set `VALIDATION_SERVICE_PRESETS_FILE_PATH=/presets/presets.json` env var
+
+**IGs pre-warmed** (derived from observed session logs):
+
+| Preset | IG |
+|---|---|
+| `au-core-v1.0.0` | `hl7.fhir.au.core#1.0.0` |
+| `au-core-v2.0.0` | `hl7.fhir.au.core#2.0.0` |
+| `au-ps-v1.0.0-preview` | `hl7.fhir.au.ps#1.0.0-preview` |
+| `smart-app-launch-v2.2.0` | `hl7.fhir.uv.smart-app-launch#2.2.0` |
+
+Each preset includes `noEcosystem: true` and the `txServer` value from `inferno.terminologyServer` (templated via Helm), ensuring the pre-warmed session matches what Inferno will request at runtime. Transitive dependency packages (~83 total, ~4.5GB) are downloaded automatically as part of the preset session initialisation.
+
+**Why ConfigMap over baking packages into the Docker image:**
+- The prod package cache is 4.5GB — embedding it would make image push/pull impractical
+- ConfigMap keeps IG version management in the same IaC repo as deployment config, updated without a Docker build
+- Packages persist in the PVC after first startup, so subsequent restarts are instant regardless
+
+**Updating presets when IG versions change:** Edit `validator-presets-configmap.yaml` and roll the StatefulSet. The new pod will download the new packages during its startup window.
+
+---
+
+### 7. tx-reg HTTPRoute (404 direct response)
+
+**Why:** Even with `noEcosystem true`, the HAPI FHIR validator still calls `/tx-reg/resolve` on the configured tx server in some code paths. Ontoserver does not implement the tx-reg protocol — the path fell through to Spring Security's `.anyRequest().authenticated()` catch-all and returned 401. A 404 is the semantically correct response ("not implemented here") and is handled more gracefully by the validator than 401.
+
+**What changed** (`sparked-argo/apps/ontoserver/templates/txreg-redirect-httproute.yaml`):
+
+An Envoy Gateway `HTTPRouteFilter` + `HTTPRoute` intercepts requests to `/tx-reg/*` on `tx.dev.hl7.org.au` and returns a direct 404 before the request reaches Ontoserver.
+
+See [sparked-argo/docs/adr-ontoserver-txreg-redirect.md](https://github.com/hl7au/sparked-argo/blob/main/docs/adr-ontoserver-txreg-redirect.md) for the full decision record including the earlier redirect-to-tx.fhir.org approach that was tried and why it was abandoned.
+
+---
 
 ## Managing PVCs
 
-StatefulSet PVCs persist even after pod deletion. To clean up:
-```bash
-# Delete all validator PVCs
-kubectl delete pvc -n <namespace> \
-  fhir-package-cache-validator-api-0 \
-  fhir-package-cache-validator-api-1 \
-  terminology-cache-validator-api-0 \
-  terminology-cache-validator-api-1
+StatefulSet PVCs persist after pod deletion and must be removed manually if a full reset is needed:
 
-# Or delete all at once
+```bash
 kubectl delete pvc -n <namespace> -l app=validator-api
 ```
 
-Note: Deleting PVCs will force re-download of all packages on next startup.
+Deleting PVCs forces re-download of all packages on next startup (~30–60 seconds with current CPU allocation).
+
+## Related Docs
+
+- [docs/performance-feature.md](docs/performance-feature.md) — per-session performance tracking (FHIR + validator timing)
+- [docs/noecosystem-performance-analysis.md](docs/noecosystem-performance-analysis.md) — prod vs dev timing comparison
+- [sparked-argo/docs/adr-ontoserver-txreg-redirect.md](https://github.com/hl7au/sparked-argo/blob/main/docs/adr-ontoserver-txreg-redirect.md) — tx-reg decision record

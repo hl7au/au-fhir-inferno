@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: validator-presets
+  namespace: {{ .Values.namespace }}
+data:
+  presets.json: |
+    [
+      {
+        "name": "au-core-v1.0.0",
+        "cliContext": {
+          "sv": "4.0.1",
+          "doNative": false,
+          "extensions": ["any"],
+          "disableDefaultResourceFetcher": false,
+          "txServer": {{ .Values.inferno.terminologyServer | quote }},
+          "noEcosystem": true,
+          "igs": ["hl7.fhir.au.core#1.0.0"]
+        }
+      },
+      {
+        "name": "au-core-v2.0.0",
+        "cliContext": {
+          "sv": "4.0.1",
+          "doNative": false,
+          "extensions": ["any"],
+          "disableDefaultResourceFetcher": false,
+          "txServer": {{ .Values.inferno.terminologyServer | quote }},
+          "noEcosystem": true,
+          "igs": ["hl7.fhir.au.core#2.0.0"]
+        }
+      },
+      {
+        "name": "au-ps-v1.0.0-preview",
+        "cliContext": {
+          "sv": "4.0.1",
+          "doNative": false,
+          "extensions": ["any"],
+          "disableDefaultResourceFetcher": false,
+          "txServer": {{ .Values.inferno.terminologyServer | quote }},
+          "noEcosystem": true,
+          "igs": ["hl7.fhir.au.ps#1.0.0-preview"]
+        }
+      },
+      {
+        "name": "smart-app-launch-v2.2.0",
+        "cliContext": {
+          "sv": "4.0.1",
+          "doNative": false,
+          "extensions": ["any"],
+          "disableDefaultResourceFetcher": false,
+          "txServer": {{ .Values.inferno.terminologyServer | quote }},
+          "noEcosystem": true,
+          "igs": ["hl7.fhir.uv.smart-app-launch#2.2.0"]
+        }
+      }
+    ]
