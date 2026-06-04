@@ -59,7 +59,7 @@ kubectl rollout restart statefulset/validator-api -n <namespace>
 |---|---|---|---|
 | Startup | `failureThreshold: 30`, `periodSeconds: 10` | Up to 5 min | Allows initial package downloads |
 | Readiness | `failureThreshold: 6`, `periodSeconds: 5` | 30s budget | Prevents premature traffic routing |
-| Liveness | `failureThreshold: 5`, `periodSeconds: 30` | 2.5 min budget | Allows brief hangs during preset loading |
+| Liveness | `failureThreshold: 10`, `periodSeconds: 30`, `timeoutSeconds: 30` | 5 min budget | Tolerates `generateSnapshot()` CPU saturation during baseEngine copy-construction — raised from 5/10s after the original values caused pod restarts mid-warmup |
 
 ---
 
@@ -177,16 +177,18 @@ When a validation request arrives specifying `baseEngine: "AU_CORE_V2_0_0"`:
 
 Without `baseEngine` in the request, every new session triggers a full disk parse — each package re-read and re-parsed from the PVC cache at 10–17 seconds each.
 
-**Critical rule: `baseEngine` key must match the exact IG version the suite validates against.** The base engine contains fully-loaded StructureDefinitions (profiles, extensions, etc.) for a specific IG version. FHIR resources are keyed by canonical URL, not by URL+version. If the base engine has `au.core#2.0.0` and the session then loads `au.core#1.0.0-ballot`, both versions' profiles are in the same context under the same canonical URLs — the validator cannot reliably determine which version to use. Each suite's `baseEngine` key must correspond to its `igs` declaration:
+**Critical rule: `baseEngine` key must match the exact IG version the suite validates against.** The base engine contains fully-loaded StructureDefinitions (profiles, extensions, etc.) for a specific IG version. FHIR resources are keyed by canonical URL, not by URL+version. If the base engine has `au.core#2.0.0` and the session then loads `au.core#1.0.0-ballot`, both versions' profiles are in the same context under the same canonical URLs — the validator cannot reliably determine which version to use.
 
-| Suite | `igs` | `baseEngine` |
-|---|---|---|
-| au_core v1.0.0 | `hl7.fhir.au.core#1.0.0` | `AU_CORE_V1_0_0` |
-| au_core v2.0.0 | `hl7.fhir.au.core#2.0.0` | `AU_CORE_V2_0_0` |
-| validation_suite | `hl7.fhir.au.core#1.0.0-ballot` | `AU_CORE_V1_0_0_BALLOT` |
-| au_ps | `hl7.fhir.au.ps#1.0.0-preview` | `AU_PS_V1_0_0_PREVIEW` |
+Current state in **`au_core_test_kit` 1.4.2**:
 
-**`au_core_test_kit` 1.4.3** adds `baseEngine` to each suite's `cli_context` with the matching key.
+| Suite | `igs` | `baseEngine` | Notes |
+|---|---|---|---|
+| au_core v1.0.0 | `hl7.fhir.au.core#1.0.0` | `AU_CORE_V1_0_0` | ✓ fast copy path |
+| au_core v2.0.0 | `hl7.fhir.au.core#2.0.0` | `AU_CORE_V2_0_0` | ✓ fast copy path |
+| validation_suite | `hl7.fhir.au.core#1.0.0-ballot` | *(none)* | Session uses full disk rebuild on eviction — no matching preset configured |
+| au_ps | `hl7.fhir.au.ps#1.0.0-preview` | `AU_PS_V1_0_0_PREVIEW` | ✓ fast copy path |
+
+The `validation_suite` does not have `baseEngine` set because there is no `AU_CORE_V1_0_0_BALLOT` preset in the ConfigMap. Its sessions still benefit from JVM heap warming via the other presets (shared terminology packages), but session re-creation after eviction takes the full disk-rebuild path (~35s on `:latest`, longer on `1.0.68`).
 
 **Session cache internals:**
 - Cache holds up to **4 sessions** (hardcoded in `GuavaSessionCacheAdapter`, no config knob)

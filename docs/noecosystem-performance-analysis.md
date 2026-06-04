@@ -31,7 +31,7 @@
 | Validator replicas | 2 | 1 |
 | Validator terminology cache | Warm (prior midnight run) | Cold |
 
-The only functional change between 1.4.0 and 1.4.1 is `noEcosystem true` added to all three `cli_context` blocks (v1.0.0, v2.0.0, validation_suite).
+The only functional change between 1.4.0 and 1.4.1 is `noEcosystem true` added to all three `cli_context` blocks (v1.0.0, v2.0.0, validation_suite). Subsequent versions add `baseEngine` per suite — see `VALIDATOR_OPTIMIZATION.md` section 6 for the current state.
 
 ## Observed Timeline
 
