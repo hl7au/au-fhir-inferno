@@ -150,7 +150,30 @@ Subsequent validations in the same session remain fast (20–100ms) in both case
 
 **Updating presets when IG versions change:** Edit `validator-presets-configmap.yaml` and roll the StatefulSet. The new pod downloads the new packages during its startup window.
 
-**Known limitation:** Preset session IDs are not reused by Inferno's own `InvokeValidatorSession` warmup (different UUIDs). The benefit comes from JVM memory warming, not session ID reuse.
+**How the JVM warming actually works (source-verified):**
+
+Each IG package (e.g. `hl7.terminology.r4#7.1.0` — 4,000+ resources) is parsed from disk into Java objects in the JVM heap. This takes 10–17 seconds per package the first time. Subsequent sessions that need the same package can reuse these objects via a **shallow reference copy** (`new ValidationEngine(existingEngine)`), sharing the parsed resources in memory rather than re-reading from disk.
+
+The validator-wrapper's `baseEngines` map (`ConcurrentHashMap<String, ValidationEngine>`) holds one fully-built engine per preset key. When a validation request specifies `baseEngine: "AU_CORE_V2_0_0"`, the new session is copy-constructed from that engine — fast in-memory operation with no disk I/O.
+
+**Without `baseEngine` in the request**, every new session triggers a full disk parse — the slow path. **With `baseEngine`**, new sessions are fast copies regardless of whether the session has been seen before.
+
+**`au_core_test_kit` 1.4.2** adds `baseEngine` to each suite's `cli_context` matching the preset keys, activating the fast path for all Inferno validation sessions.
+
+**Session cache internals:**
+- Cache holds up to **4 sessions** (hardcoded in `GuavaSessionCacheAdapter`, no config)
+- With `SESSION_CACHE_DURATION: -1` sessions don't expire by time, but LRU eviction at 4 entries applies
+- Without `baseEngine`: eviction triggers a 10–17s full rebuild
+- With `baseEngine`: eviction triggers a fast in-memory copy — the 4-entry limit becomes a non-issue
+
+**The `engine-reload-threshold` setting (250MB):** When free JVM heap drops below this value, the validator recreates the engine. This can cause unexpected slow rebuilds during startup if multiple sessions are loading large packages simultaneously. Relevant if you observe repeated reloads mid-warmup.
+
+**Are the 10–17s loads repeated across multiple runs?**
+
+No. Once a session is cached and Inferno reuses the same `sessionId`, every subsequent request hits `"Cached session exists"` with zero cost. The slow loads only occur at:
+1. First startup (preset loading + `InvokeValidatorSession` per suite)
+2. After pod restart (session cache is in-memory, lost on restart — presets re-warm on startup)
+3. Session eviction (>4 concurrent active sessions; fast with `baseEngine`, slow without)
 
 ---
 
