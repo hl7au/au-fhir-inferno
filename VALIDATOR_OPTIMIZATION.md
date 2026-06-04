@@ -150,30 +150,45 @@ Subsequent validations in the same session remain fast (20–100ms) in both case
 
 **Updating presets when IG versions change:** Edit `validator-presets-configmap.yaml` and roll the StatefulSet. The new pod downloads the new packages during its startup window.
 
-**How the JVM warming actually works (source-verified):**
+**How the JVM warming and `baseEngine` work (source-verified from validator-wrapper):**
 
-Each IG package (e.g. `hl7.terminology.r4#7.1.0` — 4,000+ resources) is parsed from disk into Java objects in the JVM heap. This takes 10–17 seconds per package the first time. Subsequent sessions that need the same package can reuse these objects via a **shallow reference copy** (`new ValidationEngine(existingEngine)`), sharing the parsed resources in memory rather than re-reading from disk.
+When the validator loads an IG package (e.g. `hl7.terminology.r4#7.1.0` — 4,000+ resources), it reads each resource file from disk and parses it into a Java object in the JVM heap. This takes 10–17 seconds per large package. The parsed objects stay in heap for the lifetime of that session.
 
-The validator-wrapper's `baseEngines` map (`ConcurrentHashMap<String, ValidationEngine>`) holds one fully-built engine per preset key. When a validation request specifies `baseEngine: "AU_CORE_V2_0_0"`, the new session is copy-constructed from that engine — fast in-memory operation with no disk I/O.
+The validator-wrapper holds a `ConcurrentHashMap<String, ValidationEngine>` called `baseEngines` — one fully-built engine per preset key, loaded at startup. These engines sit in JVM heap indefinitely.
 
-**Without `baseEngine` in the request**, every new session triggers a full disk parse — the slow path. **With `baseEngine`**, new sessions are fast copies regardless of whether the session has been seen before.
+When a validation request arrives specifying `baseEngine: "AU_CORE_V2_0_0"`:
+1. The validator finds the pre-built engine in the `baseEngines` map
+2. Calls the **copy constructor**: `new ValidationEngine(existingEngine)`
+3. This does a **shallow reference copy** — the 4,000+ parsed resource objects are shared by reference, not re-read from disk
+4. The new session is ready in seconds rather than 10–17 seconds per package
 
-**`au_core_test_kit` 1.4.2** adds `baseEngine` to each suite's `cli_context` matching the preset keys, activating the fast path for all Inferno validation sessions.
+Without `baseEngine` in the request, every new session triggers a full disk parse — each package re-read and re-parsed from the PVC cache at 10–17 seconds each.
+
+**Critical rule: `baseEngine` key must match the exact IG version the suite validates against.** The base engine contains fully-loaded StructureDefinitions (profiles, extensions, etc.) for a specific IG version. FHIR resources are keyed by canonical URL, not by URL+version. If the base engine has `au.core#2.0.0` and the session then loads `au.core#1.0.0-ballot`, both versions' profiles are in the same context under the same canonical URLs — the validator cannot reliably determine which version to use. Each suite's `baseEngine` key must correspond to its `igs` declaration:
+
+| Suite | `igs` | `baseEngine` |
+|---|---|---|
+| au_core v1.0.0 | `hl7.fhir.au.core#1.0.0` | `AU_CORE_V1_0_0` |
+| au_core v2.0.0 | `hl7.fhir.au.core#2.0.0` | `AU_CORE_V2_0_0` |
+| validation_suite | `hl7.fhir.au.core#1.0.0-ballot` | `AU_CORE_V1_0_0_BALLOT` |
+| au_ps | `hl7.fhir.au.ps#1.0.0-preview` | `AU_PS_V1_0_0_PREVIEW` |
+
+**`au_core_test_kit` 1.4.3** adds `baseEngine` to each suite's `cli_context` with the matching key.
 
 **Session cache internals:**
-- Cache holds up to **4 sessions** (hardcoded in `GuavaSessionCacheAdapter`, no config)
+- Cache holds up to **4 sessions** (hardcoded in `GuavaSessionCacheAdapter`, no config knob)
 - With `SESSION_CACHE_DURATION: -1` sessions don't expire by time, but LRU eviction at 4 entries applies
-- Without `baseEngine`: eviction triggers a 10–17s full rebuild
-- With `baseEngine`: eviction triggers a fast in-memory copy — the 4-entry limit becomes a non-issue
+- Without `baseEngine`: eviction triggers a 10–17s full disk rebuild
+- With `baseEngine`: eviction triggers a fast in-memory copy — the 4-entry limit is no longer a concern
 
-**The `engine-reload-threshold` setting (250MB):** When free JVM heap drops below this value, the validator recreates the engine. This can cause unexpected slow rebuilds during startup if multiple sessions are loading large packages simultaneously. Relevant if you observe repeated reloads mid-warmup.
+**The `VALIDATION_SERVICE_ENGINE_RELOAD_THRESHOLD` setting (default 250MB):** When free JVM heap drops below this value, the validator recreates the engine. Can cause unexpected slow rebuilds if multiple sessions are initialising large packages simultaneously during startup.
 
 **Are the 10–17s loads repeated across multiple runs?**
 
 No. Once a session is cached and Inferno reuses the same `sessionId`, every subsequent request hits `"Cached session exists"` with zero cost. The slow loads only occur at:
-1. First startup (preset loading + `InvokeValidatorSession` per suite)
-2. After pod restart (session cache is in-memory, lost on restart — presets re-warm on startup)
-3. Session eviction (>4 concurrent active sessions; fast with `baseEngine`, slow without)
+1. **First startup** — preset loading builds each base engine once from disk; `InvokeValidatorSession` per suite creates the Inferno-side session (fast copy via `baseEngine`)
+2. **Pod restart** — session cache is in-memory and lost; presets re-warm the base engines during the startup window before the readiness probe passes
+3. **Session eviction** (>4 concurrent active sessions) — fast with `baseEngine`, slow without
 
 ---
 
