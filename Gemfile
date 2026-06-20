@@ -14,7 +14,7 @@ gem 'pg'
 
 gem 'au_core_test_kit', git: 'https://github.com/hl7au/au-fhir-core-inferno', ref: '1446b9bf9016cbcf27871175ea69dd32c698c940'
 # gem 'au_core_test_kit', '~> 1.4.0'
-gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno', ref: 'd1fa39d9b3a84c1266f77ac1d3e0dd770bac721d'
+gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno', ref: '98678b39d17be1fd421aabce0b52b2f565a6b540'
 gem 'validation_test_kit', git: 'https://github.com/beda-software/validation-test-kit'
 gem 'inferno_suite_generator', github: 'hl7au/inferno_suite_generator', ref: 'b7d35902727343e898cd8d03dff600823b15384c'
 
