@@ -20,6 +20,7 @@ spec:
         fsGroup: 1000  # Ensures volumes are writable by ktor user (UID 1000)
       nodeSelector:
         kubernetes.io/arch: amd64
+        karpenter.sh/capacity-type: on-demand  # prod: avoid spot-reclamation churn disrupting test runs (redis already pinned)
       containers:
       - name: validator-api
         image: {{ .Values.inferno.validatorImageUri }}
