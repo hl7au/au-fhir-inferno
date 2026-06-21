@@ -15,9 +15,10 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/arch: amd64
+        karpenter.sh/capacity-type: on-demand  # avoid spot reclamation taking the single-replica job queue down mid-run
       containers:
       - name: redis
-        image: redis:7.0.5-bullseye
+        image: redis:8.2-alpine
         imagePullPolicy: Always
         ports:
           - containerPort: 6379
