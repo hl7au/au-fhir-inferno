@@ -5,6 +5,8 @@ metadata:
   namespace: {{ .Values.namespace }}
 spec:
   replicas: 1 # need clustering for multiple replicas
+  strategy:
+    type: Recreate   # single-replica + RWO EBS PVC: terminate old before new to avoid Multi-Attach deadlock
   selector:
     matchLabels:
       app: inferno-redis
