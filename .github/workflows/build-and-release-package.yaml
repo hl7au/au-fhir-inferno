@@ -14,6 +14,13 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
+# Serialise runs per branch so the dev image commit-back cannot race a concurrent
+# push (avoids non-fast-forward push failures). Do not cancel in-progress builds —
+# they may be mid image push.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-and-push-images:
     runs-on: ubuntu-latest
@@ -99,3 +106,37 @@ jobs:
           git add infra/helm/inferno/values-dev.yaml
           git commit -m "chore: update dev image to ${{ github.sha }} [skip ci]"
           git push origin development
+
+      # Prod is promoted via a reviewed PR (not a direct commit): merging the PR is the
+      # release. ArgoCD (sparked-argo, targetRevision: master) syncs the new tags to
+      # prod-inferno on merge.
+      - name: Update image tags in values-prod.yaml
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        run: |
+          sed -i "s|imageUrl:.*|imageUrl: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-${{ steps.config.outputs.environment }}|" infra/helm/inferno/values-prod.yaml
+          sed -i "s|platformImageUri:.*|platformImageUri: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-nginx-${{ steps.config.outputs.environment }}|" infra/helm/inferno/values-prod.yaml
+
+      # Push the bump to a dedicated branch and surface a one-click "open PR" link in
+      # the run summary. A human opens + merges that PR = the prod release. This uses
+      # only contents:write (the same permission the dev commit-back already uses) and
+      # needs no repo-admin "Actions can create PRs" setting.
+      - name: Push prod promotion branch
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        run: |
+          BRANCH="promote/prod-${{ github.sha }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add infra/helm/inferno/values-prod.yaml
+          git commit -m "chore: promote prod image to ${{ github.sha }}"
+          git push --force-with-lease origin "$BRANCH"
+          {
+            echo "## 🚀 Prod promotion ready"
+            echo ""
+            echo "Open a PR to release these images to prod (merging it = the release):"
+            echo ""
+            echo "**https://github.com/${{ github.repository }}/compare/master...$BRANCH?expand=1**"
+            echo ""
+            echo "- app:   \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-prod\`"
+            echo "- nginx: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-nginx-prod\`"
+          } >> "$GITHUB_STEP_SUMMARY"
