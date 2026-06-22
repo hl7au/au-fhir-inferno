@@ -23,13 +23,20 @@ spec:
         image: {{ .Values.inferno.imageUrl }}
         command: ["bundle", "exec", "sidekiq", "-r", "./worker.rb"]
         imagePullPolicy: Always
+        env:
+        - name: OTEL_SERVICE_NAME
+          value: "inferno-worker"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://k8s-monitoring-alloy-metrics.monitoring.svc:4318"
+        - name: OTEL_EXPORTER_OTLP_PROTOCOL
+          value: "http/protobuf"
         envFrom:
         - configMapRef:
             name: inferno
         - configMapRef:
             name: postgresql-configmap
         - secretRef:
-            name: postgresql-secret        
+            name: postgresql-secret
         resources:
           requests:
             memory: "512Mi"   # Actual usage: ~485Mi

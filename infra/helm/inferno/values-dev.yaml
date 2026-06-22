@@ -1,14 +1,14 @@
 ingress:
   hostnames:
-    - dev.inferno.sparked-fhir.com
-    - inferno.dev.hl7.org.au
+    - development.inferno.sparked-fhir.com
 
 inferno:
-  imageUrl: ghcr.io/hl7au/au-fhir-inferno:b372a8275a3653f844b93eda2c7be6ea87e8c4fa-dev
+  imageUrl: ghcr.io/hl7au/au-fhir-inferno:47849995ac7a76d7c0e4318b77a9cf08a88026f9-dev
   usesWrapper: true
   validatorImageUri: markiantorno/validator-wrapper:latest
   replicas: 1
   workerReplicas: 1
+  performanceMonitoring: true
 
 validator:
   replicas: 1
@@ -20,8 +20,14 @@ autoscaling:
   maxReplicas: 5
   targetCPUUtilizationPercentage: 70
 
+validatorAutoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 60
+
 nginx:
-  platformImageUri: ghcr.io/hl7au/au-fhir-inferno:b372a8275a3653f844b93eda2c7be6ea87e8c4fa-nginx-dev
+  platformImageUri: ghcr.io/hl7au/au-fhir-inferno:47849995ac7a76d7c0e4318b77a9cf08a88026f9-nginx-dev
 
 
 externalSecrets:

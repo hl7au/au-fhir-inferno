@@ -1,0 +1,38 @@
+# frozen_string_literal: true
+
+# Shared dependency set, eval'd by BOTH Gemfile (prod / released) and Gemfile.dev
+# (bleeding-edge test-kit commits). The test-kit gems that intentionally DIFFER
+# between environments — au_core_test_kit and au_ps_inferno — are declared in the
+# including Gemfile, NOT here. Everything in this file is identical across envs and
+# flows to prod normally.
+
+source "https://rubygems.org"
+
+ruby '3.3.6'
+
+gem 'inferno_core', '~> 1.0.6'
+gem 'pg'
+
+# Test-kit support gems. Currently the same commit in every environment, so they live
+# here. Pinned to explicit refs for reproducibility (validation_test_kit previously
+# floated to the beda-software default branch, including in prod).
+gem 'validation_test_kit', git: 'https://github.com/beda-software/validation-test-kit', ref: '3438159ae5860216d37c559725fbfdc316ad745c'
+gem 'inferno_suite_generator', github: 'hl7au/inferno_suite_generator', ref: 'b7d35902727343e898cd8d03dff600823b15384c'
+
+gem 'sinatra'
+gem 'sidekiq-cron'
+
+# OpenTelemetry — worker emits spans to Alloy → Tempo
+gem 'opentelemetry-sdk'
+gem 'opentelemetry-exporter-otlp'
+gem 'opentelemetry-instrumentation-faraday'
+gem 'opentelemetry-instrumentation-net_http'
+gem 'opentelemetry-instrumentation-sidekiq'
+
+group :development, :test do
+  gem 'jekyll'
+  gem 'database_cleaner-sequel', '~> 1.8'
+  gem 'factory_bot', '~> 6.1'
+  gem 'rspec', '~> 3.10'
+  gem 'webmock', '~> 3.11'
+end

@@ -2,6 +2,8 @@ services:
   inferno:
     build:
       context: ./
+      args:
+        BUNDLE_GEMFILE: Gemfile.dev
     mem_limit: 1500m
     restart: unless-stopped
     volumes:

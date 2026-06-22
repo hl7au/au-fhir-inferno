@@ -9,13 +9,37 @@ redirectIngress:
   targetUrl: ""
 
 inferno:
-  imageUrl: "ghcr.io/hl7au/au-fhir-inferno:68270162fcc1997a9ffac63c78530921bf0f32cf"
+  # Always overridden per-environment in values-{dev,prod}.yaml (dev by CI, prod by the
+  # promotion PR). This placeholder just avoids carrying a stale, real-looking SHA here.
+  imageUrl: "ghcr.io/hl7au/au-fhir-inferno:overridden-per-environment"
   terminologyServer: "https://tx.dev.hl7.org.au/fhir"
   externalValidatorUrl: null  # This can be overridden during chart deployment
   validatorImageUri: "markiantorno/validator-wrapper:1.0.68"
+  # Performance monitoring (request/validator timing + /performance page + its DB
+  # migration). Dev-only feature; OFF by default, enabled per-env in values-dev.yaml.
+  performanceMonitoring: false
 
 validator:
   storageClassName: "gp3-encrypted"  # Use default EBS storage class for validator caches
+
+# Validator autoscaling — disabled by default.
+#
+# Each new validator pod takes 5–10 minutes to warm up (preset loading + base engine
+# construction + InvokeValidatorSession warmup). HPA reacts too slowly for sudden
+# spikes — by the time a new pod is warm the load is already over.
+#
+# RECOMMENDED: Pre-scale manually before known high-load events (connectathons, demos):
+#   kubectl scale statefulset validator-api -n <namespace> --replicas=3
+# Or update validator.replicas in the environment-specific values file and deploy.
+#
+# If enabling HPA, use conservative thresholds. CPU during steady-state validation
+# is ~1 core per pod (55% of the 2000m limit). During startup it spikes to 2000m.
+# Set targetCPU at ~60% to avoid triggering scale-up from startup spikes.
+validatorAutoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 60
 
 postgresql:
   enabled: false # enable if not using rds from aws-impl

@@ -1,30 +1,26 @@
 # frozen_string_literal: true
 
-source "https://rubygems.org"
+# PRODUCTION / released dependency set. This is the DEFAULT Gemfile (the one bundler
+# uses unless BUNDLE_GEMFILE says otherwise) and the set that ships to prod
+# (inferno.hl7.org.au). It pins the test kits to RELEASED gem versions, or to a stable
+# commit where no release exists yet.
+#
+# For the dev environment and local work against bleeding-edge, unreleased test-kit
+# commits, use Gemfile.dev (which has its own Gemfile.dev.lock):
+#
+#   BUNDLE_GEMFILE=Gemfile.dev bundle install
+#
+# Keeping the unreleased test-kit SHAs in Gemfile.dev means this file and Gemfile.lock
+# stay identical on the development and master branches, so development -> master
+# merges never conflict on — or silently leak unreleased versions into — prod.
 
-ruby '3.3.6'
+eval_gemfile 'Gemfile.common'
 
-gem 'inferno_core', '~> 1.0.6'
-gem 'pg'
-
-# This loads the test kit suites
-# These are published on Ruby Gems, but you can
-# also point to git repos, or with some extra
-# Docker configuration relative directories
-
-# gem 'au_core_test_kit', git: 'https://github.com/hl7au/au-fhir-core-inferno', ref: '5d9069364f7a535b1d0073dc08ac817e4ccfcd66'
+# Released AU Core test kit (published on RubyGems by hl7au).
+# NOTE: the newest published version is 1.4.0; code on the kit's master is ahead
+# (1.4.2, unreleased). Once 1.4.2 is tagged + released, bump this to '~> 1.4'.
 gem 'au_core_test_kit', '~> 1.4.0'
-gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno', ref: '7dce73a0cd35fcc4ba84b15526f1b3345a9c9aaf'
-gem 'validation_test_kit', git: 'https://github.com/beda-software/validation-test-kit'
-gem 'inferno_suite_generator', github: 'hl7au/inferno_suite_generator', ref: 'b7d35902727343e898cd8d03dff600823b15384c'
 
-
-gem 'sidekiq-cron'
-
-group :development, :test do
-  gem 'jekyll'
-  gem 'database_cleaner-sequel', '~> 1.8'
-  gem 'factory_bot', '~> 6.1'
-  gem 'rspec', '~> 3.10'
-  gem 'webmock', '~> 3.11'
-end
+# AU PS test kit — no RubyGems release exists yet, so pin a stable commit on master
+# (currently master HEAD, which includes the noEcosystem validator perf fix).
+gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno', ref: '3cda64eeb2fd1c1677d937cd724aa52b98b62617'
