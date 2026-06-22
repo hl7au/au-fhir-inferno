@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: validator-api
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Release.Namespace }}
 spec:
   serviceName: validator-api  # Required for StatefulSet
   replicas: {{ .Values.validator.replicas | default 2 }}
