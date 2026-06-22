@@ -44,6 +44,14 @@ validatorAutoscaling:
 postgresql:
   enabled: false # enable if not using rds from aws-impl
   externaldbhost: null # This can be overridden during chart deployment
+  # Bitnami purged versioned tags from docker.io/bitnami (mid-2025) and moved them
+  # to the bitnamilegacy archive, so the subchart's pinned default tag 404s. Point
+  # the in-namespace Postgres (preview envs only — dev/prod use RDS) at the archive.
+  # Stopgap: bitnamilegacy receives no updates and will eventually be removed; revisit
+  # by bumping/replacing the postgresql subchart.
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/postgresql
   containerPorts:
     postgresql: 5432
   global:
