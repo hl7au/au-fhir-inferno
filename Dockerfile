@@ -6,9 +6,10 @@ RUN mkdir -p $INSTALL_PATH
 
 WORKDIR $INSTALL_PATH
 
-# Select the dependency set: the default Gemfile (prod / released test kits) or
-# Gemfile.dev (bleeding-edge, unreleased test-kit commits) for the dev environment.
-# Each Gemfile has its own committed lockfile (Gemfile.lock / Gemfile.dev.lock).
+# Select the dependency set: the default Gemfile (released test kits — what master
+# builds once for staging + prod) or Gemfile.dev (bleeding-edge, unreleased test-kit
+# commits) for preview environments. Each Gemfile has its own committed lockfile
+# (Gemfile.lock / Gemfile.dev.lock).
 ARG BUNDLE_GEMFILE=Gemfile
 ENV BUNDLE_GEMFILE=$INSTALL_PATH$BUNDLE_GEMFILE
 
