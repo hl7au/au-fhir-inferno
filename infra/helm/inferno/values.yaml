@@ -9,7 +9,9 @@ redirectIngress:
   targetUrl: ""
 
 inferno:
-  imageUrl: "ghcr.io/hl7au/au-fhir-inferno:68270162fcc1997a9ffac63c78530921bf0f32cf"
+  # Always overridden per-environment in values-{dev,prod}.yaml (dev by CI, prod by the
+  # promotion PR). This placeholder just avoids carrying a stale, real-looking SHA here.
+  imageUrl: "ghcr.io/hl7au/au-fhir-inferno:overridden-per-environment"
   terminologyServer: "https://tx.dev.hl7.org.au/fhir"
   externalValidatorUrl: null  # This can be overridden during chart deployment
   validatorImageUri: "markiantorno/validator-wrapper:1.0.68"
