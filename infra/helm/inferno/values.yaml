@@ -1,3 +1,8 @@
+# Render the destination Namespace as a managed resource so ArgoCD prunes it on
+# teardown. Preview environments set this true; dev/prod leave it false and use their
+# pre-existing namespaces. See templates/namespace.yaml.
+createNamespace: false
+
 ingress:
   hostnames:
     - example.inferno.sparked-fhir.com
