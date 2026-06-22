@@ -1,35 +1,27 @@
+# Trunk build + release. master is the single long-lived branch (trunk):
+#   branch → PR → master → auto-deploy to staging → prod-promotion PR → prod.
+# Every push to master builds ONE released-flavour image (Gemfile + web:generate_prod);
+# staging and prod run that same artifact (build once, deploy many). Bleeding-edge /
+# unreleased kit work lives in preview environments (Gemfile.dev), not a persistent branch.
 name: Build and Release Inferno and Nginx Images
 
 on:
   push:
     branches:
-      - master
-      - development
-    # Only rebuild the image when image-affecting source changes. Config-only pushes
-    # (helm/values image-tag promotions, docs) must NOT rebuild: promotion re-points to
-    # an already-built image ("build once, deploy many"), and rebuilding would re-fire
-    # the prod-promotion step and spawn another promote branch (loop). web/ is NOT
-    # ignored — it's baked into the static site / nginx image.
-    paths-ignore:
+      - master            # the trunk
+    paths-ignore:         # config-only pushes (image-tag write-backs, docs) must not rebuild
       - 'infra/**'
       - 'docs/**'
       - '*.md'
   pull_request:
-    # `labeled` lets adding the `preview` label trigger a build; `synchronize` keeps the
-    # preview image tracking new commits on a labelled PR. Base may be master or
-    # development — the job `if` decides what actually builds (see below).
+    # Preview images for `preview`-labelled PRs (any base). PR quality gating lives in
+    # quality-control.yaml; this workflow's only PR job is building preview images.
     types: [opened, synchronize, reopened, labeled]
-    branches:
-      - master
-      - development
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
-# Serialise runs per branch so the dev image commit-back cannot race a concurrent
-# push (avoids non-fast-forward push failures). Do not cancel in-progress builds —
-# they may be mid image push.
 concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: false
@@ -37,13 +29,9 @@ concurrency:
 jobs:
   build-and-push-images:
     runs-on: ubuntu-latest
-    # Build when: any push to master/development; OR a PR against master (existing
-    # build-check); OR any PR carrying the `preview` label (preview environments,
-    # regardless of base branch). A plain development PR with no `preview` label is
-    # skipped — it doesn't deploy anywhere, so there's nothing to build.
+    # Build on: any push to the trunk; OR a PR carrying the `preview` label.
     if: >-
       github.event_name == 'push' ||
-      github.base_ref == 'master' ||
       contains(github.event.pull_request.labels.*.name, 'preview')
     permissions:
       contents: write
@@ -52,9 +40,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # For PR events build the PR's head commit (not the synthetic merge commit),
-          # so the image content matches the SHA we tag it with. Falls back to the
-          # pushed SHA for branch pushes.
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Set environment from event
@@ -62,26 +47,24 @@ jobs:
         run: |
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ] && \
              [ "${{ contains(github.event.pull_request.labels.*.name, 'preview') }}" = "true" ]; then
-            # Preview build: dev-flavoured (Gemfile.dev + dev static content), tagged by
-            # the PR head SHA so the sparked-argo ApplicationSet can deploy <sha>-pr.
+            # Preview: dev-flavoured (Gemfile.dev), tagged by PR head SHA.
             echo "environment=pr" >> $GITHUB_OUTPUT
             echo "rake_task=web:generate_dev" >> $GITHUB_OUTPUT
             echo "bundle_gemfile=Gemfile.dev" >> $GITHUB_OUTPUT
             echo "image_sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
-            echo "use_dev_env=true" >> $GITHUB_OUTPUT
-            echo "BUNDLE_GEMFILE=$GITHUB_WORKSPACE/Gemfile.dev" >> $GITHUB_ENV
-          elif [ "$GITHUB_REF" = "refs/heads/development" ]; then
-            echo "environment=dev" >> $GITHUB_OUTPUT
-            echo "rake_task=web:generate_dev" >> $GITHUB_OUTPUT
-            echo "bundle_gemfile=Gemfile.dev" >> $GITHUB_OUTPUT
-            echo "image_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "app_tag=${{ github.event.pull_request.head.sha }}-pr" >> $GITHUB_OUTPUT
+            echo "nginx_tag=${{ github.event.pull_request.head.sha }}-nginx-pr" >> $GITHUB_OUTPUT
             echo "use_dev_env=true" >> $GITHUB_OUTPUT
             echo "BUNDLE_GEMFILE=$GITHUB_WORKSPACE/Gemfile.dev" >> $GITHUB_ENV
           else
-            echo "environment=prod" >> $GITHUB_OUTPUT
+            # Trunk (push to master): build ONCE, released flavour. Staging + prod run this
+            # same artifact (no -dev/-prod split — build once, deploy many).
+            echo "environment=trunk" >> $GITHUB_OUTPUT
             echo "rake_task=web:generate_prod" >> $GITHUB_OUTPUT
             echo "bundle_gemfile=Gemfile" >> $GITHUB_OUTPUT
             echo "image_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "app_tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "nginx_tag=${{ github.sha }}-nginx" >> $GITHUB_OUTPUT
             echo "use_dev_env=false" >> $GITHUB_OUTPUT
             echo "BUNDLE_GEMFILE=$GITHUB_WORKSPACE/Gemfile" >> $GITHUB_ENV
           fi
@@ -108,12 +91,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-
       - name: Build and push app image
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
@@ -121,8 +98,7 @@ jobs:
           push: true
           build-args: |
             BUNDLE_GEMFILE=${{ steps.config.outputs.bundle_gemfile }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.image_sha }}-${{ steps.config.outputs.environment }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.app_tag }}
 
       - name: Build and push Nginx image
         uses: docker/build-push-action@v2
@@ -130,53 +106,50 @@ jobs:
           context: .
           file: ./nginx.Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.image_sha }}-nginx-${{ steps.config.outputs.environment }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.nginx_tag }}
 
-      - name: Update image tags in values-dev.yaml
-        if: github.ref == 'refs/heads/development' && github.event_name == 'push'
+      # --- Trunk only (push to master): auto-deploy to staging + open prod promotion PR ---
+
+      # Staging auto-deploys: write the new tags into values-dev.yaml and commit back.
+      # [skip ci] + the infra/** paths-ignore above prevent a rebuild loop. ArgoCD
+      # (inferno-dev, targetRevision: master) syncs staging to the new image.
+      - name: Update staging image tags (values-dev.yaml)
+        if: github.event_name == 'push'
         run: |
-          sed -i "s|imageUrl:.*|imageUrl: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-${{ steps.config.outputs.environment }}|" infra/helm/inferno/values-dev.yaml
-          sed -i "s|platformImageUri:.*|platformImageUri: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-nginx-${{ steps.config.outputs.environment }}|" infra/helm/inferno/values-dev.yaml
+          sed -i "s|imageUrl:.*|imageUrl: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.app_tag }}|" infra/helm/inferno/values-dev.yaml
+          sed -i "s|platformImageUri:.*|platformImageUri: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.nginx_tag }}|" infra/helm/inferno/values-dev.yaml
 
-      - name: Commit and push updated image tags
-        if: github.ref == 'refs/heads/development' && github.event_name == 'push'
+      - name: Commit staging tags
+        if: github.event_name == 'push'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add infra/helm/inferno/values-dev.yaml
-          git commit -m "chore: update dev image to ${{ github.sha }} [skip ci]"
-          git push origin development
+          git commit -m "chore: deploy ${{ github.sha }} to staging [skip ci]"
+          git push origin master
 
-      # Prod is promoted via a reviewed PR (not a direct commit): merging the PR is the
-      # release. ArgoCD (sparked-argo, targetRevision: master) syncs the new tags to
-      # prod-inferno on merge.
-      - name: Update image tags in values-prod.yaml
-        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-        run: |
-          sed -i "s|imageUrl:.*|imageUrl: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-${{ steps.config.outputs.environment }}|" infra/helm/inferno/values-prod.yaml
-          sed -i "s|platformImageUri:.*|platformImageUri: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-nginx-${{ steps.config.outputs.environment }}|" infra/helm/inferno/values-prod.yaml
-
-      # Push the bump to a dedicated branch and surface a one-click "open PR" link in
-      # the run summary. A human opens + merges that PR = the prod release. This uses
-      # only contents:write (the same permission the dev commit-back already uses) and
-      # needs no repo-admin "Actions can create PRs" setting.
+      # Prod promotion: push the SAME artifact's tags to a branch and surface a one-click
+      # PR link. Merging that PR = the prod release (human gate). ArgoCD (inferno-prod,
+      # targetRevision: master) syncs prod on merge.
       - name: Push prod promotion branch
-        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        if: github.event_name == 'push'
         run: |
           BRANCH="promote/prod-${{ github.sha }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git switch -c "$BRANCH"
+          sed -i "s|imageUrl:.*|imageUrl: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.app_tag }}|" infra/helm/inferno/values-prod.yaml
+          sed -i "s|platformImageUri:.*|platformImageUri: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.nginx_tag }}|" infra/helm/inferno/values-prod.yaml
           git add infra/helm/inferno/values-prod.yaml
-          git commit -m "chore: promote prod image to ${{ github.sha }}"
+          git commit -m "chore: promote prod to ${{ github.sha }}"
           git push --force-with-lease origin "$BRANCH"
           {
             echo "## 🚀 Prod promotion ready"
             echo ""
-            echo "Open a PR to release these images to prod (merging it = the release):"
+            echo "Staging is already running this build. Merge to release it to prod:"
             echo ""
             echo "**https://github.com/${{ github.repository }}/compare/master...$BRANCH?expand=1**"
             echo ""
-            echo "- app:   \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-prod\`"
-            echo "- nginx: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-nginx-prod\`"
+            echo "- app:   \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.app_tag }}\`"
+            echo "- nginx: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.nginx_tag }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
