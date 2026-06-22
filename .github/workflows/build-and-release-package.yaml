@@ -5,9 +5,23 @@ on:
     branches:
       - master
       - development
+    # Only rebuild the image when image-affecting source changes. Config-only pushes
+    # (helm/values image-tag promotions, docs) must NOT rebuild: promotion re-points to
+    # an already-built image ("build once, deploy many"), and rebuilding would re-fire
+    # the prod-promotion step and spawn another promote branch (loop). web/ is NOT
+    # ignored — it's baked into the static site / nginx image.
+    paths-ignore:
+      - 'infra/**'
+      - 'docs/**'
+      - '*.md'
   pull_request:
+    # `labeled` lets adding the `preview` label trigger a build; `synchronize` keeps the
+    # preview image tracking new commits on a labelled PR. Base may be master or
+    # development — the job `if` decides what actually builds (see below).
+    types: [opened, synchronize, reopened, labeled]
     branches:
       - master
+      - development
 
 env:
   REGISTRY: ghcr.io
@@ -23,25 +37,52 @@ concurrency:
 jobs:
   build-and-push-images:
     runs-on: ubuntu-latest
+    # Build when: any push to master/development; OR a PR against master (existing
+    # build-check); OR any PR carrying the `preview` label (preview environments,
+    # regardless of base branch). A plain development PR with no `preview` label is
+    # skipped — it doesn't deploy anywhere, so there's nothing to build.
+    if: >-
+      github.event_name == 'push' ||
+      github.base_ref == 'master' ||
+      contains(github.event.pull_request.labels.*.name, 'preview')
     permissions:
       contents: write
       packages: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # For PR events build the PR's head commit (not the synthetic merge commit),
+          # so the image content matches the SHA we tag it with. Falls back to the
+          # pushed SHA for branch pushes.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Set environment from branch
+      - name: Set environment from event
         id: config
         run: |
-          if [ "$GITHUB_REF" = "refs/heads/development" ]; then
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ] && \
+             [ "${{ contains(github.event.pull_request.labels.*.name, 'preview') }}" = "true" ]; then
+            # Preview build: dev-flavoured (Gemfile.dev + dev static content), tagged by
+            # the PR head SHA so the sparked-argo ApplicationSet can deploy <sha>-pr.
+            echo "environment=pr" >> $GITHUB_OUTPUT
+            echo "rake_task=web:generate_dev" >> $GITHUB_OUTPUT
+            echo "bundle_gemfile=Gemfile.dev" >> $GITHUB_OUTPUT
+            echo "image_sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
+            echo "use_dev_env=true" >> $GITHUB_OUTPUT
+            echo "BUNDLE_GEMFILE=$GITHUB_WORKSPACE/Gemfile.dev" >> $GITHUB_ENV
+          elif [ "$GITHUB_REF" = "refs/heads/development" ]; then
             echo "environment=dev" >> $GITHUB_OUTPUT
             echo "rake_task=web:generate_dev" >> $GITHUB_OUTPUT
             echo "bundle_gemfile=Gemfile.dev" >> $GITHUB_OUTPUT
+            echo "image_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "use_dev_env=true" >> $GITHUB_OUTPUT
             echo "BUNDLE_GEMFILE=$GITHUB_WORKSPACE/Gemfile.dev" >> $GITHUB_ENV
           else
             echo "environment=prod" >> $GITHUB_OUTPUT
             echo "rake_task=web:generate_prod" >> $GITHUB_OUTPUT
             echo "bundle_gemfile=Gemfile" >> $GITHUB_OUTPUT
+            echo "image_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "use_dev_env=false" >> $GITHUB_OUTPUT
             echo "BUNDLE_GEMFILE=$GITHUB_WORKSPACE/Gemfile" >> $GITHUB_ENV
           fi
 
@@ -54,7 +95,7 @@ jobs:
         run: bundle install
 
       - name: Use dev environment file
-        if: github.ref == 'refs/heads/development'
+        if: steps.config.outputs.use_dev_env == 'true'
         run: cp .env.development .env
 
       - name: Generate static content
@@ -80,7 +121,7 @@ jobs:
           push: true
           build-args: |
             BUNDLE_GEMFILE=${{ steps.config.outputs.bundle_gemfile }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-${{ steps.config.outputs.environment }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.image_sha }}-${{ steps.config.outputs.environment }}
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Build and push Nginx image
@@ -89,7 +130,7 @@ jobs:
           context: .
           file: ./nginx.Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-nginx-${{ steps.config.outputs.environment }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.image_sha }}-nginx-${{ steps.config.outputs.environment }}
 
       - name: Update image tags in values-dev.yaml
         if: github.ref == 'refs/heads/development' && github.event_name == 'push'

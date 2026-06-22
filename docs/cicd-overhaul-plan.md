@@ -16,6 +16,22 @@ Work is tracked on the [Inferno Testing Framework board](https://github.com/orgs
 
 ---
 
+## Current state (2026-06-23)
+
+- **Phase 1 — pragmatic fixes: shipped to prod.** `Gemfile.dev` split, automated
+  prod-promotion (push a `promote/prod-<sha>` branch + a human merges it — no admin
+  needed), reproducibility cleanup, CODEOWNERS + PR template, board auto-add workflow.
+  `development → master` was merged (#79); prod runs released `au_core` 1.4.2 + AU PS.
+- **Phase 2 — preview environments: complete and validated end-to-end.** Labelling a PR
+  `preview` spins up an ephemeral per-PR deploy at
+  `pr-<n>.preview.inferno.sparked-fhir.com`; closing/merging/unlabelling tears it down.
+  See the dedicated section below and `docs/preview-environments.md`.
+- **Phase 3 — trunk cutover: not started.** Next major phase.
+- **Blocked on Brett (admin/org actions):** branch protection on `master`,
+  `ADD_TO_PROJECT_PAT` org secret, and a set of new repo/board-admin asks (Track B).
+
+---
+
 ## How it works today
 
 ### Deploy flow (branch → environment)
@@ -59,6 +75,8 @@ can: push branches, merge PRs, create releases, and add/modify any files or work
 We **cannot**: set branch protection/rulesets, change repo Actions settings, or create
 repo/org secrets. Those few admin/org actions are batched into **Track B** below for the
 repo/org owner (Brett). Everything else proceeds through normal PR / merge / Actions.
+**Update (2026-06-23):** requested full repo admin (au-fhir-inferno + au-ps-inferno) + board
+admin + generator push from Brett — see Track B.
 
 ---
 
@@ -75,9 +93,10 @@ repo/org owner (Brett). Everything else proceeds through normal PR / merge / Act
 
 ---
 
-## Phase 1 — Pragmatic fixes
+## Phase 1 — Pragmatic fixes *(shipped to prod)*
 
 > Removes the daily friction and makes prod safe, without changing the branch model.
+> Shipped via the `development → master` merge (#79); prod runs released `au_core` 1.4.2.
 
 ### 1.1 — Gemfile split *(done — see PR)*
 Base `Gemfile` (prod/released) + `Gemfile.common` (shared) + `Gemfile.dev` (bleeding-edge
@@ -118,20 +137,48 @@ field. One-time backfill of existing open items.
 
 ---
 
-## Phase 2 — Preview environments
+## Phase 2 — Preview environments *(complete — validated end-to-end 2026-06-22)*
 
-Per-PR ephemeral deploys so any branch can get a live URL.
+Per-PR ephemeral deploys. **Add the `preview` label to a PR** → a live environment at
+`https://pr-<n>.preview.inferno.sparked-fhir.com`; close / merge / unlabel tears it down.
+Full user-facing guide: `docs/preview-environments.md`.
 
-- ArgoCD **ApplicationSet** (PR generator) on `au-fhir-inferno` → namespace `inferno-pr-<n>`,
-  hostname `pr-<n>.dev.inferno.sparked-fhir.com`, auto-deleted on PR close.
-- **Wildcard TLS + DNS** (`*.dev.inferno.sparked-fhir.com`) so new hostnames need no
-  per-branch gateway edits (static per-FQDN listeners are the current blocker).
-- Loosen the `proj-inferno` AppProject to an `inferno-*` namespace pattern (or a dedicated
-  ephemeral project); keep prod tight.
-- Chart hygiene (prereq): unify namespacing (`.Release.Namespace` vs `.Values.namespace`),
-  drop the duplicated inline overrides in `inferno-dev.yaml`.
-- Per-PR data/secrets: ephemeral Postgres-in-namespace vs schema-per-PR; reusable IAM/secret
-  strategy.
+**How it works**
+
+```
+add `preview` label
+   ├─► build-and-release-package.yaml builds the PR HEAD (Gemfile.dev) and pushes
+   │     ghcr.io/hl7au/au-fhir-inferno:<head-sha>-pr  (+ -nginx-pr)
+   ├─► preview-comment.yaml posts a sticky PR comment with the URL, polls, flips to "live"
+   └─► ArgoCD ApplicationSet `inferno-previews` (sparked-argo) — GitHub PR generator
+         filtered by the `preview` label → Application `inferno-pr-<n>` deploying the
+         chart from the PR HEAD into namespace `inferno-pr-<n>`, with the <head-sha>-pr
+         image and an ephemeral in-namespace Postgres.
+```
+
+**What shipped**
+
+- **PR-generator ApplicationSet** `apps/inferno-previews.yaml` (sparked-argo #37). Anonymous
+  GitHub polling (repo is public), 30-min requeue.
+- **Per-PR image build** — `build-and-release-package.yaml` builds `preview`-labelled PRs by
+  HEAD SHA, dev-flavoured (au-fhir-inferno #84).
+- **Wildcard TLS + DNS** `*.preview.inferno.sparked-fhir.com` + gateway listener (`from: All`)
+  (sparked-argo #35).
+- **AppProject** allows `inferno-pr-*` namespaces (sparked-argo #36).
+- **Ephemeral in-namespace Postgres** via the chart's `postgresql.enabled` toggle. Two chart
+  bugs found + fixed by the first live run: double-quoted in-namespace `POSTGRES_HOST` (#84),
+  and the dead `docker.io/bitnami/postgresql` tag → `bitnamilegacy` (#85). See
+  [`preview-postgres-bitnamilegacy`].
+- **Teardown** — `createNamespace` value + `templates/namespace.yaml` make ArgoCD *manage*
+  the namespace so the finalizer prunes it (was lingering empty); au-fhir-inferno #87 +
+  sparked-argo #38.
+- **PR comment** — `preview-comment.yaml` sticky live-link comment (au-fhir-inferno #86).
+
+**Access control** — only Triage+/Write collaborators can apply labels, and fork PRs can't
+push images, so the `preview` label *is* the gate. No extra guard needed.
+
+**Optional follow-ups** — a GitHub webhook to replace the 30-min poll (creation/teardown
+within seconds); preview namespaces are intentionally un-hardened (no NetworkPolicies).
 
 ---
 
@@ -149,23 +196,34 @@ Per-PR ephemeral deploys so any branch can get a live URL.
 ## Track B — needs the repo/org owner (Brett)
 
 Batched admin/org actions we can't perform with `maintain`. Each has a no-admin interim
-so work continues meanwhile.
+so work continues meanwhile. **Email sent to Brett 2026-06-23** requesting the access below.
 
 | Item | Why it needs admin | Interim |
 | --- | --- | --- |
-| **Branch protection / ruleset on `master`** (require PR + 1 review + passing `quality-control`) | Repo-admin only | Prod gate is "a human merges the promotion PR" — works, just not enforced. CODEOWNERS already auto-requests reviewers. |
-| **Org secret `ADD_TO_PROJECT_PAT`** + approve a fine-grained org PAT (Projects R/W + repo Issues/PRs read) | Org/repo-admin only | `add-to-project` workflow is merged but a graceful no-op until the secret exists; board populated manually via `gh` (has `project` scope). |
+| **Repo admin on `hl7au/au-fhir-inferno` + `hl7au/au-ps-inferno`** | To implement PR gates (branch protection / rulesets, required checks) + wire up integration and unit tests. Subsumes the branch-protection and Actions-settings asks below. | Work proceeds on `maintain`; gates are conventions (human-merge) not enforcement. |
+| **Branch protection / ruleset on `master`** (require PR + 1 review + passing `quality-control`) | Repo-admin only (covered by the repo-admin ask above) | Prod gate is "a human merges the promotion PR" — works, just not enforced. CODEOWNERS auto-requests reviewers. |
+| **Admin on the project board** ([Inferno Testing Framework](https://github.com/orgs/hl7au/projects/2)) | To manage fields/automation/views for tracking | Board used as-is; items added manually via `gh` (`project` scope). |
+| **Org secret `ADD_TO_PROJECT_PAT`** + approve a fine-grained org PAT (Projects R/W + repo Issues/PRs read) | Org/repo-admin only | `add-to-project` workflow is merged but a graceful no-op until the secret exists. |
+| **Push/maintain on `hl7au/inferno_suite_generator`** *(least important)* | To shorten the generated-filename scheme + regenerate (see below) | Parked; AU PS stays git-ref-pinned, not RubyGems-released. |
 
 Explicitly **not** needed: the "Allow GitHub Actions to create and approve pull requests"
 setting — the prod-promotion workflow was reworked to push a branch + surface a one-click
 PR link, so it needs only `contents: write`.
 
+### AU PS RubyGems release — blocked on the generator (inferno_suite_generator#22)
+
+`au_ps_inferno` cannot be published to RubyGems: the generator emits filenames that exceed
+the **100-char gem/tar limit**, so `gem build` fails. The generator
+(`hl7au/inferno_suite_generator`) needs its filename scheme shortened and the AU PS kit
+regenerated. Until then AU PS stays **git-ref-pinned** in `Gemfile`/`Gemfile.dev`. Pavel will
+hit the same limit. Tracked at `hl7au/inferno_suite_generator#22`.
+
 ## Open items needing a decision
 
-- **Dev validator image** `markiantorno/validator-wrapper:latest` (prod pins `1.0.68`): is
-  dev intentionally tracking latest (like the tx server), or should it be pinned?
-- **`prod` branch trigger** in `build-and-release-package.yaml`: the `prod` branch is stale
-  (last used 2025-10-30). Remove the trigger, or is it still part of a flow?
+- ~~**Dev validator image** `markiantorno/validator-wrapper:latest`~~ — **decided:** dev
+  intentionally tracks latest for speed (like the tx server); prod stays pinned. Do not pin dev.
+- ~~**`prod` branch trigger**~~ — **resolved:** `build-and-release-package.yaml` was rewritten
+  (master/development pushes + master PRs + `preview`-labelled PRs); no `prod` branch trigger remains.
 - **Terraform consolidation**: merge the two near-duplicate Terraform workflows and add a
   prod-`apply` gate via `workflow_dispatch` (no-admin) rather than GitHub Environments.
 - **Org-level `RUBYGEMSKEY`**: unverified (gh 403). Each kit repo already has its own
