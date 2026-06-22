@@ -34,6 +34,15 @@ spec:
           value: "-Xmx8g"
         - name: VALIDATION_SERVICE_PRESETS_FILE_PATH
           value: "/presets/presets.json"
+        # Keep warm validator sessions alive across idle gaps instead of letting the
+        # wrapper's 60-min expire-after-access default silently evict them (which forces
+        # a ~50s cold engine rebuild on the first validation of a later run). See the
+        # validator.sessionCache* notes in values.yaml. size is memory-bound — each
+        # cached engine is large and these pods run close to the 12Gi limit.
+        - name: SESSION_CACHE_DURATION
+          value: {{ .Values.validator.sessionCacheDuration | default -1 | quote }}
+        - name: SESSION_CACHE_SIZE
+          value: {{ .Values.validator.sessionCacheSize | default 6 | quote }}
         ports:
         - containerPort: 3500
         volumeMounts:

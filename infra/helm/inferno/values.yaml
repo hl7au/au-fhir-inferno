@@ -26,6 +26,23 @@ inferno:
 
 validator:
   storageClassName: "gp3-encrypted"  # Use default EBS storage class for validator caches
+  # Validator session cache (env: SESSION_CACHE_DURATION / SESSION_CACHE_SIZE on the
+  # validator-wrapper). A "session" is a fully-built ValidationEngine keyed by a random
+  # UUID; Inferno reuses the UUID it gets back so all bundles/users in a run share one
+  # engine. The wrapper default is 60-min expire-after-access, which silently evicts
+  # warm sessions during idle gaps — so the first validation of any run that lands more
+  # than an hour after warmup pays the full ~50s cold rebuild (confirmed in prod).
+  #
+  # duration < 0 disables time-based expiry (sessions kept until LRU-evicted). size is
+  # the max number of resident engines (LRU). Each engine is large (loads ~20+ IG/tx
+  # packages), so size is memory-bound: the pod sits ~9.4Gi/12Gi at idle, so raise size
+  # only with headroom and watch RSS. The shared validator boot-warms one session per
+  # registered suite — dev warms ~5 distinct contexts (AU PS preview, AU Core
+  # 1.0.0-ballot/1.0.0/2.0.0, smart-app-launch) — so size must clear that working set
+  # plus headroom, else LRU (now the only eviction path) re-introduces cold starts.
+  # Each resident engine is a full build (~80-150Mi); 8 covers the 5 contexts + spare.
+  sessionCacheDuration: -1
+  sessionCacheSize: 8
 
 # Validator autoscaling — disabled by default.
 #
