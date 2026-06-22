@@ -5,6 +5,15 @@ on:
     branches:
       - master
       - development
+    # Only rebuild the image when image-affecting source changes. Config-only pushes
+    # (helm/values image-tag promotions, docs) must NOT rebuild: promotion re-points to
+    # an already-built image ("build once, deploy many"), and rebuilding would re-fire
+    # the prod-promotion step and spawn another promote branch (loop). web/ is NOT
+    # ignored — it's baked into the static site / nginx image.
+    paths-ignore:
+      - 'infra/**'
+      - 'docs/**'
+      - '*.md'
   pull_request:
     branches:
       - master
