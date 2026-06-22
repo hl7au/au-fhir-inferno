@@ -15,6 +15,9 @@ inferno:
   terminologyServer: "https://tx.dev.hl7.org.au/fhir"
   externalValidatorUrl: null  # This can be overridden during chart deployment
   validatorImageUri: "markiantorno/validator-wrapper:1.0.68"
+  # Performance monitoring (request/validator timing + /performance page + its DB
+  # migration). Dev-only feature; OFF by default, enabled per-env in values-dev.yaml.
+  performanceMonitoring: false
 
 validator:
   storageClassName: "gp3-encrypted"  # Use default EBS storage class for validator caches

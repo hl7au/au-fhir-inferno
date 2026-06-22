@@ -24,20 +24,23 @@ namespace :db do
     require 'inferno/utils/migration'
     Inferno::Utils::Migration.new.run
 
-    # Run local migrations (separate schema version table to avoid collisions)
-    require 'sequel'
-    local_dir = File.join(__dir__, 'db', 'migrate')
-    if File.directory?(local_dir) && !Dir.glob("#{local_dir}/*.rb").empty?
-      db = Sequel.connect(
-        adapter:  'postgres',
-        host:     ENV.fetch('POSTGRES_HOST', 'localhost'),
-        port:     ENV.fetch('POSTGRES_PORT', '5432').to_i,
-        database: ENV.fetch('POSTGRES_DB', 'inferno'),
-        user:     ENV.fetch('POSTGRES_USER', 'postgres'),
-        password: ENV.fetch('POSTGRES_PASSWORD', '')
-      )
-      Sequel::Migrator.run(db, local_dir, table: :local_schema_migrations)
-      db.disconnect
+    # Local migrations are dev-only (performance monitoring schema); gated by
+    # PERFORMANCE_MONITORING_ENABLED so prod's database schema is left untouched.
+    if ENV['PERFORMANCE_MONITORING_ENABLED'] == 'true'
+      require 'sequel'
+      local_dir = File.join(__dir__, 'db', 'migrate')
+      if File.directory?(local_dir) && !Dir.glob("#{local_dir}/*.rb").empty?
+        db = Sequel.connect(
+          adapter:  'postgres',
+          host:     ENV.fetch('POSTGRES_HOST', 'localhost'),
+          port:     ENV.fetch('POSTGRES_PORT', '5432').to_i,
+          database: ENV.fetch('POSTGRES_DB', 'inferno'),
+          user:     ENV.fetch('POSTGRES_USER', 'postgres'),
+          password: ENV.fetch('POSTGRES_PASSWORD', '')
+        )
+        Sequel::Migrator.run(db, local_dir, table: :local_schema_migrations)
+        db.disconnect
+      end
     end
   end
 end
