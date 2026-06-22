@@ -34,20 +34,15 @@ jobs:
           ruby-version: '3.3.6'
           bundler-cache: true
 
-      - name: RSpec
+      - name: Dev dependency set resolves (Gemfile.dev, frozen)
         env:
-          APP_ENV: test   # config/database.yml test = sqlite :memory: — no DB service needed
-        run: bundle exec rake spec
+          BUNDLE_GEMFILE: ${{ github.workspace }}/Gemfile.dev
+        run: bundle install
 
       - name: Static site generates (Jekyll)
         run: |
           cp .env.development .env
           bundle exec rake web:generate_dev
-
-      - name: Dev dependency set resolves (Gemfile.dev, frozen)
-        env:
-          BUNDLE_GEMFILE: ${{ github.workspace }}/Gemfile.dev
-        run: bundle install
 
       - name: Set up Helm
         uses: azure/setup-helm@v4
@@ -72,3 +67,10 @@ jobs:
             --set nginx.platformImageUri=ghcr.io/hl7au/au-fhir-inferno:ci-nginx-pr \
             --set 'ingress.hostnames[0]=pr-0.preview.inferno.sparked-fhir.com' > /dev/null
           echo "::endgroup::"
+
+      # Boots the full Inferno app (spec_helper → migrations on sqlite :memory:), so it's
+      # the heaviest check — run last so the deterministic checks above always report.
+      - name: RSpec
+        env:
+          APP_ENV: test
+        run: bundle exec rake spec
