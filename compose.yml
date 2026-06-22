@@ -3,6 +3,9 @@ services:
   inferno_web:
     build:
       context: ./
+      args:
+        # Local development tracks the bleeding-edge test-kit commits.
+        BUNDLE_GEMFILE: Gemfile.dev
     mem_limit: 1500m
     restart: unless-stopped
     volumes:
@@ -23,6 +26,8 @@ services:
   inferno_worker:
     build:
       context: ./
+      args:
+        BUNDLE_GEMFILE: Gemfile.dev
     command: /opt/inferno/worker.sh
     mem_limit: 2000m
     restart: unless-stopped

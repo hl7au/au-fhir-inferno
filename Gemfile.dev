@@ -1,0 +1,19 @@
+# frozen_string_literal: true
+
+# DEVELOPMENT dependency set: tracks bleeding-edge, unreleased test-kit commits for the
+# dev environment (development.inferno.sparked-fhir.com) and local development. It has
+# its OWN lockfile, Gemfile.dev.lock. Select it with:
+#
+#   BUNDLE_GEMFILE=Gemfile.dev bundle install
+#
+# Do NOT move these unreleased SHAs into the base Gemfile — keeping them quarantined
+# here is what stops a development -> master merge from dragging unreleased test-kit
+# versions into prod. Bump the refs below when dev should track newer commits.
+
+eval_gemfile 'Gemfile.common'
+
+# Bleeding-edge AU Core test kit — unreleased commit ahead of the RubyGems release.
+gem 'au_core_test_kit', git: 'https://github.com/hl7au/au-fhir-core-inferno', ref: '1446b9bf9016cbcf27871175ea69dd32c698c940'
+
+# Bleeding-edge AU PS test kit.
+gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno', ref: '98678b39d17be1fd421aabce0b52b2f565a6b540'
