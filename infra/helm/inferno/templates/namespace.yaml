@@ -1,0 +1,14 @@
+{{- if .Values.createNamespace }}
+# Preview environments only. When ArgoCD renders the Namespace as a managed resource,
+# the Application's resources-finalizer prunes it on deletion (PR closed / `preview`
+# label removed) — so teardown removes the namespace itself, not just its contents.
+# ArgoCD's CreateNamespace=true sync option creates a namespace it does NOT track, so
+# without this the empty namespace would linger after teardown.
+#
+# dev/prod leave this false and target their pre-existing namespaces — templating a
+# Namespace there would make ArgoCD try to adopt and (on app deletion) delete them.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Release.Namespace }}
+{{- end }}
