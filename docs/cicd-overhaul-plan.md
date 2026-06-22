@@ -52,6 +52,14 @@ was toggled by commenting lines per branch — the source of the merge pain.
   misconfiguration. Do not add a prod override.
 - No branch protection exists on `master` or `development` in any repo.
 
+### Permissions reality
+
+The team currently has the **`maintain`** role on these repos, not **`admin`**. So we
+can: push branches, merge PRs, create releases, and add/modify any files or workflows.
+We **cannot**: set branch protection/rulesets, change repo Actions settings, or create
+repo/org secrets. Those few admin/org actions are batched into **Track B** below for the
+repo/org owner (Brett). Everything else proceeds through normal PR / merge / Actions.
+
 ---
 
 ## Decisions
@@ -138,10 +146,29 @@ Per-PR ephemeral deploys so any branch can get a live URL.
 
 ---
 
+## Track B — needs the repo/org owner (Brett)
+
+Batched admin/org actions we can't perform with `maintain`. Each has a no-admin interim
+so work continues meanwhile.
+
+| Item | Why it needs admin | Interim |
+| --- | --- | --- |
+| **Branch protection / ruleset on `master`** (require PR + 1 review + passing `quality-control`) | Repo-admin only | Prod gate is "a human merges the promotion PR" — works, just not enforced. CODEOWNERS already auto-requests reviewers. |
+| **Org secret `ADD_TO_PROJECT_PAT`** + approve a fine-grained org PAT (Projects R/W + repo Issues/PRs read) | Org/repo-admin only | `add-to-project` workflow is merged but a graceful no-op until the secret exists; board populated manually via `gh` (has `project` scope). |
+
+Explicitly **not** needed: the "Allow GitHub Actions to create and approve pull requests"
+setting — the prod-promotion workflow was reworked to push a branch + surface a one-click
+PR link, so it needs only `contents: write`.
+
 ## Open items needing a decision
 
-- **Auto-add token**: create a fine-grained org token (Org projects R/W + repo issues/PRs
-  read) stored as an org secret. (Approved in principle.)
+- **Dev validator image** `markiantorno/validator-wrapper:latest` (prod pins `1.0.68`): is
+  dev intentionally tracking latest (like the tx server), or should it be pinned?
+- **`prod` branch trigger** in `build-and-release-package.yaml`: the `prod` branch is stale
+  (last used 2025-10-30). Remove the trigger, or is it still part of a flow?
+- **Terraform consolidation**: merge the two near-duplicate Terraform workflows and add a
+  prod-`apply` gate via `workflow_dispatch` (no-admin) rather than GitHub Environments.
 - **Org-level `RUBYGEMSKEY`**: unverified (gh 403). Each kit repo already has its own
   `RUBYGEMSKEY`, so per-repo publishing is unblocked regardless. Trusted publishing (OIDC)
   is the cleaner long-term option.
+- **CODEOWNERS owners**: seeded with `@KyleOps`; set the real owners/team.

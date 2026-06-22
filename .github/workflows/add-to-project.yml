@@ -1,0 +1,43 @@
+name: Add issues and PRs to project board
+
+# Adds new issues/PRs in this repo to the org board
+# (https://github.com/orgs/hl7au/projects/2), excluding automated/dependency PRs.
+#
+# Requires an org secret ADD_TO_PROJECT_PAT (a token with org Projects: read & write
+# and repo Issues/PRs: read) — see the CI/CD overhaul plan (Track B). Until that secret
+# exists the job is a graceful no-op, so this workflow is safe to merge now.
+#
+# NOTE: issue/PR-triggered workflows run from the DEFAULT branch, so this only takes
+# effect once it has reached `master`.
+
+on:
+  issues:
+    types: [opened, reopened]
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+
+jobs:
+  add-to-project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for project token
+        id: check
+        env:
+          TOKEN: ${{ secrets.ADD_TO_PROJECT_PAT }}
+        run: |
+          if [ -n "$TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::ADD_TO_PROJECT_PAT not set — board auto-add disabled until the org secret is provisioned."
+          fi
+
+      - name: Add to project
+        if: steps.check.outputs.enabled == 'true'
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/hl7au/projects/2
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          # Keep automated/dependency PRs off the board.
+          labeled: automated-pr, dependencies
+          label-operator: NOT
