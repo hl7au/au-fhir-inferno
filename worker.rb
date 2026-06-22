@@ -3,8 +3,12 @@ require 'sidekiq-cron'
 
 require_relative 'lib/inferno_platform_template/delete_old_sessions'
 require_relative 'lib/inferno_platform_template/patches'
-require_relative 'lib/inferno_platform_template/request_timing'
-require_relative 'lib/inferno_platform_template/validator_timing'
+
+# Performance monitoring timing middleware is dev-only (see config.ru).
+if ENV['PERFORMANCE_MONITORING_ENABLED'] == 'true'
+  require_relative 'lib/inferno_platform_template/request_timing'
+  require_relative 'lib/inferno_platform_template/validator_timing'
+end
 
 # Configure OpenTelemetry for inferno-worker spans.
 # Env vars set by the Helm chart:
