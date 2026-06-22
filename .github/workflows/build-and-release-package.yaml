@@ -14,12 +14,20 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
+# Serialise runs per branch so the dev image commit-back cannot race a concurrent
+# push (avoids non-fast-forward push failures). Do not cancel in-progress builds —
+# they may be mid image push.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-and-push-images:
     runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
+      pull-requests: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -99,3 +107,33 @@ jobs:
           git add infra/helm/inferno/values-dev.yaml
           git commit -m "chore: update dev image to ${{ github.sha }} [skip ci]"
           git push origin development
+
+      # Prod is promoted via a reviewed PR (not a direct commit): merging the PR is the
+      # release. ArgoCD (sparked-argo, targetRevision: master) syncs the new tags to
+      # prod-inferno on merge.
+      - name: Update image tags in values-prod.yaml
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        run: |
+          sed -i "s|imageUrl:.*|imageUrl: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-${{ steps.config.outputs.environment }}|" infra/helm/inferno/values-prod.yaml
+          sed -i "s|platformImageUri:.*|platformImageUri: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-nginx-${{ steps.config.outputs.environment }}|" infra/helm/inferno/values-prod.yaml
+
+      - name: Open prod promotion PR
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: master
+          branch: promote/prod-${{ github.sha }}
+          add-paths: infra/helm/inferno/values-prod.yaml
+          commit-message: "chore: promote prod image to ${{ github.sha }}"
+          title: "Promote prod image to ${{ github.sha }}"
+          body: |
+            Automated production image promotion. Merging this PR is the prod release —
+            ArgoCD (sparked-argo, `targetRevision: master`) syncs the new tags to
+            `prod-inferno` → https://inferno.hl7.org.au.
+
+            Built from `${{ github.sha }}` on `master`:
+            - app:   `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-prod`
+            - nginx: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-nginx-prod`
+          labels: prod-promotion
+          delete-branch: true
