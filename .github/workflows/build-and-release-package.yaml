@@ -30,9 +30,13 @@ jobs:
           if [ "$GITHUB_REF" = "refs/heads/development" ]; then
             echo "environment=dev" >> $GITHUB_OUTPUT
             echo "rake_task=web:generate_dev" >> $GITHUB_OUTPUT
+            echo "bundle_gemfile=Gemfile.dev" >> $GITHUB_OUTPUT
+            echo "BUNDLE_GEMFILE=$GITHUB_WORKSPACE/Gemfile.dev" >> $GITHUB_ENV
           else
             echo "environment=prod" >> $GITHUB_OUTPUT
             echo "rake_task=web:generate_prod" >> $GITHUB_OUTPUT
+            echo "bundle_gemfile=Gemfile" >> $GITHUB_OUTPUT
+            echo "BUNDLE_GEMFILE=$GITHUB_WORKSPACE/Gemfile" >> $GITHUB_ENV
           fi
 
       - name: Set up Ruby
@@ -68,6 +72,8 @@ jobs:
         with:
           context: .
           push: true
+          build-args: |
+            BUNDLE_GEMFILE=${{ steps.config.outputs.bundle_gemfile }}
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-${{ steps.config.outputs.environment }}
           labels: ${{ steps.meta.outputs.labels }}
 

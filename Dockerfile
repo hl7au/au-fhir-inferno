@@ -6,15 +6,18 @@ RUN mkdir -p $INSTALL_PATH
 
 WORKDIR $INSTALL_PATH
 
-ADD *.gemspec $INSTALL_PATH
+# Select the dependency set: the default Gemfile (prod / released test kits) or
+# Gemfile.dev (bleeding-edge, unreleased test-kit commits) for the dev environment.
+# Each Gemfile has its own committed lockfile (Gemfile.lock / Gemfile.dev.lock).
+ARG BUNDLE_GEMFILE=Gemfile
+ENV BUNDLE_GEMFILE=$INSTALL_PATH$BUNDLE_GEMFILE
+
+# Gemfile* also matches Gemfile.common, Gemfile.dev and the *.lock files.
 ADD Gemfile* $INSTALL_PATH
 RUN gem install bundler
-# The below RUN line is commented out for development purposes, because any change to the 
-# required gems will break the dockerfile build process.
-# If you want to run in Deploy mode, just run `bundle install` locally to update 
-# Gemfile.lock, and uncomment the following line.
-# RUN bundle config set --local deployment 'true'
-RUN bundle install
+# Frozen mode: build strictly from the committed lockfile so the image is reproducible
+# and the build fails fast if the lockfile is out of sync with the Gemfile.
+RUN bundle config set --local frozen 'true' && bundle install
 
 ADD . $INSTALL_PATH
 
