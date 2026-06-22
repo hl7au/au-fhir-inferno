@@ -4,7 +4,7 @@ metadata:
   name: postgresql-configmap
   namespace: {{ .Release.Namespace }}
 data:
-  POSTGRES_HOST: {{ default (printf "%s-postgresql" .Release.Name | quote) (index .Values.postgresql "externaldbhost") | quote }}
+  POSTGRES_HOST: {{ default (printf "%s-postgresql" .Release.Name) (index .Values.postgresql "externaldbhost") | quote }}
   {{- if .Values.externalSecrets.enabled }}
   POSTGRES_USER: {{ .Values.externalSecrets.username | default "postgres" | quote }}  # Hardcode or pass as value since it's not sensitive
   {{- else }}
