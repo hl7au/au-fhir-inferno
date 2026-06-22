@@ -21,5 +21,6 @@ eval_gemfile 'Gemfile.common'
 # (1.4.2, unreleased). Once 1.4.2 is tagged + released, bump this to '~> 1.4'.
 gem 'au_core_test_kit', '~> 1.4.0'
 
-# AU PS test kit — no RubyGems release exists yet, so pin a stable commit.
-gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno', ref: '7dce73a0cd35fcc4ba84b15526f1b3345a9c9aaf'
+# AU PS test kit — no RubyGems release exists yet, so pin a stable commit on master
+# (currently master HEAD, which includes the noEcosystem validator perf fix).
+gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno', ref: '3cda64eeb2fd1c1677d937cd724aa52b98b62617'
