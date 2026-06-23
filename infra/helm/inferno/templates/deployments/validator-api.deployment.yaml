@@ -33,6 +33,18 @@ spec:
       nodeSelector:
         kubernetes.io/arch: amd64
         karpenter.sh/capacity-type: on-demand  # stable nodes: avoid spot-reclamation churn disrupting test runs
+      affinity:
+        # The validator is the heaviest pod we run (multi-GB JVM heap, ~9.5Gi resident).
+        # Never put two validators on the same node: when two warm up together their real
+        # usage can exceed the node's RAM and hard-freeze the kubelet (an OOM wedge took a
+        # node down on 2026-06-23 when two preview validators co-located on one m6a.xlarge).
+        # One validator per node, cluster-wide (dev/prod/each preview namespace).
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: validator-api
+            topologyKey: kubernetes.io/hostname
       volumes:
       - name: validator-presets
         configMap:
