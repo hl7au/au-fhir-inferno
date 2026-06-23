@@ -6,9 +6,9 @@ name: quality-control
 # that the Helm chart renders for dev / prod / preview.
 on:
   pull_request:
-    branches: [master, development]
+    branches: [master]
   push:
-    branches: [master, development]
+    branches: [master]
 
 permissions:
   contents: read

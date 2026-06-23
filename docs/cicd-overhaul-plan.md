@@ -26,7 +26,11 @@ Work is tracked on the [Inferno Testing Framework board](https://github.com/orgs
   `preview` spins up an ephemeral per-PR deploy at
   `pr-<n>.preview.inferno.sparked-fhir.com`; closing/merging/unlabelling tears it down.
   See the dedicated section below and `docs/preview-environments.md`.
-- **Phase 3 — trunk cutover: not started.** Next major phase.
+- **Phase 3 — trunk cutover: done (2026-06-23).** `master` is the single trunk (no rename
+  to `main` — cosmetic). Every push to `master` builds one released-flavour image, auto-deploys
+  it to staging via the `values-dev.yaml` write-back, and opens a prod-promotion PR for the
+  same artifact. `inferno-dev` (ArgoCD) tracks `master`; `development` is retired (archived at
+  the `archive/development` tag). Branch protection on `master` remains a Track B fast-follow.
 - **Blocked on Brett (admin/org actions):** branch protection on `master`,
   `ADD_TO_PROJECT_PAT` org secret, and a set of new repo/board-admin asks (Track B).
 
@@ -37,16 +41,21 @@ Work is tracked on the [Inferno Testing Framework board](https://github.com/orgs
 ### Deploy flow (branch → environment)
 
 ```
-push to development ─▶ CI builds <sha>-dev images ─▶ CI seds values-dev.yaml and
-                       commits the tag back to development ([skip ci]) ─▶ ArgoCD
-                       (sparked-argo, targetRevision: development) ─▶ dev-inferno
-                       ─▶ https://development.inferno.sparked-fhir.com
-
-push to master ──────▶ CI builds <sha>-prod images (NO write-back) ─▶ a human
-                       manually edits values-prod.yaml ─▶ ArgoCD
-                       (targetRevision: master) ─▶ prod-inferno
-                       ─▶ https://inferno.hl7.org.au
+push to master ──▶ CI builds ONE released-flavour image :<sha> (build once) ─┬─▶ seds
+                   values-dev.yaml + commits the tag back to master ([skip ci]) ─▶ ArgoCD
+                   (sparked-argo, inferno-dev targetRevision: master) ─▶ dev-inferno (staging)
+                   ─▶ https://development.inferno.sparked-fhir.com
+                                                                              │
+                                                                              └─▶ pushes a
+                   promote/prod-<sha> branch with the SAME tag in values-prod.yaml + a
+                   one-click PR link ─▶ a human merges that PR (release gate) ─▶ ArgoCD
+                   (inferno-prod targetRevision: master) ─▶ prod-inferno
+                   ─▶ https://inferno.hl7.org.au
 ```
+
+Staging and prod run the **same artifact** (build once, deploy many). Bleeding-edge /
+unreleased test-kit commits (`Gemfile.dev`) live in per-PR preview environments, not a
+persistent branch.
 
 - Helm chart lives here at `infra/helm/inferno`; ArgoCD applies `values.yaml` then
   `values-{dev,prod}.yaml`.
@@ -62,7 +71,8 @@ was toggled by commenting lines per branch — the source of the merge pain.
 
 ### Key facts
 
-- `development` is **54 commits ahead / 0 behind** `master`.
+- `master` is the single trunk; `development` was retired at the Phase 3 cutover
+  (archived at the `archive/development` tag).
 - `tx.dev.hl7.org.au` is the terminology server for **all** environments — this is
   **intentional** (it carries the latest terminology releases the tests need), not a
   misconfiguration. Do not add a prod override.
@@ -87,7 +97,7 @@ admin + generator push from Brett — see Track B.
 | **Roadmap shape** | Phased: **pragmatic → preview envs → trunk-based**. Trunk is the destination; phasing de-risks it and almost nothing is throwaway. |
 | **Dev/prod dependency split** | `Gemfile.dev` + committed `Gemfile.dev.lock`, selected via `BUNDLE_GEMFILE`; base `Gemfile`/lock stay released-form on both branches; **frozen** builds. |
 | **Prod promotion** | Automated **PR** bumping `values-prod.yaml` on merge to `master` (human-merged = release gate). |
-| **Governance** | Protect **`master` only** for now (PR + 1 review + passing checks); `development` stays direct-push for dev speed. |
+| **Governance** | Protect the trunk `master` (PR + 1 review + passing `quality-control`) — Track B fast-follow (needs repo admin). Post-cutover there is no `development`; all work flows through `master` PRs. |
 | **Board** | Build on existing project #2. Auto-add via per-repo Actions; **filter dependabot/automated PRs off the board**. |
 | **GitOps on board** | No. Tracked by env-branch merges only. |
 
@@ -182,14 +192,21 @@ within seconds); preview namespaces are intentionally un-hardened (no NetworkPol
 
 ---
 
-## Phase 3 — Trunk cutover
+## Phase 3 — Trunk cutover — **done (2026-06-23)**
 
-- Collapse `development` + `master` → **`main`**. `main` HEAD auto-deploys to a persistent
-  **staging** env; `main` → **prod** via the Phase 1 promotion PR.
-- Repoint ArgoCD `targetRevision` to `main`; retire the bespoke dev write-back entirely.
-- Feature work → short-lived branch → preview env → PR → merge → delete branch+env.
-- "Dev tracks bleeding-edge" now lives in `Gemfile.dev`, not a branch — so the cutover is
-  small and low-risk by this point. Move branch protection `master` → `main`.
+Executed per `docs/phase3-trunk-cutover.md`. Trunk = **`master`** — the rename to `main` was
+dropped as cosmetic (trunk-based development means *one* long-lived branch, not its name), which
+also removed the only hard admin dependency, so the cutover was done with `maintain` + sparked-argo admin.
+
+- Final `development → master` merge (#92); the trunk build workflow replaced the dev/master
+  split (#93) — `master` builds one released-flavour image and writes it to `values-dev.yaml`.
+- ArgoCD `inferno-dev` repointed `development → master` (sparked-argo #39); `inferno-prod`
+  already tracked `master`. Both environments now render from `master` and run the same artifact.
+- Smoke-tested end-to-end: push to `master` → build → staging auto-deploy (Healthy, HTTP 200) →
+  prod-promotion PR. `development` retired (archived at `archive/development`).
+- Feature work → short-lived branch → PR → `master` → auto-staging → promotion PR → prod.
+  Bleeding-edge lives in `Gemfile.dev` + preview envs, not a branch.
+- **Fast-follow:** branch protection on `master` (Track B — needs repo admin).
 
 ---
 
@@ -222,8 +239,9 @@ hit the same limit. Tracked at `hl7au/inferno_suite_generator#22`.
 
 - ~~**Dev validator image** `markiantorno/validator-wrapper:latest`~~ — **decided:** dev
   intentionally tracks latest for speed (like the tx server); prod stays pinned. Do not pin dev.
-- ~~**`prod` branch trigger**~~ — **resolved:** `build-and-release-package.yaml` was rewritten
-  (master/development pushes + master PRs + `preview`-labelled PRs); no `prod` branch trigger remains.
+- ~~**`prod` branch trigger**~~ — **resolved:** `build-and-release-package.yaml` builds on
+  pushes to the trunk `master` + `preview`-labelled PRs only; no `prod`/`development` branch
+  trigger remains.
 - **Terraform consolidation**: merge the two near-duplicate Terraform workflows and add a
   prod-`apply` gate via `workflow_dispatch` (no-admin) rather than GitHub Environments.
 - **Org-level `RUBYGEMSKEY`**: unverified (gh 403). Each kit repo already has its own
