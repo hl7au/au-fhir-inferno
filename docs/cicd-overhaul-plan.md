@@ -14,6 +14,10 @@ built, deployed, versioned, and tracked. It covers four repositories:
 
 Work is tracked on the [Inferno Testing Framework board](https://github.com/orgs/hl7au/projects/2).
 
+> **Just want to ship a change?** See [`dev-workflow.md`](dev-workflow.md) — a short,
+> example-driven walkthrough of branch → PR → preview → staging → prod. This document is the
+> deeper design/decision reference.
+
 ---
 
 ## Current state (2026-06-23)
