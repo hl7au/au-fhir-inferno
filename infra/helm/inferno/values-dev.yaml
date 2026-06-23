@@ -20,12 +20,6 @@ autoscaling:
   maxReplicas: 5
   targetCPUUtilizationPercentage: 70
 
-validatorAutoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 3
-  targetCPUUtilizationPercentage: 60
-
 nginx:
   platformImageUri: ghcr.io/hl7au/au-fhir-inferno:94bb601d413cb3a4b6e5640ff0944e9255a51295-nginx
 

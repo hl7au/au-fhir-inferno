@@ -31,7 +31,7 @@ spec:
         imagePullPolicy: Always
         env:
         - name: JAVA_TOOL_OPTIONS
-          value: "-Xmx8g"
+          value: {{ .Values.validator.javaOpts | default "-Xmx8g" | quote }}
         - name: VALIDATION_SERVICE_PRESETS_FILE_PATH
           value: "/presets/presets.json"
         # Keep warm validator sessions alive across idle gaps instead of letting the
@@ -55,16 +55,13 @@ spec:
         - name: validator-presets
           mountPath: /presets
           readOnly: true
+        # Defaults (values.yaml) sized for dev/prod: request is memory-driven (10Gi) onto
+        # 2-4 vCPU r-family nodes; cpu limit 3000m is a burst ceiling (validations are
+        # CPU-bound and starved the health endpoint at 2000m), request stays 1000m. Load
+        # test: one warm pod handles 10 concurrent at ~2.0/3 cores, mem flat ~9.5Gi. Preview
+        # overrides these much lower (see the inferno-previews ApplicationSet).
         resources:
-          requests:
-            memory: "10Gi"
-            cpu: "1000m"
-          limits:
-            memory: "12Gi"
-            cpu: "3000m"   # raised from 2000m for burst headroom (validations are CPU-bound and starved
-                           # the health endpoint). Request stays 1000m: scheduling is memory-driven (10Gi)
-                           # onto 2-4 vCPU r-family nodes, so this is a burst ceiling under a 4-vCPU node's
-                           # ~3920m allocatable, leaving room for node DaemonSets/kubelet.
+          {{- toYaml .Values.validator.resources | nindent 10 }}
         startupProbe:
           httpGet:
             path: /

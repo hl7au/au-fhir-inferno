@@ -1,0 +1,24 @@
+# Primary validator service — routes ALL Inferno validation traffic to a SINGLE
+# validator pod. The validator keeps per-pod, in-memory session state (a built
+# ValidationEngine keyed by a session id Inferno reuses), and that cache is NOT shared
+# across pods. With >1 replica behind the load-balancing `validator-api` Service, the
+# 2 Inferno workers land on different pods, the one shared session id misses on the pod
+# that didn't build it, and every validation cold-rebuilds (~50s) — measured thrash in
+# prod (10 validations / 10 cold / 0 warm). Pinning all traffic to one pod gives one
+# warm cache and no thrash, while replicas stays >1 so the other pod is a hot standby
+# (failover = repoint validator.primaryPod and resync). See docs/VALIDATOR_OPTIMIZATION.md.
+apiVersion: v1
+kind: Service
+metadata:
+  name: validator-api-primary
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3500
+      protocol: TCP
+      targetPort: 3500
+  selector:
+    app: validator-api
+    # StatefulSet stamps this label on each pod; selecting it pins to exactly one pod.
+    statefulset.kubernetes.io/pod-name: {{ .Values.validator.primaryPod | default "validator-api-0" }}
