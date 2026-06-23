@@ -15,6 +15,16 @@ spec:
       labels:
         app: inferno-redis
     spec:
+      securityContext:
+        # redis:8.2-alpine runs the server as uid 999 / gid 1000 and does NOT chown a
+        # pre-existing /data mount, so a freshly-provisioned PVC stays root:root and the
+        # RDB bgsave fails ("Failed opening the temp RDB file ... Permission denied"),
+        # which trips stop-writes-on-bgsave-error and breaks test runs. fsGroup makes the
+        # volume group-owned by the redis gid and group-writable. This is why fresh volumes
+        # (every preview, and any reset dev volume) broke while prod's older redis-owned
+        # volume kept working. OnRootMismatch only re-applies when needed (cheap on existing).
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
       nodeSelector:
         kubernetes.io/arch: amd64
         karpenter.sh/capacity-type: on-demand  # avoid spot reclamation taking the single-replica job queue down mid-run
