@@ -1,0 +1,75 @@
+{{- if .Values.warmer.enabled }}
+# Validator warmer / synthetic health check. Periodically runs one au_ps_bundle
+# validation through Inferno's real API path (Inferno -> worker -> validator -> tx),
+# which (1) keeps the validator's session engine + terminology cache warm and re-warms
+# them after a validator pod restart — going through Inferno warms the *same* session id
+# real users hit, which a self-prewarm on the validator can't do — and (2) acts as an
+# end-to-end synthetic check (the Job fails if the chain is unreachable/errors/times out).
+# The never-expire session cache keeps things warm between runs, so a modest cadence is
+# enough; raise warmer.schedule frequency (and run the full example set manually) to fully
+# warm the terminology cache before an event. See docs/VALIDATOR_OPTIMIZATION.md.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: validator-warmer
+  namespace: {{ .Release.Namespace }}
+data:
+  warmer.py: |
+{{ .Files.Get "files/warmer.py" | indent 4 }}
+  warmer-bundle.json: |
+{{ .Files.Get "files/warmer-bundle.json" | indent 4 }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: validator-warmer
+  namespace: {{ .Release.Namespace }}
+spec:
+  schedule: {{ .Values.warmer.schedule | quote }}
+  concurrencyPolicy: Forbid            # never overlap warmer runs
+  startingDeadlineSeconds: 120
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: {{ add (.Values.warmer.pollTimeout | int) 120 }}
+      template:
+        metadata:
+          labels:
+            app: validator-warmer
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            kubernetes.io/arch: amd64
+          volumes:
+          - name: warmer
+            configMap:
+              name: validator-warmer
+          containers:
+          - name: warmer
+            image: {{ .Values.warmer.image | quote }}
+            command: ["python3", "/warmer/warmer.py"]
+            env:
+            - name: INFERNO_URL
+              value: {{ .Values.warmer.infernoUrl | quote }}
+            - name: TEST_SUITE_ID
+              value: {{ .Values.warmer.testSuiteId | quote }}
+            - name: PROFILE
+              value: {{ .Values.warmer.profile | quote }}
+            - name: BUNDLE_PATH
+              value: /warmer/warmer-bundle.json
+            - name: POLL_TIMEOUT
+              value: {{ .Values.warmer.pollTimeout | quote }}
+            volumeMounts:
+            - name: warmer
+              mountPath: /warmer
+              readOnly: true
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "50m"
+              limits:
+                memory: "128Mi"
+                cpu: "250m"
+{{- end }}
