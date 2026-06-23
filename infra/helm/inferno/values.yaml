@@ -69,6 +69,21 @@ validator:
 # For a known high-load event, raise validator.resources rather than replicas.
 # See docs/VALIDATOR_OPTIMIZATION.md.
 
+# Validator warmer / synthetic health check (templates/validator-warmer.cronjob.yaml).
+# Periodically runs one au_ps_bundle validation through Inferno's real path, which keeps
+# the validator session + terminology cache warm (and re-warms after a pod restart, since
+# going through Inferno warms the same session id real users hit), and doubles as an
+# end-to-end synthetic check. The never-expire session cache holds warmth between runs, so
+# every 10 min is plenty; tighten before an event to fully warm the tx cache.
+warmer:
+  enabled: true
+  schedule: "*/10 * * * *"
+  image: "python:3.12-slim"
+  infernoUrl: "http://inferno:4567"   # in-cluster; /suites proxies here
+  testSuiteId: "suite_100preview"
+  profile: "http://hl7.org.au/fhir/ps/StructureDefinition/au-ps-bundle"
+  pollTimeout: 300
+
 postgresql:
   enabled: false # enable if not using rds from aws-impl
   externaldbhost: null # This can be overridden during chart deployment
