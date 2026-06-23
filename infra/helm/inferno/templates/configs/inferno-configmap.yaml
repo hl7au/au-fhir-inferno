@@ -4,9 +4,9 @@ metadata:
   name: inferno
   namespace: {{ .Release.Namespace }}
 data:
-  # Default to the single-pod primary service (no cross-pod session-cache thrash); an
-  # explicit externalValidatorUrl still wins. See validator-api-primary.service.yaml.
-  FHIR_RESOURCE_VALIDATOR_URL: {{ default "http://validator-api-primary:3500" .Values.inferno.externalValidatorUrl | quote }}
+  # validator-api is a single-pod Deployment, so this plain Service has one endpoint
+  # (no cross-pod session-cache thrash, auto-fails-over when the pod is replaced).
+  FHIR_RESOURCE_VALIDATOR_URL: {{ default "http://validator-api:3500" .Values.inferno.externalValidatorUrl | quote }}
   REDIS_URL: {{ default "redis://inferno-redis:6379" .Values.inferno.redisUrl | quote }}
   RAILS_ENV: {{ default "production" .Values.inferno.railsEnv | quote }}
   PERFORMANCE_MONITORING_ENABLED: {{ .Values.inferno.performanceMonitoring | default false | quote }}

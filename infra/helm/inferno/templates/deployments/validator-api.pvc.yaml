@@ -1,0 +1,36 @@
+# Standalone caches for the single-pod validator Deployment (replaces the former
+# StatefulSet volumeClaimTemplates). These hold the downloaded FHIR/IG packages and the
+# terminology cache — both are warmup optimisations, not durable state: if lost, the pod
+# re-downloads packages (~30-60s) and rebuilds the tx cache on demand. RWO; the Deployment
+# uses strategy: Recreate so the old pod releases them before a new pod mounts.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: validator-fhir-package-cache
+  namespace: {{ .Release.Namespace }}
+spec:
+  accessModes: [ "ReadWriteOnce" ]
+  {{- if .Values.validator }}
+  {{- if .Values.validator.storageClassName }}
+  storageClassName: {{ .Values.validator.storageClassName }}
+  {{- end }}
+  {{- end }}
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: validator-terminology-cache
+  namespace: {{ .Release.Namespace }}
+spec:
+  accessModes: [ "ReadWriteOnce" ]
+  {{- if .Values.validator }}
+  {{- if .Values.validator.storageClassName }}
+  storageClassName: {{ .Values.validator.storageClassName }}
+  {{- end }}
+  {{- end }}
+  resources:
+    requests:
+      storage: 2Gi

@@ -43,9 +43,13 @@ validator:
   # Each resident engine is a full build (~80-150Mi); 8 covers the 5 contexts + spare.
   sessionCacheDuration: -1
   sessionCacheSize: 8
-  # All Inferno validation traffic is pinned to this single pod (see
-  # validator-api-primary.service.yaml). Repoint here to fail over to the standby.
-  primaryPod: validator-api-0
+  # Singleton: the session cache is per-pod and in-memory, so the validator runs as a
+  # single-pod Deployment (a 2nd replica can't share the cache and would only thrash it).
+  # A standby gives no benefit either — it can't be warm for the one session id Inferno
+  # reuses, so failover cold-rebuilds regardless. The plain validator-api Service has one
+  # endpoint and auto-fails-over when the pod is replaced; pods run on on-demand (stable)
+  # nodes so reschedule is reliable. Raising this above 1 reintroduces cross-pod thrash.
+  replicas: 1
   # JVM heap. Must fit the loaded IG/terminology context; preview overrides it lower.
   javaOpts: "-Xmx8g"
   # Pod resources. Defaults sized for dev/prod (load-tested: one warm pod serves 10
@@ -60,8 +64,8 @@ validator:
 
 # NOTE: validator autoscaling (HPA) was removed. It does not fit this validator: each
 # session is per-pod in-memory state, so scaling out splits one logical session across
-# pods and thrashes the cache (every validation cold-rebuilds ~50s). Traffic is pinned
-# to one pod (validator.primaryPod) with a hot standby; scale UP (resources), not out.
+# pods and thrashes the cache (every validation cold-rebuilds ~50s). The validator runs
+# as a single-pod Deployment (validator.replicas: 1); scale UP (resources), not out.
 # For a known high-load event, raise validator.resources rather than replicas.
 # See docs/VALIDATOR_OPTIMIZATION.md.
 
