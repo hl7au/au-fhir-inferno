@@ -73,11 +73,13 @@ validator:
 # Periodically runs one au_ps_bundle validation through Inferno's real path, which keeps
 # the validator session + terminology cache warm (and re-warms after a pod restart, since
 # going through Inferno warms the same session id real users hit), and doubles as an
-# end-to-end synthetic check. The never-expire session cache holds warmth between runs, so
-# every 10 min is plenty; tighten before an event to fully warm the tx cache.
+# end-to-end synthetic check. The terminology cache persists on the PVC across restarts,
+# so the only recurring need is re-warming the in-memory session after an (infrequent)
+# restart — 30 min is ample. Tighten before an event to fully warm the tx cache for the
+# codes participants will use.
 warmer:
   enabled: true
-  schedule: "*/10 * * * *"
+  schedule: "*/30 * * * *"
   image: "python:3.12-slim"
   infernoUrl: "http://inferno:4567"   # in-cluster; /suites proxies here
   testSuiteId: "suite_100preview"
