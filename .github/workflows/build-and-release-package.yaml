@@ -175,7 +175,9 @@ jobs:
           flag() { printf '%s\n' "$FILES" | grep -qE "$1" && echo '⚠️ CHANGED' || echo 'unchanged'; }
           DEPS=$(flag '^Gemfile\.lock$')
           APP_FLAG=$(flag '^(web|lib|app)/|\.rb$')
-          CHART=$(flag '^infra/')
+          # Chart = templates / base values.yaml / Chart.*, NOT the per-env values-{dev,prod}.yaml
+          # (those are just image-tag write-backs/promotions and would otherwise always trip).
+          CHART=$(flag '^infra/helm/inferno/(templates/|values\.yaml|Chart\.)')
 
           # Build the promotion branch (the actual values-prod.yaml image bump).
           git config user.name "github-actions[bot]"
