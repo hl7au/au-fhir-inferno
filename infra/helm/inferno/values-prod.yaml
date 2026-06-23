@@ -11,7 +11,7 @@ redirectIngress:
   targetUrl: "https://inferno.hl7.org.au"
 
 inferno:
-  imageUrl: ghcr.io/hl7au/au-fhir-inferno:06841a7b2713444b5951f29fead71d3064db88fc
+  imageUrl: ghcr.io/hl7au/au-fhir-inferno:d60446c4c41a924fbfa0c445dd6d66ac913cd54f
   usesWrapper: true
   validatorImageUri: markiantorno/validator-wrapper:1.0.68
 
@@ -22,7 +22,7 @@ autoscaling:
   targetCPUUtilizationPercentage: 70
 
 nginx:
-  platformImageUri: ghcr.io/hl7au/au-fhir-inferno:06841a7b2713444b5951f29fead71d3064db88fc-nginx
+  platformImageUri: ghcr.io/hl7au/au-fhir-inferno:d60446c4c41a924fbfa0c445dd6d66ac913cd54f-nginx
 
 
 externalSecrets:
