@@ -62,7 +62,7 @@ GEM
     coderay (1.1.3)
     colorator (1.1.0)
     concurrent-ruby (1.3.4)
-    connection_pool (3.0.2)
+    connection_pool (2.5.5)
     crack (1.0.1)
       bigdecimal
       rexml
@@ -536,6 +536,7 @@ PLATFORMS
 DEPENDENCIES
   au_core_test_kit!
   au_ps_inferno!
+  connection_pool (~> 2.5)
   database_cleaner-sequel (~> 1.8)
   factory_bot (~> 6.1)
   inferno_core (~> 1.0.6)

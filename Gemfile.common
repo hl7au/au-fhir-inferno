@@ -22,6 +22,13 @@ gem 'inferno_suite_generator', github: 'hl7au/inferno_suite_generator', ref: 'b7
 gem 'sinatra'
 gem 'sidekiq-cron'
 
+# Pin connection_pool to the 2.x line. Sidekiq 7.2.4 calls TimedStack#pop with a
+# positional timeout, but connection_pool 3.0 made that keyword-only, so 3.x raises
+# "wrong number of arguments (given 1, expected 0)" and kills Sidekiq's scheduler/cron
+# poller thread (e.g. the Old Session Deletion cron silently stops). Remove this pin once
+# Sidekiq is on >= 7.3, which adopted the connection_pool 3.0 API.
+gem 'connection_pool', '~> 2.5'
+
 # OpenTelemetry — worker emits spans to Alloy → Tempo
 gem 'opentelemetry-sdk'
 gem 'opentelemetry-exporter-otlp'
