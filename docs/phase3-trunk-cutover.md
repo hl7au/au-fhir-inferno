@@ -1,10 +1,14 @@
 # Phase 3 — Trunk cutover runbook
 
-Status: **draft / not yet executed** · Owner: Kyle Pettigrew · Drafted: 2026-06-23
+Status: **executed (2026-06-23)** · Owner: Kyle Pettigrew · Drafted: 2026-06-23
 
 The design + step-by-step checklist for collapsing the two long-lived branches into a
-single trunk. This document is reviewed and merged first; **execution happens in a
-separate, deliberate session** (low prod traffic) using the checklist below.
+single trunk. **Executed:** steps 1–5 + 7 are done (final `development → master` merge #92,
+trunk workflow swap #93, ArgoCD `inferno-dev` repoint sparked-argo #39, end-to-end smoke
+test, `development` retired at the `archive/development` tag, docs/PR-template tidy-up).
+Step 6 (branch protection on `master`) remains Brett's fast-follow. During the smoke test a
+detached-HEAD push bug and a concurrent-merge race in the write-back were found and fixed
+(#96, #97) — the trunk write-back now re-syncs + retries instead of force-pushing.
 
 > **Scope correction vs the original roadmap.** The roadmap said "collapse
 > development + master → `main`". On review, the rename is **cosmetic** — trunk-based

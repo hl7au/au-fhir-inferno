@@ -13,7 +13,7 @@ Closes #
 - [ ] Docs
 
 ## Checklist
-- [ ] Targets the right base branch (`development` for app/content; prod is reached via the automated promotion PR on `master`)
+- [ ] Targets `master` (the trunk) — merging auto-deploys to staging; prod is reached via the automated promotion PR
 - [ ] If test-kit versions changed, only `Gemfile.dev` / `Gemfile.dev.lock` were touched — the prod `Gemfile` / `Gemfile.lock` are unchanged (unless intentionally promoting a release to prod)
 - [ ] `quality-control` / tests pass
-- [ ] Any deployment-config change was checked against dev
+- [ ] Any deployment-config change was checked against staging
