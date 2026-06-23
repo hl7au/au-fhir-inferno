@@ -142,27 +142,85 @@ jobs:
           fi
 
       # Prod promotion: push the SAME artifact's tags to a branch and surface a one-click
-      # PR link. Merging that PR = the prod release (human gate). ArgoCD (inferno-prod,
-      # targetRevision: master) syncs prod on merge.
-      - name: Push prod promotion branch
+      # PR link whose body is PREFILLED with a changelog + risk flags (deps / app / chart),
+      # diffed via the compare API between the SHA prod runs now and this build. Merging the
+      # PR = the prod release (human gate). ArgoCD (inferno-prod, targetRevision: master)
+      # syncs prod on merge. Prefill (vs auto-opening the PR) avoids needing "Actions can
+      # create PRs" AND keeps the PR human-authored so quality-control still runs on it.
+      - name: Prepare prod-promotion PR (changelog + risk flags)
         if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          BRANCH="promote/prod-${{ github.sha }}"
+          APP="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.app_tag }}"
+          NGINX="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.nginx_tag }}"
+          BRANCH="promote/prod-${GITHUB_SHA}"
+          REPO_URL="https://github.com/${GITHUB_REPOSITORY}"
+
+          # The SHA prod runs now = the image tag in values-prod.yaml BEFORE we bump it
+          # (the staging step above reset the tree to the current master tip).
+          PROD_SHA=$(grep -m1 'imageUrl:' infra/helm/inferno/values-prod.yaml | sed -E 's#.*:([0-9a-f]{7,40}).*#\1#' || true)
+
+          # Diff "what prod runs now" against this build via the compare API — works on a
+          # shallow checkout, no deep clone needed. Build a changelog (drop merge/chore
+          # noise, cap 40) and risk flags from the changed files.
+          CMP=$(gh api "repos/${GITHUB_REPOSITORY}/compare/${PROD_SHA}...${GITHUB_SHA}" 2>/dev/null || echo '{}')
+          CHANGELOG=$(printf '%s' "$CMP" | jq -r '
+            [.commits[]?.commit.message | split("\n")[0]
+             | select(test("skip ci|promote prod|^Merge pull request|^Merge branch";"i")|not)] as $a
+            | ($a[0:40] | map("- "+.) | join("\n"))
+              + (if ($a|length)>40 then "\n- …and \(($a|length)-40) more (see run summary)" else "" end)')
+          [ -z "$CHANGELOG" ] && CHANGELOG="- (could not compute commit range from ${PROD_SHA:-unknown})"
+          FILES=$(printf '%s' "$CMP" | jq -r '.files[]?.filename')
+          flag() { printf '%s\n' "$FILES" | grep -qE "$1" && echo '⚠️ CHANGED' || echo 'unchanged'; }
+          DEPS=$(flag '^Gemfile\.lock$')
+          APP_FLAG=$(flag '^(web|lib|app)/|\.rb$')
+          CHART=$(flag '^infra/')
+
+          # Build the promotion branch (the actual values-prod.yaml image bump).
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git switch -c "$BRANCH"
-          sed -i "s|imageUrl:.*|imageUrl: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.app_tag }}|" infra/helm/inferno/values-prod.yaml
-          sed -i "s|platformImageUri:.*|platformImageUri: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.nginx_tag }}|" infra/helm/inferno/values-prod.yaml
-          git add infra/helm/inferno/values-prod.yaml
-          git commit -m "chore: promote prod to ${{ github.sha }}"
+          sed -i "s|imageUrl:.*|imageUrl: ${APP}|" infra/helm/inferno/values-prod.yaml
+          sed -i "s|platformImageUri:.*|platformImageUri: ${NGINX}|" infra/helm/inferno/values-prod.yaml
+          git commit -am "chore: promote prod to ${GITHUB_SHA}"
           git push --force-with-lease origin "$BRANCH"
+
+          # Assemble the PR body, then prefill it into the one-click compare link.
+          BODY_FILE="${RUNNER_TEMP}/pr-body.md"
+          {
+            echo "Promote prod \`${PROD_SHA:0:7}\` → \`${GITHUB_SHA:0:7}\` — staging already runs this exact artifact."
+            echo ""
+            echo "## Risk flags"
+            echo "- Dependencies / test kits (\`Gemfile.lock\`): **${DEPS}**"
+            echo "- App code / static site (\`web/\`, \`lib/\`): **${APP_FLAG}**"
+            echo "- Helm chart (\`infra/**\`): **${CHART}** — already synced to prod via ArgoCD (informational)"
+            echo ""
+            echo "## Changelog since current prod (\`${PROD_SHA:0:7}\`)"
+            echo "${CHANGELOG}"
+            echo ""
+            echo "Full code diff: ${REPO_URL}/compare/${PROD_SHA}...${GITHUB_SHA}"
+            echo ""
+            echo "- app:   \`${APP}\`"
+            echo "- nginx: \`${NGINX}\`"
+          } > "$BODY_FILE"
+
+          TITLE=$(printf 'Promote prod → %s' "${GITHUB_SHA:0:7}" | jq -sRr @uri)
+          BODY=$(jq -sRr @uri < "$BODY_FILE")
+          LINK="${REPO_URL}/compare/master...${BRANCH}?expand=1&title=${TITLE}&body=${BODY}"
           {
             echo "## 🚀 Prod promotion ready"
             echo ""
-            echo "Staging is already running this build. Merge to release it to prod:"
+            echo "**[Open the promotion PR — prefilled with changelog + risk flags](${LINK})**"
             echo ""
-            echo "**https://github.com/${{ github.repository }}/compare/master...$BRANCH?expand=1**"
+            echo "Merging it releases \`${GITHUB_SHA:0:7}\` to prod (the human gate)."
             echo ""
-            echo "- app:   \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.app_tag }}\`"
-            echo "- nginx: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.nginx_tag }}\`"
+            echo "- app:   \`${APP}\`"
+            echo "- nginx: \`${NGINX}\`"
+            echo ""
+            echo "<details><summary>PR body preview</summary>"
+            echo ""
+            cat "$BODY_FILE"
+            echo ""
+            echo "</details>"
           } >> "$GITHUB_STEP_SUMMARY"
