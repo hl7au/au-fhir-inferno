@@ -1,11 +1,23 @@
+# Single-pod validator. The validator-wrapper keeps per-pod, in-memory session state
+# (a built ValidationEngine keyed by a session id Inferno reuses) and cannot share that
+# cache across pods, so it runs as a singleton (replicas: 1) — see
+# docs/VALIDATOR_OPTIMIZATION.md. As a singleton it is a Deployment, not a StatefulSet:
+# one pod means the plain validator-api Service has a single endpoint (no cross-pod
+# thrash, automatic failover when the pod is replaced) with no pod-pinning needed, and
+# Deployment avoids the StatefulSet at-most-one reschedule stall on node loss.
+#
+# strategy: Recreate — the package/terminology caches are RWO PVCs, so the old pod must
+# release them before the new one mounts; Recreate terminates first (no multi-attach).
+# Updates have a brief gap, which is fine for a singleton (a fresh pod cold-starts anyway).
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: validator-api
   namespace: {{ .Release.Namespace }}
 spec:
-  serviceName: validator-api  # Required for StatefulSet
-  replicas: {{ .Values.validator.replicas | default 2 }}
+  replicas: {{ .Values.validator.replicas | default 1 }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: validator-api
@@ -20,18 +32,24 @@ spec:
         fsGroup: 1000  # Ensures volumes are writable by ktor user (UID 1000)
       nodeSelector:
         kubernetes.io/arch: amd64
-        karpenter.sh/capacity-type: on-demand  # prod: avoid spot-reclamation churn disrupting test runs (redis already pinned)
+        karpenter.sh/capacity-type: on-demand  # stable nodes: avoid spot-reclamation churn disrupting test runs
       volumes:
       - name: validator-presets
         configMap:
           name: validator-presets
+      - name: fhir-package-cache
+        persistentVolumeClaim:
+          claimName: validator-fhir-package-cache
+      - name: terminology-cache
+        persistentVolumeClaim:
+          claimName: validator-terminology-cache
       containers:
       - name: validator-api
         image: {{ .Values.inferno.validatorImageUri }}
         imagePullPolicy: Always
         env:
         - name: JAVA_TOOL_OPTIONS
-          value: "-Xmx8g"
+          value: {{ .Values.validator.javaOpts | default "-Xmx8g" | quote }}
         - name: VALIDATION_SERVICE_PRESETS_FILE_PATH
           value: "/presets/presets.json"
         # Keep warm validator sessions alive across idle gaps instead of letting the
@@ -55,16 +73,13 @@ spec:
         - name: validator-presets
           mountPath: /presets
           readOnly: true
+        # Defaults (values.yaml) sized for dev/prod: request is memory-driven (10Gi) onto
+        # 2-4 vCPU r-family nodes; cpu limit 3000m is a burst ceiling (validations are
+        # CPU-bound and starved the health endpoint at 2000m), request stays 1000m. Load
+        # test: one warm pod handles 10 concurrent at ~2.0/3 cores, mem flat ~9.5Gi. Preview
+        # overrides these much lower (see the inferno-previews ApplicationSet).
         resources:
-          requests:
-            memory: "10Gi"
-            cpu: "1000m"
-          limits:
-            memory: "12Gi"
-            cpu: "3000m"   # raised from 2000m for burst headroom (validations are CPU-bound and starved
-                           # the health endpoint). Request stays 1000m: scheduling is memory-driven (10Gi)
-                           # onto 2-4 vCPU r-family nodes, so this is a burst ceiling under a 4-vCPU node's
-                           # ~3920m allocatable, leaving room for node DaemonSets/kubelet.
+          {{- toYaml .Values.validator.resources | nindent 10 }}
         startupProbe:
           httpGet:
             path: /
@@ -92,28 +107,3 @@ spec:
                                   # validation can run ~160s and block the health endpoint
           failureThreshold: 10    # allows 300s (10*30) before restart - covers a full validation/preset
                                   # load so a busy (not wedged) validator is not killed mid-session
-  volumeClaimTemplates:
-  - metadata:
-      name: fhir-package-cache
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      {{- if .Values.validator }}
-      {{- if .Values.validator.storageClassName }}
-      storageClassName: {{ .Values.validator.storageClassName }}
-      {{- end }}
-      {{- end }}
-      resources:
-        requests:
-          storage: 5Gi
-  - metadata:
-      name: terminology-cache
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      {{- if .Values.validator }}
-      {{- if .Values.validator.storageClassName }}
-      storageClassName: {{ .Values.validator.storageClassName }}
-      {{- end }}
-      {{- end }}
-      resources:
-        requests:
-          storage: 2Gi

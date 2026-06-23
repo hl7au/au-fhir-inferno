@@ -4,11 +4,11 @@ metadata:
   name: validator-api
   namespace: {{ .Release.Namespace }}
 spec:
+  # validator-api is a single-pod Deployment, so there is exactly one endpoint — no
+  # session affinity needed (and none possible/useful across pods); a new pod is picked
+  # up automatically. The per-pod, in-memory session cache cannot be shared, which is why
+  # the validator is a singleton. See docs/VALIDATOR_OPTIMIZATION.md.
   type: NodePort
-  sessionAffinity: ClientIP
-  sessionAffinityConfig:
-    clientIP:
-      timeoutSeconds: 3600
   ports:
     - port: 3500
       protocol: TCP

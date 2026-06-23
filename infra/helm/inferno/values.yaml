@@ -43,25 +43,31 @@ validator:
   # Each resident engine is a full build (~80-150Mi); 8 covers the 5 contexts + spare.
   sessionCacheDuration: -1
   sessionCacheSize: 8
+  # Singleton: the session cache is per-pod and in-memory, so the validator runs as a
+  # single-pod Deployment (a 2nd replica can't share the cache and would only thrash it).
+  # A standby gives no benefit either — it can't be warm for the one session id Inferno
+  # reuses, so failover cold-rebuilds regardless. The plain validator-api Service has one
+  # endpoint and auto-fails-over when the pod is replaced; pods run on on-demand (stable)
+  # nodes so reschedule is reliable. Raising this above 1 reintroduces cross-pod thrash.
+  replicas: 1
+  # JVM heap. Must fit the loaded IG/terminology context; preview overrides it lower.
+  javaOpts: "-Xmx8g"
+  # Pod resources. Defaults sized for dev/prod (load-tested: one warm pod serves 10
+  # concurrent at ~2.0/3 cores, ~9.5Gi mem). Preview overrides these much lower.
+  resources:
+    requests:
+      memory: "10Gi"
+      cpu: "1000m"
+    limits:
+      memory: "12Gi"
+      cpu: "3000m"
 
-# Validator autoscaling — disabled by default.
-#
-# Each new validator pod takes 5–10 minutes to warm up (preset loading + base engine
-# construction + InvokeValidatorSession warmup). HPA reacts too slowly for sudden
-# spikes — by the time a new pod is warm the load is already over.
-#
-# RECOMMENDED: Pre-scale manually before known high-load events (connectathons, demos):
-#   kubectl scale statefulset validator-api -n <namespace> --replicas=3
-# Or update validator.replicas in the environment-specific values file and deploy.
-#
-# If enabling HPA, use conservative thresholds. CPU during steady-state validation
-# is ~1 core per pod (55% of the 2000m limit). During startup it spikes to 2000m.
-# Set targetCPU at ~60% to avoid triggering scale-up from startup spikes.
-validatorAutoscaling:
-  enabled: false
-  minReplicas: 2
-  maxReplicas: 5
-  targetCPUUtilizationPercentage: 60
+# NOTE: validator autoscaling (HPA) was removed. It does not fit this validator: each
+# session is per-pod in-memory state, so scaling out splits one logical session across
+# pods and thrashes the cache (every validation cold-rebuilds ~50s). The validator runs
+# as a single-pod Deployment (validator.replicas: 1); scale UP (resources), not out.
+# For a known high-load event, raise validator.resources rather than replicas.
+# See docs/VALIDATOR_OPTIMIZATION.md.
 
 postgresql:
   enabled: false # enable if not using rds from aws-impl

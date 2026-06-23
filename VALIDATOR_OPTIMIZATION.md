@@ -80,6 +80,8 @@ spec:
 
 **Result:** Session cache hits on every validation request after the first. Without this, each validation call that landed on the "wrong" pod would create a new session — loading the IG from scratch and adding ~1–2 minutes per cold start.
 
+> **⚠️ Superseded (2026-06) — see [§8](#8-2026-06-session-lifecycle-multi-pod-thrash-and-single-pod-deployment).** ClientIP affinity pins by *client IP*, not by validator session. With **2 Inferno workers**, a single suite's validations are dispatched from *both* worker IPs and land on *both* validator pods; the one shared session id then misses on whichever pod didn't build it, so every validation cold-rebuilds. Measured in prod: 10 validations / 10 cold / 0 warm. Affinity is the wrong granularity here — the validator is now a **single-pod Deployment** (one Service endpoint, no thrash), and the affinity was removed.
+
 ---
 
 ### 5. noEcosystem: true (au_core_test_kit 1.4.1)
@@ -222,6 +224,33 @@ An Envoy Gateway `HTTPRouteFilter` + `HTTPRoute` intercepts requests to `/tx-reg
 See [sparked-argo/docs/adr-ontoserver-txreg-redirect.md](https://github.com/hl7au/sparked-argo/blob/main/docs/adr-ontoserver-txreg-redirect.md) for the full decision record including the earlier redirect-to-tx.fhir.org approach that was tried and why it was abandoned.
 
 ---
+
+### 8. 2026-06: session lifecycle, multi-pod thrash, and single-pod Deployment
+
+A deeper investigation (cross-referencing the wrapper, `org.hl7.fhir.core`, and `inferno_core`, plus runtime testing on dev/prod) clarified how validator sessions actually behave and corrected several assumptions above.
+
+**What a "session" is.** A session id is a **server-generated random UUID** (`GuavaSessionCacheAdapter.generateID()`), *not* a hash of the validation context. Inferno stores one id per **`(test_suite_id, suite_options, validator_name)`** in its `validator_sessions` table (RDS) and re-sends it to reuse the cached `ValidationEngine`. For AU PS that key is constant — `(suite_100preview, [], default)` — so **all bundles, all users/incognito tabs, and any `profile`/server input share one session**. A new session is only minted when: the stored id isn't in a pod's in-memory cache (pod restart, or LRU/time eviction), or a different suite/options/validator is used. Bundle content, server URL, and profile version never mint a new session.
+
+**Never-expire cache fix.** The wrapper defaulted to a 60-min `expire-after-access` TTL (size 4). Inferno boot-warms one session per suite, but the idle TTL evicted those before a later run, so the first validation of any run landing >1h after warmup paid the full ~50s rebuild. Fixed by `SESSION_CACHE_DURATION=-1` (+ `SESSION_CACHE_SIZE=8`) on the StatefulSet — sessions now persist until LRU eviction. On a **single pod** this is fully effective (verified: kill pod → 1 cold rebuild, then every subsequent validation warm).
+
+**Multi-pod thrash (the real problem).** The session cache is **per-pod and in-memory** — not shared across replicas. With 2 replicas + 2 Inferno workers + ClientIP affinity, a suite's validations split across both pods, the shared session id misses on the pod that didn't build it, and every validation cold-rebuilds. Measured in prod: **10 validations, 10 cold, 0 warm**, the same id rebuilt on both pods. The never-expire fix does nothing for this (nothing is expiring; the session simply isn't *on* the pod that gets the request).
+
+**`baseEngine` is a dead end (on deployed versions).** The wrapper accepts `validationContext.baseEngine: <presetKey>`; in `org.hl7.fhir.core` this *should* clone a prebuilt base engine and skip the ~50s build. Empirically on the deployed validator (`/validator/presets` confirmed `AU_PS_V1_0_0_PREVIEW` loaded, so the clone branch *is* taken), a fresh-session `baseEngine` call still took **34–45s** — the `new ValidationEngine(other)` copy constructor deep-copies the loaded context, costing ~a full build. So `baseEngine` gives no speedup on core 6.6.3 (prod) / 6.9.7 (dev) and cannot rescue the thrash. It also pins behaviour to the *preset's* context (which has `disableDefaultResourceFetcher: false` vs the suite's deterministic `true`), so adopting it would change results unless the preset is aligned first.
+
+**Fix: run the validator as a single-pod Deployment.** Since the cache can't be shared and can't usefully cluster, the validator is a **singleton** (`validator.replicas: 1`), and it's a **Deployment**, not a StatefulSet — at one replica the StatefulSet bought nothing but its volumeClaimTemplate, while a Deployment gives a cleaner singleton: the plain `validator-api` Service has a single endpoint (no cross-pod thrash, auto-fails-over when the pod is replaced), and there's no StatefulSet at-most-one reschedule stall on node loss. `strategy: Recreate` releases the RWO cache PVCs before a new pod mounts. The pod-pinning service and ClientIP affinity were removed; the validator HPA was removed too — scaling out splits the session and thrashes, so the pattern here is **scale up, not out**. A standby would not help anyway: it can't be warm for the session id Inferno reuses, so failover cold-rebuilds regardless.
+
+**Capacity (load test, one warm pod, 3 CPU / 12Gi).** Concurrency 1/5/10 with the same warm session:
+
+| Bundle | conc=1 | conc=5 | conc=10 |
+|---|---|---|---|
+| small (~30 KB) | 0.6s | 1.2s | **1.5s** |
+| large (~197 KB) | 3.2s | 8.1s | **13.1s** wall |
+
+CPU peaked **~2.0 / 3 cores** (no throttling), memory **flat ~9.5Gi / 12Gi** (no growth), 10/10 one session, 0 errors. **One pinned pod comfortably sustains ~10 concurrent event sessions** with the current resources — no scale-up needed. (Large-bundle warm time depends on the persistent terminology cache: ~3s when codes are cached, tens of seconds for first-time/novel codes — a tx round-trip cost, separate from the session cache.)
+
+**Scaling guidance.** This validator keeps per-pod in-memory state with no shared/distributed cache and an expensive clone, so it cannot usefully cluster. To scale, raise `validator.resources` (vertical); scale-out would require a shared session cache or session-aware L7 routing (the session id lives in the request body, so standard proxies can't route on it) — neither exists today.
+
+**Useful wrapper ops endpoints:** `GET /validator/presets` (loaded base engines), `/validator/engines` (cached sessions), `/txStatus`, `/packStatus`, `/validator/version`.
 
 ## Managing PVCs
 
