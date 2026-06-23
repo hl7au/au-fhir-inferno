@@ -108,38 +108,11 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.nginx_tag }}
 
-      # --- Trunk only (push to master): auto-deploy to staging + open prod promotion PR ---
-
-      # Auto-deploy to staging: write the released tags into values-dev.yaml and push the
-      # commit back to master. checkout@v4 leaves a detached HEAD (we check out an explicit
-      # ref), so push via HEAD:master. A concurrent merge to master makes the push
-      # non-fast-forward; re-sync to the new tip, re-apply the tag and retry rather than
-      # failing the build or force-pushing over someone else's commit. [skip ci] + the
-      # infra/** paths-ignore above prevent a rebuild loop. ArgoCD (inferno-dev,
-      # targetRevision: master) syncs staging to the new image.
-      - name: Deploy to staging (values-dev.yaml write-back)
-        if: github.event_name == 'push'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          APP="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.app_tag }}"
-          NGINX="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.nginx_tag }}"
-          pushed=false
-          for attempt in 1 2 3 4 5; do
-            git fetch --quiet origin master
-            git reset --hard FETCH_HEAD
-            sed -i "s|imageUrl:.*|imageUrl: ${APP}|" infra/helm/inferno/values-dev.yaml
-            sed -i "s|platformImageUri:.*|platformImageUri: ${NGINX}|" infra/helm/inferno/values-dev.yaml
-            if git diff --quiet -- infra/helm/inferno/values-dev.yaml; then
-              echo "values-dev.yaml already at ${APP}; nothing to push"; pushed=true; break
-            fi
-            git commit -am "chore: deploy ${{ github.sha }} to staging [skip ci]"
-            if git push origin HEAD:master; then pushed=true; break; fi
-            echo "push rejected (attempt ${attempt}); master moved — re-syncing and retrying"
-          done
-          if [ "$pushed" != "true" ]; then
-            echo "::error::staging write-back could not be pushed after 5 attempts"; exit 1
-          fi
+      # --- Trunk only (push to master): open the prod promotion PR ---
+      # Staging auto-deploys via ArgoCD Image Updater (in sparked-argo): it watches ghcr
+      # for the newest master build and writes the tag to apps/inferno-dev/image-values.yaml
+      # in that repo, which the inferno-dev Application consumes. So this workflow no longer
+      # writes back to master at all — nothing here pushes to the trunk. Prod stays a PR.
 
       # Prod promotion: push the SAME artifact's tags to a branch and surface a one-click
       # PR link whose body is PREFILLED with a changelog + risk flags (deps / app / chart),
