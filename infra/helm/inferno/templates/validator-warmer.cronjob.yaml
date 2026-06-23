@@ -33,6 +33,12 @@ spec:
   jobTemplate:
     spec:
       backoffLimit: 1
+      # Auto-delete each finished Job (success OR failure) and its pods after 1h, so stale
+      # jobs don't linger. Without this, failedJobsHistoryLimit keeps the last failures
+      # indefinitely and kube_state_metrics' kube_job_failed keeps the Grafana "Job Failed"
+      # alert firing long after the warmer has recovered. 1h leaves a window to notice a
+      # real failure; a recurring failure keeps the alert firing via fresh jobs.
+      ttlSecondsAfterFinished: 3600
       activeDeadlineSeconds: {{ add (.Values.warmer.pollTimeout | int) 120 }}
       template:
         metadata:
