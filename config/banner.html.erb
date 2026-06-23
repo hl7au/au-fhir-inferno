@@ -1,3 +1,7 @@
+<%# Performance UI (header link + per-session strip) is gated on the same flag as the
+    /performance backend (config.ru). Kept off in prod so the link/strip aren't injected
+    on pages where /performance and /api/performance return 404. %>
+<% perf_enabled = ENV['PERFORMANCE_MONITORING_ENABLED'] == 'true' %>
 <div class="header">
   <!-- Web banner -->
   <div class="container header-container-outer header-container-web">
@@ -7,11 +11,13 @@
           <span class="header-title">Inferno on hl7.org.au</span>
         </a>
       </div>
+      <% if perf_enabled %>
       <div class="header-text web-header-text">
         <div>
           <a id="perf-link" href="/performance" style="opacity:0.6">Performance</a>
         </div>
       </div>
+      <% end %>
     </div>
   </div>
 
@@ -27,8 +33,10 @@
   </div>
 </div>
 
+<% if perf_enabled %>
 <!-- Performance strip — auto-populated when on a session page -->
 <div id="ipp-strip"></div>
+<% end %>
 
 <script type="text/javascript">
   /* Get local storage sessions */
@@ -89,6 +97,7 @@
     { subtree: true, characterData: true, childList: true }
   );
 
+  <% if perf_enabled %>
   /* Detect session ID and populate performance strip */
   (function() {
     const match = location.pathname.match(/\/test_sessions\/([^\/]+)/)
@@ -167,6 +176,7 @@
       })
       .catch(function() { strip.style.display = 'none'; });
   })();
+  <% end %>
 
   /* Open and close banner info */
   const toggleBannerInfo = () => {
@@ -256,6 +266,7 @@
     text-align: right;
   }
 
+  <% if perf_enabled %>
   /* ── Performance strip ─────────────────────────────────── */
   .ipp-strip {
     display: flex;
@@ -338,4 +349,5 @@
     margin-left: 4px;
   }
   .ipp-report-link:hover { text-decoration: underline !important; }
+  <% end %>
 </style>
