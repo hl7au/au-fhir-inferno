@@ -6,7 +6,7 @@ a running build with reviewers before it merges.
 
 ## How to spin one up
 
-1. Open a PR (against `development` or `master`).
+1. Open a PR (against `master`, the trunk).
 2. Add the **`preview`** label.
 
 That's it. Within a few minutes a bot comment appears on the PR with the URL:

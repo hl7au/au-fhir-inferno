@@ -1,6 +1,6 @@
 # Inferno CI/CD Overhaul Plan
 
-Status: **active** · Owner: Kyle Pettigrew · Last updated: 2026-06-23
+Status: **complete** (Phases 1–3 + preview envs shipped) · Owner: Kyle Pettigrew · Last updated: 2026-06-23
 
 This document is the reference for overhauling how the AU FHIR Inferno platform is
 built, deployed, versioned, and tracked. It covers four repositories:
@@ -27,12 +27,17 @@ Work is tracked on the [Inferno Testing Framework board](https://github.com/orgs
   `pr-<n>.preview.inferno.sparked-fhir.com`; closing/merging/unlabelling tears it down.
   See the dedicated section below and `docs/preview-environments.md`.
 - **Phase 3 — trunk cutover: done (2026-06-23).** `master` is the single trunk (no rename
-  to `main` — cosmetic). Every push to `master` builds one released-flavour image, auto-deploys
-  it to staging via the `values-dev.yaml` write-back, and opens a prod-promotion PR for the
-  same artifact. `inferno-dev` (ArgoCD) tracks `master`; `development` is retired (archived at
-  the `archive/development` tag). Branch protection on `master` remains a Track B fast-follow.
-- **Blocked on Brett (admin/org actions):** branch protection on `master`,
-  `ADD_TO_PROJECT_PAT` org secret, and a set of new repo/board-admin asks (Track B).
+  to `main` — cosmetic). Every push to `master` builds one released-flavour image; ArgoCD
+  Image Updater detects the new tag and deploys it to staging, and the build opens a
+  prod-promotion PR for the same artifact. `inferno-dev` (ArgoCD) tracks `master`;
+  `development` is retired (archived at the `archive/development` tag).
+- **Branch protection on `master` is now ACTIVE** (require PR + 1 review + passing
+  `quality-control`; force-push/deletion blocked; admin bypass). Staging deploys via
+  ArgoCD Image Updater (CI no longer pushes to `master`), which is what unblocked the
+  ruleset — see "Staging deploys" below.
+- **Still needs Brett (org-only):** the `ADD_TO_PROJECT_PAT` org secret (board auto-add is a
+  no-op until it exists) and push on `inferno_suite_generator`. Repo admin + board admin
+  were granted (2026-06-23).
 
 ---
 
@@ -41,10 +46,10 @@ Work is tracked on the [Inferno Testing Framework board](https://github.com/orgs
 ### Deploy flow (branch → environment)
 
 ```
-push to master ──▶ CI builds ONE released-flavour image :<sha> (build once) ─┬─▶ seds
-                   values-dev.yaml + commits the tag back to master ([skip ci]) ─▶ ArgoCD
-                   (sparked-argo, inferno-dev targetRevision: master) ─▶ dev-inferno (staging)
-                   ─▶ https://development.inferno.sparked-fhir.com
+push to master ──▶ CI builds ONE released-flavour image :<sha> (build once) ─┬─▶ ArgoCD Image
+                   Updater (in sparked-argo) detects the new tag, writes it to the deploy repo
+                   (image-values.yaml) ─▶ ArgoCD (inferno-dev, targetRevision: master)
+                   ─▶ dev-inferno (staging) ─▶ https://development.inferno.sparked-fhir.com
                                                                               │
                                                                               └─▶ pushes a
                    promote/prod-<sha> branch with the SAME tag in values-prod.yaml + a
@@ -55,7 +60,9 @@ push to master ──▶ CI builds ONE released-flavour image :<sha> (build once
 
 Staging and prod run the **same artifact** (build once, deploy many). Bleeding-edge /
 unreleased test-kit commits (`Gemfile.dev`) live in per-PR preview environments, not a
-persistent branch.
+persistent branch. The CI build **pushes nothing back to `master`** — staging tracks the
+registry via ArgoCD Image Updater, and prod moves only via the human-merged promotion PR.
+This is what lets `master` be branch-protected (no CI bot bypass needed).
 
 - Helm chart lives here at `infra/helm/inferno`; ArgoCD applies `values.yaml` then
   `values-{dev,prod}.yaml`.
@@ -76,17 +83,15 @@ was toggled by commenting lines per branch — the source of the merge pain.
 - `tx.dev.hl7.org.au` is the terminology server for **all** environments — this is
   **intentional** (it carries the latest terminology releases the tests need), not a
   misconfiguration. Do not add a prod override.
-- No branch protection exists on `master` or `development` in any repo.
+- `master` is branch-protected on `au-fhir-inferno`: PRs require 1 review + a passing
+  `quality-control` check; force-push and deletion are blocked (admin bypass retained).
 
 ### Permissions reality
 
-The team currently has the **`maintain`** role on these repos, not **`admin`**. So we
-can: push branches, merge PRs, create releases, and add/modify any files or workflows.
-We **cannot**: set branch protection/rulesets, change repo Actions settings, or create
-repo/org secrets. Those few admin/org actions are batched into **Track B** below for the
-repo/org owner (Brett). Everything else proceeds through normal PR / merge / Actions.
-**Update (2026-06-23):** requested full repo admin (au-fhir-inferno + au-ps-inferno) + board
-admin + generator push from Brett — see Track B.
+We now have **repo admin** on `hl7au/au-fhir-inferno` (+ `au-ps-inferno`) and **board admin**
+on project #2, granted by Brett (2026-06-23). With that we set the `master` ruleset and the
+required `quality-control` check. The only remaining owner-gated items are **org-level**: the
+`ADD_TO_PROJECT_PAT` org secret and push on `inferno_suite_generator` — see Track B.
 
 ---
 
@@ -97,7 +102,7 @@ admin + generator push from Brett — see Track B.
 | **Roadmap shape** | Phased: **pragmatic → preview envs → trunk-based**. Trunk is the destination; phasing de-risks it and almost nothing is throwaway. |
 | **Dev/prod dependency split** | `Gemfile.dev` + committed `Gemfile.dev.lock`, selected via `BUNDLE_GEMFILE`; base `Gemfile`/lock stay released-form on both branches; **frozen** builds. |
 | **Prod promotion** | Automated **PR** bumping `values-prod.yaml` on merge to `master` (human-merged = release gate). |
-| **Governance** | Protect the trunk `master` (PR + 1 review + passing `quality-control`) — Track B fast-follow (needs repo admin). Post-cutover there is no `development`; all work flows through `master` PRs. |
+| **Governance** | Trunk `master` is protected (PR + 1 review + passing `quality-control`) — **active**. Post-cutover there is no `development`; all work flows through `master` PRs. |
 | **Board** | Build on existing project #2. Auto-add via per-repo Actions; **filter dependabot/automated PRs off the board**. |
 | **GitOps on board** | No. Tracked by env-branch merges only. |
 
@@ -199,29 +204,32 @@ dropped as cosmetic (trunk-based development means *one* long-lived branch, not 
 also removed the only hard admin dependency, so the cutover was done with `maintain` + sparked-argo admin.
 
 - Final `development → master` merge (#92); the trunk build workflow replaced the dev/master
-  split (#93) — `master` builds one released-flavour image and writes it to `values-dev.yaml`.
+  split (#93) — `master` builds one released-flavour image.
 - ArgoCD `inferno-dev` repointed `development → master` (sparked-argo #39); `inferno-prod`
   already tracked `master`. Both environments now render from `master` and run the same artifact.
 - Smoke-tested end-to-end: push to `master` → build → staging auto-deploy (Healthy, HTTP 200) →
   prod-promotion PR. `development` retired (archived at `archive/development`).
 - Feature work → short-lived branch → PR → `master` → auto-staging → promotion PR → prod.
   Bleeding-edge lives in `Gemfile.dev` + preview envs, not a branch.
-- **Fast-follow:** branch protection on `master` (Track B — needs repo admin).
+- **Done (fast-follow completed):** the staging write-back was retired in favour of ArgoCD
+  Image Updater (CI no longer pushes to `master`), and the `master` ruleset is now active
+  (PR + 1 review + passing `quality-control`).
 
 ---
 
-## Track B — needs the repo/org owner (Brett)
+## Track B — owner (Brett) actions
 
-Batched admin/org actions we can't perform with `maintain`. Each has a no-admin interim
-so work continues meanwhile. **Email sent to Brett 2026-06-23** requesting the access below.
+Granted 2026-06-23: **repo admin** on `hl7au/au-fhir-inferno` (+ `au-ps-inferno`) and **board
+admin** on project #2. With those, branch protection / the `master` ruleset and the required
+`quality-control` check were set up — **done**. Only org-level items remain.
 
-| Item | Why it needs admin | Interim |
-| --- | --- | --- |
-| **Repo admin on `hl7au/au-fhir-inferno` + `hl7au/au-ps-inferno`** | To implement PR gates (branch protection / rulesets, required checks) + wire up integration and unit tests. Subsumes the branch-protection and Actions-settings asks below. | Work proceeds on `maintain`; gates are conventions (human-merge) not enforcement. |
-| **Branch protection / ruleset on `master`** (require PR + 1 review + passing `quality-control`) | Repo-admin only (covered by the repo-admin ask above) | Prod gate is "a human merges the promotion PR" — works, just not enforced. CODEOWNERS auto-requests reviewers. |
-| **Admin on the project board** ([Inferno Testing Framework](https://github.com/orgs/hl7au/projects/2)) | To manage fields/automation/views for tracking | Board used as-is; items added manually via `gh` (`project` scope). |
-| **Org secret `ADD_TO_PROJECT_PAT`** + approve a fine-grained org PAT (Projects R/W + repo Issues/PRs read) | Org/repo-admin only | `add-to-project` workflow is merged but a graceful no-op until the secret exists. |
-| **Push/maintain on `hl7au/inferno_suite_generator`** *(least important)* | To shorten the generated-filename scheme + regenerate (see below) | Parked; AU PS stays git-ref-pinned, not RubyGems-released. |
+| Item | Status |
+| --- | --- |
+| ~~Repo admin on `au-fhir-inferno` + `au-ps-inferno`~~ | **Granted.** |
+| ~~Branch protection / ruleset on `master`~~ (PR + 1 review + passing `quality-control`) | **Active.** Prod still gated by the human-merged promotion PR; CODEOWNERS auto-requests reviewers. |
+| ~~Admin on the project board~~ ([Inferno Testing Framework](https://github.com/orgs/hl7au/projects/2)) | **Granted.** |
+| **Org secret `ADD_TO_PROJECT_PAT`** + a fine-grained org PAT (Projects R/W + repo Issues/PRs read) | **Outstanding (org-only).** `add-to-project` workflow is merged but a graceful no-op until the secret exists; items added manually via `gh` meanwhile. |
+| **Push/maintain on `hl7au/inferno_suite_generator`** *(least important)* | **Outstanding (org-only).** Parked; AU PS stays git-ref-pinned, not RubyGems-released. |
 
 Explicitly **not** needed: the "Allow GitHub Actions to create and approve pull requests"
 setting — the prod-promotion workflow was reworked to push a branch + surface a one-click
