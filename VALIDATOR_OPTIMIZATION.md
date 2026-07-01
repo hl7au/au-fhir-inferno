@@ -252,19 +252,20 @@ CPU peaked **~2.0 / 3 cores** (no throttling), memory **flat ~9.5Gi / 12Gi** (no
 
 **Two cold costs, not one (prod load test, fresh pod).** A no-prewarm prod run measured a cold *session* build of ~33s (small) / ~53s (large), then a single warm validation of ~3–4s — but `conc=10` of a large bundle took ~160–180s with CPU only ~1.7/3 cores. It's not CPU-bound: prod's terminology-cache PVC was fresh, so concurrent validations hit tx.dev for uncached codes and serialise. Dev did `conc=10` in ~13s only because its tx cache was thoroughly warm. So warming has **two** parts — the per-session engine build (held by the never-expire cache) and the **per-code terminology cache** (only warmed by actually validating representative bundles) — and the tx cache is what makes *concurrency* fast.
 
-**Warmer / synthetic health check** (`templates/validator-warmer.cronjob.yaml`, `warmer.*` values, `files/warmer.py`). Each entry in `warmer.jobs` becomes its own CronJob so cadences can differ; `warmer.py` runs the checks named in that job's `CHECKS`:
+**Session warmer sidecar** (`configs/validator-warmer-configmap.yaml` + the `session-warmer` container in `deployments/validator-api.deployment.yaml`, `warmer.*` values, `files/warmer.py`). Its only job is to pre-build the per-suite validator session engines so a real user never pays the cold first-run build (~tens of seconds) after a validator restart. It is **not** a health check and **not** a CronJob.
 
-| Check | What it does | Warms Inferno's session id? |
+**Why a sidecar, not a timer.** Sessions never time-expire (`SESSION_CACHE_DURATION=-1`), so warming is needed *only* after a validator restart. The sidecar shares the validator pod's lifecycle: it warms once on startup, then polls the co-located validator on `localhost:3500` and re-warms whenever it goes unreachable→reachable — i.e. exactly when the validator restarted. This covers whole-pod restarts (deploy, node) **and** validator-container-only restarts (liveness/OOM), with no steady-state timer and no external traffic except right after a restart.
+
+**What it warms (all THROUGH INFERNO** — a self-warm on the validator builds a throwaway session id that Inferno's real runs never reuse, so it would not help):
+
+| Warm | How | External server? |
 |---|---|---|
-| `au_ps` | one `au_ps_bundle` validation through Inferno's real path | ✓ (AU PS session) |
-| `aucore_wrapper` | direct validator `/validate` for AU Core 1.0.0 **and** 2.0.0, asserting `au-core-patient\|<version>` resolves; mints a session then re-sends its id to exercise the **reuse/clone** path | ✗ (wrapper mints a throwaway id) |
-| `aucore_conformance` | real `au_core_v100`/`au_core_v200` runs through Inferno against `warmer.aucoreServerUrl` | ✓ (AU Core session) + tx cache |
+| `au_ps` | validate a pasted `au_ps_bundle` through Inferno | no (self-contained) |
+| `au_core_v100` / `au_core_v200` | run each suite's **capability-statement group** through Inferno (needs only `url`; one validation builds+caches the suite's real session engine) | yes (`warmer.aucoreServerUrl`) |
 
-Two jobs ship by default: **`fast`** (`au_ps,aucore_wrapper`, every 5 min — lightweight, no external dependency) and **`conformance`** (`aucore_conformance`, every 6 h — the only path that warms the exact AU Core session id real users hit, but it depends on an external server so it is **lenient**: only an unreachable/errored/timed-out *Inferno* chain fails it; validation/data/external-server results never do). Set `enabled: false` on the conformance job to drop the external dependency.
+The capability-statement group is used because the AU Core suites have **no** standalone paste-a-resource test — warming their real session requires one validation against a live server, and the capability group is the lightest path that reliably triggers one. (Since #124/#290 fixed the session-key collision, each suite has its own session, so all three warm independently.)
 
-Because it goes through Inferno, `au_ps`/`aucore_conformance` warm the *same* session id real users hit (a self-prewarm on the validator would use a throwaway id). `aucore_wrapper` cannot (the wrapper mints its own id and doesn't persist to Inferno's `validator_sessions`) — its value is cheap warming of both AU Core base engines + a **regression probe** for the resolution bug below: a broken resolve returns HTTP 500 (the historical failure mode), failing the Job. Note the AU Core suites have **no** standalone paste-a-resource validation test, so there is no way to warm their exact session id without a live server — hence `aucore_conformance`.
-
-**Cadence:** sessions never time-expire (`SESSION_CACHE_DURATION=-1`), so the interval is not fighting a TTL — it only bounds the post-restart cold window and how fast a broken validator is detected. 5 min keeps both small; before a high-load event, tighten `warmer.jobs[].schedule` and/or validate the full example set so the tx cache is fully warm.
+**Safety — the sidecar can never affect the validator's boot or availability.** The container command wraps the script with `|| true; sleep infinity`, so even an import/syntax error idles instead of crashlooping; the script swallows every error and never exits; and it declares no probes and never gates the validator container. A warmer bug, an Inferno restart, or an AU Core server outage cannot block the validator from booting or serving. Disable entirely with `warmer.enabled: false`.
 
 **Useful wrapper ops endpoints:** `GET /validator/presets` (loaded base engines), `/validator/engines` (cached sessions), `/txStatus`, `/packStatus`, `/validator/version`.
 

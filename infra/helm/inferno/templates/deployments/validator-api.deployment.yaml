@@ -58,6 +58,11 @@ spec:
       - name: terminology-cache
         persistentVolumeClaim:
           claimName: validator-terminology-cache
+      {{- if .Values.warmer.enabled }}
+      - name: validator-warmer
+        configMap:
+          name: validator-warmer
+      {{- end }}
       containers:
       - name: validator-api
         image: {{ .Values.inferno.validatorImageUri }}
@@ -122,3 +127,53 @@ spec:
                                   # validation can run ~160s and block the health endpoint
           failureThreshold: 10    # allows 300s (10*30) before restart - covers a full validation/preset
                                   # load so a busy (not wedged) validator is not killed mid-session
+      {{- if .Values.warmer.enabled }}
+      # Session warmer sidecar (files/warmer.py). After a validator restart it pre-builds
+      # the per-suite validator session engines THROUGH INFERNO (au_ps bundle; au_core
+      # v1/v2 via the capability-statement group) so the first real user never pays the
+      # cold engine build. Validator sessions never time-expire, so it warms once on start
+      # then re-warms only when the co-located validator restarts (localhost unreachable
+      # -> reachable), covering whole-pod and container-only restarts.
+      #
+      # Fully decoupled from the validator: the command wraps the script with
+      # `|| true; sleep infinity` so an import/syntax error cannot crashloop it; the script
+      # itself swallows all errors and never exits; it has no probes and never gates the
+      # validator container. A warmer bug or an Inferno/AU-Core-server outage therefore
+      # cannot affect the validator's boot or availability.
+      - name: session-warmer
+        image: {{ .Values.warmer.image | default "python:3.12-slim" | quote }}
+        command:
+        - /bin/sh
+        - -c
+        - 'python3 /warmer/warmer.py || true; echo "[warmer] entrypoint exited; idling"; sleep infinity'
+        env:
+        - name: INFERNO_URL
+          value: {{ .Values.warmer.infernoUrl | default "http://inferno:4567" | quote }}
+        - name: VALIDATOR_URL
+          value: "http://localhost:3500"
+        - name: AUCORE_SERVER_URL
+          value: {{ .Values.warmer.aucoreServerUrl | quote }}
+        - name: AU_CORE_SUITES
+          value: {{ .Values.warmer.auCoreSuites | default "au_core_v100,au_core_v200" | quote }}
+        - name: AU_PS_SUITE_ID
+          value: {{ .Values.warmer.auPsSuiteId | default "suite_100preview" | quote }}
+        - name: AU_PS_PROFILE
+          value: {{ .Values.warmer.auPsProfile | default "http://hl7.org.au/fhir/ps/StructureDefinition/au-ps-bundle" | quote }}
+        - name: BUNDLE_PATH
+          value: /warmer/warmer-bundle.json
+        - name: POLL_TIMEOUT
+          value: {{ .Values.warmer.pollTimeout | default 300 | quote }}
+        - name: RECHECK_INTERVAL
+          value: {{ .Values.warmer.recheckInterval | default 30 | quote }}
+        volumeMounts:
+        - name: validator-warmer
+          mountPath: /warmer
+          readOnly: true
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "25m"
+          limits:
+            memory: "128Mi"
+            cpu: "250m"
+      {{- end }}
