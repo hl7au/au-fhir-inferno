@@ -4,75 +4,35 @@ metadata:
   name: validator-presets
   namespace: {{ .Release.Namespace }}
 data:
+  # INTENTIONALLY EMPTY — do not re-add base-engine presets without an upstream fix.
+  #
+  # A "preset" preloads a base ValidationEngine; when a /validate request's cliContext
+  # names a matching `baseEngine`, the validator-wrapper serves the session by CLONING
+  # that base engine (org.hl7.fhir.core `new ValidationEngine(other)` ->
+  # `BaseWorkerContext.copy()` -> `CanonicalResourceManager.copy()`). That copy() is
+  # shallow: even in core 6.9.7 it copies indexedResources/listForUrl but NOT listForId
+  # or supplements, so the clone's canonical indexes are internally inconsistent. A later
+  # drop()/reindex on the clone corrupts the exact `url|version` key, after which
+  # ValidationEngine.asSdList throws `Unable to resolve profile <url>|<version>` (HTTP 500)
+  # for the life of that cached session. With AU Core 1.0.0 and 2.0.0 both present, the
+  # losing version (whichever isn't the current bare-url winner) is the one that breaks —
+  # observed intermittently in prod for au-core-patient|1.0.0 and au-core-*|2.0.0.
+  #
+  # On the clone path the wrapper also IGNORES the request's `igs`, so a preset-matched
+  # session is built ENTIRELY from the buggy clone. With no matching preset the wrapper
+  # falls back to buildValidationEngine() from `igs`, which loads packages via
+  # CanonicalResourceManager.see() and populates url|version keys correctly — the standard,
+  # well-exercised build path. An unknown `baseEngine` string (the au_core_test_kit suites
+  # still send `baseEngine AU_CORE_V*`) is simply ignored, not an error (verified live and
+  # in ValidationService.getValidationEngineFromParameters, core 6.9.7).
+  #
+  # Cost of dropping presets: the first session per (suite, options) after a validator
+  # restart builds fresh (~35-50s) instead of cloning — but baseEngine cloning gave no
+  # real speedup on the deployed core versions anyway (see VALIDATOR_OPTIMIZATION.md sec 8),
+  # and the validator-warmer CronJob pre-warms sessions within its interval after a restart.
+  #
+  # Revert (restore the AU_CORE_V1_0_0 / AU_CORE_V2_0_0 / AU_PS_V1_0_0_PREVIEW preset
+  # objects here) only once the upstream CanonicalResourceManager.copy() clone bug is fixed
+  # (hapifhir/org.hl7.fhir.core) and shipped in the pinned wrapper image.
   presets.json: |
-    [
-      {
-        "key": "AU_CORE_V2_0_0",
-        "localizedLabels": { "en": "AU Core v2.0.0" },
-        "validationContext": {
-          "sv": "4.0.1",
-          "igs": ["hl7.fhir.au.core#2.0.0"],
-          "extensions": ["any"],
-          "doNative": false,
-          "disableDefaultResourceFetcher": false,
-          "txServer": {{ .Values.inferno.terminologyServer | quote }},
-          "noEcosystem": true
-        },
-        "igPackageInfo": [
-          {
-            "id": "hl7.fhir.au.core",
-            "version": "2.0.0",
-            "fhirVersion": "4.0.1",
-            "url": "http://hl7.org.au/fhir/core/ImplementationGuide/hl7.fhir.au.core"
-          }
-        ],
-        "extensionSet": ["any"],
-        "profileSet": []
-      },
-      {
-        "key": "AU_CORE_V1_0_0",
-        "localizedLabels": { "en": "AU Core v1.0.0" },
-        "validationContext": {
-          "sv": "4.0.1",
-          "igs": ["hl7.fhir.au.core#1.0.0"],
-          "extensions": ["any"],
-          "doNative": false,
-          "disableDefaultResourceFetcher": false,
-          "txServer": {{ .Values.inferno.terminologyServer | quote }},
-          "noEcosystem": true
-        },
-        "igPackageInfo": [
-          {
-            "id": "hl7.fhir.au.core",
-            "version": "1.0.0",
-            "fhirVersion": "4.0.1",
-            "url": "http://hl7.org.au/fhir/core/ImplementationGuide/hl7.fhir.au.core"
-          }
-        ],
-        "extensionSet": ["any"],
-        "profileSet": []
-      },
-      {
-        "key": "AU_PS_V1_0_0_PREVIEW",
-        "localizedLabels": { "en": "AU PS v1.0.0-preview" },
-        "validationContext": {
-          "sv": "4.0.1",
-          "igs": ["hl7.fhir.au.ps#1.0.0-preview"],
-          "extensions": ["any"],
-          "doNative": false,
-          "disableDefaultResourceFetcher": false,
-          "txServer": {{ .Values.inferno.terminologyServer | quote }},
-          "noEcosystem": true
-        },
-        "igPackageInfo": [
-          {
-            "id": "hl7.fhir.au.ps",
-            "version": "1.0.0-preview",
-            "fhirVersion": "4.0.1",
-            "url": "http://hl7.org.au/fhir/ps/ImplementationGuide/hl7.fhir.au.ps"
-          }
-        ],
-        "extensionSet": ["any"],
-        "profileSet": []
-      }
-    ]
+    []
