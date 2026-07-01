@@ -13,7 +13,13 @@ redirectIngress:
 inferno:
   imageUrl: ghcr.io/hl7au/au-fhir-inferno:d60446c4c41a924fbfa0c445dd6d66ac913cd54f
   usesWrapper: true
-  validatorImageUri: markiantorno/validator-wrapper:1.0.68
+  # Pinned to match the version dev has soaked on (dev tracks :latest, currently 1.0.78 /
+  # core 6.9.7). 1.0.78 adds a ReentrantLock + cooldown around the heap-pressure engine
+  # reload that 1.0.68 lacked (1.0.68 rebuilt the whole ValidationService — wiping the
+  # session cache — on ANY request seeing free heap under the ~238MB default threshold,
+  # with no cooldown), and ships a newer org.hl7.fhir.core. Prod stays pinned (never
+  # :latest) so promotions are explicit; bump this tag to adopt a newer soaked version.
+  validatorImageUri: markiantorno/validator-wrapper:1.0.78
 
 autoscaling:
   enabled: true
