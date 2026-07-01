@@ -1,0 +1,18 @@
+{{- if .Values.warmer.enabled }}
+# Validator session warmer. Runs as a sidecar container in the validator pod (see
+# deployments/validator-api.deployment.yaml), not as a CronJob: validator sessions never
+# time-expire (SESSION_CACHE_DURATION=-1), so warming is only needed after a validator
+# restart. The sidecar warms once on start and re-warms whenever the co-located validator
+# restarts. This ConfigMap ships the warmer script + the AU PS bundle it validates.
+# See VALIDATOR_OPTIMIZATION.md.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: validator-warmer
+  namespace: {{ .Release.Namespace }}
+data:
+  warmer.py: |
+{{ .Files.Get "files/warmer.py" | indent 4 }}
+  warmer-bundle.json: |
+{{ .Files.Get "files/warmer-bundle.json" | indent 4 }}
+{{- end }}

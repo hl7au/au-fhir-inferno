@@ -69,42 +69,32 @@ validator:
 # For a known high-load event, raise validator.resources rather than replicas.
 # See docs/VALIDATOR_OPTIMIZATION.md.
 
-# Validator warmer / synthetic health check (templates/validator-warmer.cronjob.yaml).
-# Runs validation checks through the real stack to keep the validator's session engines +
-# terminology cache warm (and re-warm them after a pod restart) and to act as an
-# end-to-end synthetic check. See files/warmer.py for the check implementations.
+# Validator session warmer. Runs as a SIDECAR in the validator pod
+# (deployments/validator-api.deployment.yaml mounts the configs/validator-warmer-configmap
+# script), NOT as a CronJob. Validator sessions never time-expire
+# (SESSION_CACHE_DURATION=-1), so warming is only needed after a validator restart — the
+# sidecar warms once on start and re-warms when the co-located validator restarts, with no
+# steady-state timer. It warms THROUGH INFERNO (a self-warm on the validator builds a
+# throwaway session that real runs don't reuse): au_ps via a pasted bundle, and au_core
+# v1/v2 via each suite's capability-statement group (needs only `url`, one validation
+# builds the engine). See files/warmer.py and VALIDATOR_OPTIMIZATION.md.
 #
-# Cadence note: validator sessions never time-expire (SESSION_CACHE_DURATION=-1), so the
-# warmer is not fighting a TTL — its interval only bounds how long a post-restart cold
-# window lasts and how quickly a broken validator is detected. 5 min keeps both small.
-#
-# Jobs: each entry becomes its own CronJob so cadences can differ.
-#   fast        (5 min)  au_ps + aucore_wrapper — lightweight, no external dependency.
-#   conformance (6 h)    real au_core_v100/v200 runs vs an external AU Core server; warms
-#                        the exact session id real users hit + the tx cache. Lenient: only
-#                        an unreachable Inferno chain fails it (external-server flakiness
-#                        is expected). Set enabled:false to drop the external dependency.
+# The sidecar can never affect the validator: its command is wrapped with
+# `|| true; sleep infinity`, the script swallows all errors and never exits, and it has no
+# probes — so a warmer bug or an Inferno/AU-Core-server outage cannot block the validator's
+# boot or readiness.
 warmer:
   enabled: true
   image: "python:3.12-slim"
-  infernoUrl: "http://inferno:4567"          # in-cluster; /suites proxies here
-  validatorUrl: "http://validator-api:3500"  # in-cluster validator service (direct probe)
-  txServer: ""                               # empty -> inferno.terminologyServer
-  # au_ps check inputs
-  testSuiteId: "suite_100preview"
-  profile: "http://hl7.org.au/fhir/ps/StructureDefinition/au-ps-bundle"
-  # aucore_conformance server (a live AU Core endpoint to run the conformance suites against)
+  infernoUrl: "http://inferno:4567"    # in-cluster; /suites proxies here
+  # Live AU Core endpoint the capability-statement warm runs against (external dependency;
+  # only hit on startup + after a restart).
   aucoreServerUrl: "https://fhir.hl7.org.au/aucore/fhir/DEFAULT"
-  pollTimeout: 300
-  jobs:
-    - name: fast
-      schedule: "*/5 * * * *"
-      checks: "au_ps,aucore_wrapper"
-    - name: conformance
-      schedule: "17 */6 * * *"
-      checks: "aucore_conformance"
-      deadlinePolls: 2   # two suites, each may take a full poll window
-      enabled: true
+  auCoreSuites: "au_core_v100,au_core_v200"
+  auPsSuiteId: "suite_100preview"
+  auPsProfile: "http://hl7.org.au/fhir/ps/StructureDefinition/au-ps-bundle"
+  pollTimeout: 300      # max seconds to wait for a warm run to finish
+  recheckInterval: 30   # seconds between (cheap, local) validator-restart checks
 
 postgresql:
   enabled: false # enable if not using rds from aws-impl
