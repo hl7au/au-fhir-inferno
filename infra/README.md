@@ -79,7 +79,7 @@ The infrastructure is divided into two main components:
 | `snapshot_identifier` | Optional RDS snapshot for restore | `null` |
 | `imageUrl` | Application image URL | Required |
 | `platformImageUri` | Platform image URI | Required |
-| `validatorImageUri` | Validator image URI | `markiantorno/validator-wrapper:1.0.68` |
+| `validatorImageUri` | Validator image URI | `markiantorno/validator-wrapper:1.0.78` |
 | `usesWrapper` | Whether app is an Inferno wrapper | Required |
 
 ### Terraform Outputs
