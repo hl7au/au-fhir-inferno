@@ -1,13 +1,22 @@
 {{- if .Values.warmer.enabled }}
-# Validator warmer / synthetic health check. Periodically runs one au_ps_bundle
-# validation through Inferno's real API path (Inferno -> worker -> validator -> tx),
-# which (1) keeps the validator's session engine + terminology cache warm and re-warms
-# them after a validator pod restart — going through Inferno warms the *same* session id
-# real users hit, which a self-prewarm on the validator can't do — and (2) acts as an
-# end-to-end synthetic check (the Job fails if the chain is unreachable/errors/times out).
-# The never-expire session cache keeps things warm between runs, so a modest cadence is
-# enough; raise warmer.schedule frequency (and run the full example set manually) to fully
-# warm the terminology cache before an event. See docs/VALIDATOR_OPTIMIZATION.md.
+# Validator warmer / synthetic health check. Runs validation checks through the real
+# stack on a schedule to (1) keep the validator's session engines + terminology cache
+# warm (and re-warm them after a validator pod restart) and (2) act as an end-to-end
+# synthetic check (a Job fails if the chain is unreachable/errors/times out).
+#
+# Checks (selected per-job via CHECKS; see files/warmer.py):
+#   au_ps              au_ps_bundle validation through Inferno — warms the AU PS session.
+#   aucore_wrapper     direct validator /validate for AU Core 1.0.0 + 2.0.0, asserting
+#                      au-core-patient|<version> resolves (mint + re-send to exercise the
+#                      reuse/clone path). Cheap, no external server; warms both base
+#                      engines and fails loudly on a resolution regression.
+#   aucore_conformance real au_core_v100/v200 runs through Inferno against a live AU Core
+#                      server — warms the exact session id real users hit + the tx cache;
+#                      LENIENT (only an unreachable Inferno chain fails it).
+#
+# Jobs are defined in .Values.warmer.jobs (one CronJob each) so cadences can differ: a
+# frequent lightweight job (au_ps + aucore_wrapper) and a gentle conformance job that
+# depends on an external server. See VALIDATOR_OPTIMIZATION.md.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -18,14 +27,17 @@ data:
 {{ .Files.Get "files/warmer.py" | indent 4 }}
   warmer-bundle.json: |
 {{ .Files.Get "files/warmer-bundle.json" | indent 4 }}
+{{- $root := . }}
+{{- range .Values.warmer.jobs }}
+{{- if (default true .enabled) }}
 ---
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: validator-warmer
-  namespace: {{ .Release.Namespace }}
+  name: validator-warmer-{{ .name }}
+  namespace: {{ $root.Release.Namespace }}
 spec:
-  schedule: {{ .Values.warmer.schedule | quote }}
+  schedule: {{ .schedule | quote }}
   concurrencyPolicy: Forbid            # never overlap warmer runs
   startingDeadlineSeconds: 120
   successfulJobsHistoryLimit: 3
@@ -39,11 +51,14 @@ spec:
       # alert firing long after the warmer has recovered. 1h leaves a window to notice a
       # real failure; a recurring failure keeps the alert firing via fresh jobs.
       ttlSecondsAfterFinished: 3600
-      activeDeadlineSeconds: {{ add (.Values.warmer.pollTimeout | int) 120 }}
+      # A conformance job runs one full au_core run per version, so allow room beyond a
+      # single POLL_TIMEOUT; the lightweight jobs finish well inside it.
+      activeDeadlineSeconds: {{ add (mul ($root.Values.warmer.pollTimeout | int) (.deadlinePolls | default 1 | int)) 120 }}
       template:
         metadata:
           labels:
             app: validator-warmer
+            warmer-job: {{ .name }}
         spec:
           restartPolicy: Never
           nodeSelector:
@@ -54,19 +69,27 @@ spec:
               name: validator-warmer
           containers:
           - name: warmer
-            image: {{ .Values.warmer.image | quote }}
+            image: {{ $root.Values.warmer.image | quote }}
             command: ["python3", "/warmer/warmer.py"]
             env:
+            - name: CHECKS
+              value: {{ .checks | quote }}
             - name: INFERNO_URL
-              value: {{ .Values.warmer.infernoUrl | quote }}
+              value: {{ $root.Values.warmer.infernoUrl | quote }}
+            - name: VALIDATOR_URL
+              value: {{ $root.Values.warmer.validatorUrl | quote }}
+            - name: TX_SERVER
+              value: {{ $root.Values.warmer.txServer | default $root.Values.inferno.terminologyServer | quote }}
             - name: TEST_SUITE_ID
-              value: {{ .Values.warmer.testSuiteId | quote }}
+              value: {{ $root.Values.warmer.testSuiteId | quote }}
             - name: PROFILE
-              value: {{ .Values.warmer.profile | quote }}
+              value: {{ $root.Values.warmer.profile | quote }}
+            - name: AUCORE_SERVER_URL
+              value: {{ $root.Values.warmer.aucoreServerUrl | quote }}
             - name: BUNDLE_PATH
               value: /warmer/warmer-bundle.json
             - name: POLL_TIMEOUT
-              value: {{ .Values.warmer.pollTimeout | quote }}
+              value: {{ $root.Values.warmer.pollTimeout | quote }}
             volumeMounts:
             - name: warmer
               mountPath: /warmer
@@ -78,4 +101,6 @@ spec:
               limits:
                 memory: "128Mi"
                 cpu: "250m"
+{{- end }}
+{{- end }}
 {{- end }}

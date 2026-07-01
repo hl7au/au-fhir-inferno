@@ -252,9 +252,33 @@ CPU peaked **~2.0 / 3 cores** (no throttling), memory **flat ~9.5Gi / 12Gi** (no
 
 **Two cold costs, not one (prod load test, fresh pod).** A no-prewarm prod run measured a cold *session* build of ~33s (small) / ~53s (large), then a single warm validation of ~3–4s — but `conc=10` of a large bundle took ~160–180s with CPU only ~1.7/3 cores. It's not CPU-bound: prod's terminology-cache PVC was fresh, so concurrent validations hit tx.dev for uncached codes and serialise. Dev did `conc=10` in ~13s only because its tx cache was thoroughly warm. So warming has **two** parts — the per-session engine build (held by the never-expire cache) and the **per-code terminology cache** (only warmed by actually validating representative bundles) — and the tx cache is what makes *concurrency* fast.
 
-**Warmer / synthetic health check** (`templates/validator-warmer.cronjob.yaml`, `warmer.*` values). A CronJob runs one `au_ps_bundle` validation through Inferno's real path every ~30 min (the tx cache persists on the PVC across restarts, so the only recurring need is re-warming the in-memory session after a restart). It warms **both** the session and the tx cache, and because it goes through Inferno it warms the *same* session id real users hit (a self-prewarm on the validator would use a throwaway id and not help Inferno's path, nor can `baseEngine` clone cheaply). It self-heals after a validator restart and doubles as an end-to-end synthetic check (the Job fails on an unreachable/errored/timed-out chain). Before a high-load event, tighten `warmer.schedule` and/or validate the full example set so the tx cache is fully warm.
+**Warmer / synthetic health check** (`templates/validator-warmer.cronjob.yaml`, `warmer.*` values, `files/warmer.py`). Each entry in `warmer.jobs` becomes its own CronJob so cadences can differ; `warmer.py` runs the checks named in that job's `CHECKS`:
+
+| Check | What it does | Warms Inferno's session id? |
+|---|---|---|
+| `au_ps` | one `au_ps_bundle` validation through Inferno's real path | ✓ (AU PS session) |
+| `aucore_wrapper` | direct validator `/validate` for AU Core 1.0.0 **and** 2.0.0, asserting `au-core-patient\|<version>` resolves; mints a session then re-sends its id to exercise the **reuse/clone** path | ✗ (wrapper mints a throwaway id) |
+| `aucore_conformance` | real `au_core_v100`/`au_core_v200` runs through Inferno against `warmer.aucoreServerUrl` | ✓ (AU Core session) + tx cache |
+
+Two jobs ship by default: **`fast`** (`au_ps,aucore_wrapper`, every 5 min — lightweight, no external dependency) and **`conformance`** (`aucore_conformance`, every 6 h — the only path that warms the exact AU Core session id real users hit, but it depends on an external server so it is **lenient**: only an unreachable/errored/timed-out *Inferno* chain fails it; validation/data/external-server results never do). Set `enabled: false` on the conformance job to drop the external dependency.
+
+Because it goes through Inferno, `au_ps`/`aucore_conformance` warm the *same* session id real users hit (a self-prewarm on the validator would use a throwaway id). `aucore_wrapper` cannot (the wrapper mints its own id and doesn't persist to Inferno's `validator_sessions`) — its value is cheap warming of both AU Core base engines + a **regression probe** for the resolution bug below: a broken resolve returns HTTP 500 (the historical failure mode), failing the Job. Note the AU Core suites have **no** standalone paste-a-resource validation test, so there is no way to warm their exact session id without a live server — hence `aucore_conformance`.
+
+**Cadence:** sessions never time-expire (`SESSION_CACHE_DURATION=-1`), so the interval is not fighting a TTL — it only bounds the post-restart cold window and how fast a broken validator is detected. 5 min keeps both small; before a high-load event, tighten `warmer.jobs[].schedule` and/or validate the full example set so the tx cache is fully warm.
 
 **Useful wrapper ops endpoints:** `GET /validator/presets` (loaded base engines), `/validator/engines` (cached sessions), `/txStatus`, `/packStatus`, `/validator/version`.
+
+---
+
+### 9. 2026-07: `Unable to resolve profile au-core-patient|1.0.0` — a context-clone bug, fixed by the wrapper bump
+
+Prod AU Core **v1.0.0** runs intermittently 500'd with `java.lang.Error: Unable to resolve profile http://hl7.org.au/fhir/core/StructureDefinition/au-core-patient|1.0.0` (from `ValidationEngine.asSdList`), always on a **reused/cached** session (`Cached session exists … Cache size = 2`), never on v2.0.0, never on a fresh session.
+
+**Root cause — `org.hl7.fhir.core` 6.6.3 (pinned by wrapper 1.0.68).** `CanonicalResourceManager.copy()` copied `list`/`map` but **not `listForUrl`**. Every cached/reused validator session is a *clone* of a preset base engine (`SimpleWorkerContext(other)` → `BaseWorkerContext.copy()` → `structures.copy()`). With AU Core 1.0.0 **and** 2.0.0 co-resident in one JVM (both presets loaded, sharing the `au-core-patient` canonical url), a later `drop()`/reindex on the clone removed the `…|1.0.0` key and could not repair it because the clone's `listForUrl` was empty. 2.0.0 (loaded first) owned the winning bare-url and majmin keys, so **v2.0.0 always resolved via its own intact keys; only the losing version (1.0.0) depended on the fragile per-version key** the shallow copy dropped. `get(url, version)` is strict — it tries `url|version` then `url|majmin`, with **no** bare-url fallback — so once the key was gone, resolution returned null for the life of that engine. This is why fresh v1 always worked and reused v1 flaked.
+
+**Fix — bump the wrapper to 1.0.78 (core 6.9.7).** core 6.9.7's `copy()` now deep-copies `listForUrl` (commit `3a08028b3b`, [hapifhir/org.hl7.fhir.core#2327](https://github.com/hapifhir/org.hl7.fhir.core/pull/2327) *"fix issue cloning contexts"*), which repairs `drop()`/reindex on clones and eliminates the desync. Wrapper 1.0.78 also adds a `ReentrantLock` + 5-min cooldown around the heap-pressure engine reload that 1.0.68 fired **unconditionally, per request**, whenever `Runtime.freeMemory() < VALIDATION_SERVICE_ENGINE_RELOAD_THRESHOLD` (~238 MB default) — a rebuild that wiped the whole session cache mid-traffic and multiplied the number of clones (opportunities to hit the broken `copy()`). Prod is pinned to `1.0.78`; dev tracks `:latest` (already 1.0.78). The `aucore_wrapper` warmer check (§8) is the standing regression probe.
+
+**Immediate mitigation** when a poisoned session is live: `kubectl rollout restart deploy/validator-api -n <ns>` drops the in-memory cache; the next run rebuilds a clean session.
 
 ## Managing PVCs
 
