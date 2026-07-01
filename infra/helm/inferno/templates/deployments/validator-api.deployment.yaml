@@ -27,6 +27,9 @@ spec:
         app: validator-api
       annotations:
         instrumentation.opentelemetry.io/inject-java: "monitoring/auto-instrumentation"
+        # Roll the pod when the presets ConfigMap changes — the wrapper reads presets.json
+        # only at startup, so a ConfigMap edit alone would not take effect otherwise.
+        checksum/presets: {{ include (print $.Template.BasePath "/configs/validator-presets-configmap.yaml") . | sha256sum }}
     spec:
       securityContext:
         fsGroup: 1000  # Ensures volumes are writable by ktor user (UID 1000)
