@@ -267,6 +267,20 @@ The capability-statement group is used because the AU Core suites have **no** st
 
 **Safety — the sidecar can never affect the validator's boot or availability.** The container command wraps the script with `|| true; sleep infinity`, so even an import/syntax error idles instead of crashlooping; the script swallows every error and never exits; and it declares no probes and never gates the validator container. A warmer bug, an Inferno restart, or an AU Core server outage cannot block the validator from booting or serving. Disable entirely with `warmer.enabled: false`.
 
+#### FAQ: why warm *through Inferno* instead of the validator warming itself?
+
+This comes up because the validator-wrapper *does* ship a self-warm feature (presets / base engines) — so why drive warming externally from a sidecar? Three reasons, in order of importance:
+
+1. **The session real users hit is identified by a wrapper-minted random UUID that only Inferno can recreate.** A validator "session" is a fully-built `ValidationEngine` keyed by a **server-generated random id** (`GuavaSessionCacheAdapter.generateID()`). The wrapper **ignores any client-supplied id** for a *new* session and mints its own (verified live: sending a fixed id returns a fresh UUID each time; only re-sending the wrapper's *own* previously-minted id reuses it). Inferno stores exactly one id per `(test_suite_id, suite_options, validator_name)` in its `validator_sessions` table and re-sends it on every validation. So the only way to build+cache the engine **under the id Inferno will reuse** is to make Inferno create the session — i.e. run a validation through Inferno. Anything the validator does on its own uses a *different* id, so real users still cold-build. There is no wrapper API to pre-seed a specific session id.
+
+2. **The wrapper's self-warm (presets/base engines) doesn't target that id — and on our core version gives no speedup.** A preset preloads a *base* engine at startup; a request naming `baseEngine: X` makes the wrapper **clone** base engine X for the new session. That clone is the "build". On the deployed `org.hl7.fhir.core` (6.6.3 → 6.9.7) the copy-constructor deep-copies the loaded context and costs **about as much as a full fresh build** (§8, measured 34–45s), so presets don't actually remove the first-run cost for Inferno's session — they just move where the same work happens. Preloading base engines also does nothing for the per-session id problem in (1).
+
+3. **Presets were the source of the cross-version corruption, so they're disabled.** The base-engine **clone path** is exactly what triggered the `Unable to resolve profile …|<version>` desync with AU Core 1.0.0 and 2.0.0 co-resident (§9), so `presets.json` is intentionally empty (#123). With no presets, every session builds fresh via `CanonicalResourceManager.see()` (correct), and there is *no* self-warm mechanism left on the validator at all.
+
+**What the validator *does* keep warm by itself** (so this isn't "fully cold on restart"): the downloaded **IG package cache** (`/home/ktor/.fhir/packages`) and the **terminology cache** (`/tmp/default-tx-cache`) both live on PVCs and survive restarts, and `SESSION_CACHE_DURATION=-1` keeps a *built* session alive until the pod restarts. The **only** thing lost on a restart and not self-rebuildable under Inferno's id is the per-session `ValidationEngine` — which is precisely, and solely, what the sidecar rebuilds by running a validation through Inferno.
+
+**In one line:** warming is external-by-necessity, not by preference — the validator can persist packages/terminology and hold a session open, but it cannot *originate* the Inferno-keyed session that production traffic reuses, and its only built-in shortcut for doing so (preset base-engine cloning) is both a no-op on cost here and the cause of the bug we removed.
+
 **Useful wrapper ops endpoints:** `GET /validator/presets` (loaded base engines), `/validator/engines` (cached sessions), `/txStatus`, `/packStatus`, `/validator/version`.
 
 ---
