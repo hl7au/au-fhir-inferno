@@ -70,21 +70,41 @@ validator:
 # See docs/VALIDATOR_OPTIMIZATION.md.
 
 # Validator warmer / synthetic health check (templates/validator-warmer.cronjob.yaml).
-# Periodically runs one au_ps_bundle validation through Inferno's real path, which keeps
-# the validator session + terminology cache warm (and re-warms after a pod restart, since
-# going through Inferno warms the same session id real users hit), and doubles as an
-# end-to-end synthetic check. The terminology cache persists on the PVC across restarts,
-# so the only recurring need is re-warming the in-memory session after an (infrequent)
-# restart — 30 min is ample. Tighten before an event to fully warm the tx cache for the
-# codes participants will use.
+# Runs validation checks through the real stack to keep the validator's session engines +
+# terminology cache warm (and re-warm them after a pod restart) and to act as an
+# end-to-end synthetic check. See files/warmer.py for the check implementations.
+#
+# Cadence note: validator sessions never time-expire (SESSION_CACHE_DURATION=-1), so the
+# warmer is not fighting a TTL — its interval only bounds how long a post-restart cold
+# window lasts and how quickly a broken validator is detected. 5 min keeps both small.
+#
+# Jobs: each entry becomes its own CronJob so cadences can differ.
+#   fast        (5 min)  au_ps + aucore_wrapper — lightweight, no external dependency.
+#   conformance (6 h)    real au_core_v100/v200 runs vs an external AU Core server; warms
+#                        the exact session id real users hit + the tx cache. Lenient: only
+#                        an unreachable Inferno chain fails it (external-server flakiness
+#                        is expected). Set enabled:false to drop the external dependency.
 warmer:
   enabled: true
-  schedule: "*/30 * * * *"
   image: "python:3.12-slim"
-  infernoUrl: "http://inferno:4567"   # in-cluster; /suites proxies here
+  infernoUrl: "http://inferno:4567"          # in-cluster; /suites proxies here
+  validatorUrl: "http://validator-api:3500"  # in-cluster validator service (direct probe)
+  txServer: ""                               # empty -> inferno.terminologyServer
+  # au_ps check inputs
   testSuiteId: "suite_100preview"
   profile: "http://hl7.org.au/fhir/ps/StructureDefinition/au-ps-bundle"
+  # aucore_conformance server (a live AU Core endpoint to run the conformance suites against)
+  aucoreServerUrl: "https://fhir.hl7.org.au/aucore/fhir/DEFAULT"
   pollTimeout: 300
+  jobs:
+    - name: fast
+      schedule: "*/5 * * * *"
+      checks: "au_ps,aucore_wrapper"
+    - name: conformance
+      schedule: "17 */6 * * *"
+      checks: "aucore_conformance"
+      deadlinePolls: 2   # two suites, each may take a full poll window
+      enabled: true
 
 postgresql:
   enabled: false # enable if not using rds from aws-impl
