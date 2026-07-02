@@ -11,9 +11,7 @@ logo: /assets/images/au-core-logo.png
 preview_text: The AU PS Test Kit validates the conformance of a server implementation to a specific version of the AU PS IG
 suites:
   - title: AU PS 1.0.0-preview
-    id: suite_100preview
-  - title: AU PS 1.0.0-ballot
-    id: suite_100ballot
+    id: au_ps_v100preview 
 sections:
   - title: "Status"
     icon: /assets/images/checklist.svg
