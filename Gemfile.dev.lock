@@ -8,8 +8,8 @@ GIT
 
 GIT
   remote: https://github.com/hl7au/au-fhir-core-inferno
-  revision: 9b5de69beb038ba0b3aa33fc3953fe46f5f359c7
-  ref: 9b5de69beb038ba0b3aa33fc3953fe46f5f359c7
+  revision: a27782f17363a8277a4f6c819647d32048541188
+  ref: a27782f17363a8277a4f6c819647d32048541188
   specs:
     au_core_test_kit (1.4.2)
       inferno_core (>= 1.0.6)
@@ -18,16 +18,16 @@ GIT
 
 GIT
   remote: https://github.com/hl7au/au-ps-inferno
-  revision: bff99eabef97781b79506ff418a977d544a1efc4
-  ref: bff99eabef97781b79506ff418a977d544a1efc4
+  revision: 420b39185a6a9a87ab86f4b6b86928f96304e101
+  ref: 420b39185a6a9a87ab86f4b6b86928f96304e101
   specs:
     au_ps_inferno (0.0.1)
       inferno_core (~> 1.0.6)
 
 GIT
   remote: https://github.com/hl7au/inferno_suite_generator.git
-  revision: b7d35902727343e898cd8d03dff600823b15384c
-  ref: b7d35902727343e898cd8d03dff600823b15384c
+  revision: 9b0d17ef2ade2027cce33cca5539f84ab5bf5f85
+  ref: 9b0d17ef2ade2027cce33cca5539f84ab5bf5f85
   specs:
     inferno_suite_generator (0.1.1)
       deep_merge (~> 1.2, >= 1.2.2)
