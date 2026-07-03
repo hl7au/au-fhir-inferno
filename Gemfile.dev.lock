@@ -8,8 +8,8 @@ GIT
 
 GIT
   remote: https://github.com/hl7au/au-fhir-core-inferno
-  revision: 1446b9bf9016cbcf27871175ea69dd32c698c940
-  ref: 1446b9bf9016cbcf27871175ea69dd32c698c940
+  revision: 9b5de69beb038ba0b3aa33fc3953fe46f5f359c7
+  ref: 9b5de69beb038ba0b3aa33fc3953fe46f5f359c7
   specs:
     au_core_test_kit (1.4.2)
       inferno_core (>= 1.0.6)
