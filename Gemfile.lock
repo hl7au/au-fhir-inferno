@@ -7,6 +7,16 @@ GIT
       inferno_core (>= 0.4.2)
 
 GIT
+  remote: https://github.com/hl7au/au-fhir-core-inferno
+  revision: a27782f17363a8277a4f6c819647d32048541188
+  ref: a27782f17363a8277a4f6c819647d32048541188
+  specs:
+    au_core_test_kit (1.4.2)
+      inferno_core (>= 1.0.6)
+      smart_app_launch_test_kit (>= 0.4.0)
+      tls_test_kit (~> 0.2.0)
+
+GIT
   remote: https://github.com/hl7au/au-ps-inferno
   revision: 3cda64eeb2fd1c1677d937cd724aa52b98b62617
   ref: 3cda64eeb2fd1c1677d937cd724aa52b98b62617
@@ -16,8 +26,8 @@ GIT
 
 GIT
   remote: https://github.com/hl7au/inferno_suite_generator.git
-  revision: b7d35902727343e898cd8d03dff600823b15384c
-  ref: b7d35902727343e898cd8d03dff600823b15384c
+  revision: 9b0d17ef2ade2027cce33cca5539f84ab5bf5f85
+  ref: 9b0d17ef2ade2027cce33cca5539f84ab5bf5f85
   specs:
     inferno_suite_generator (0.1.1)
       deep_merge (~> 1.2, >= 1.2.2)
@@ -38,10 +48,6 @@ GEM
     aes_key_wrap (1.1.0)
     anonymous_loader (0.1.2)
       version_gem (~> 1.1, >= 1.1.13)
-    au_core_test_kit (1.4.2)
-      inferno_core (>= 1.0.6)
-      smart_app_launch_test_kit (>= 0.4.0)
-      tls_test_kit (~> 0.2.0)
     auth-sanitizer (0.2.2)
       version_gem (~> 1.1, >= 1.1.10)
     base62-rb (0.3.1)
@@ -528,7 +534,7 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
-  au_core_test_kit (~> 1.4.0)
+  au_core_test_kit!
   au_ps_inferno!
   connection_pool (~> 2.5)
   database_cleaner-sequel (~> 1.8)
