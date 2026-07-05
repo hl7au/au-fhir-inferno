@@ -20,9 +20,13 @@ eval_gemfile 'Gemfile.common'
 # >= 1.4.0, < 1.5.0; Gemfile.lock pins the exact version (currently 1.4.2). Bump the
 # lock (bundle update au_core_test_kit) to adopt new 1.4.x releases; widen to '~> 1.4'
 # only if you want 1.5+ automatically.
-gem 'au_core_test_kit', git: 'https://github.com/hl7au/au-fhir-core-inferno',
-                        ref: '282313023cd6492fe483266f614b72e20f558062'
+gem 'au_core_test_kit', '~> 1.4.0'
 
 # AU PS test kit — no RubyGems release exists yet, so pin a stable commit on master
 # (currently master HEAD, which includes the noEcosystem validator perf fix).
 gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno', ref: '3cda64eeb2fd1c1677d937cd724aa52b98b62617'
+
+# Suite generator required at runtime by the released AU Core suites. Pinned to the
+# version the released au_core_test_kit is built against (see Gemfile.dev for the
+# bleeding-edge ref that tracks the unreleased kit).
+gem 'inferno_suite_generator', github: 'hl7au/inferno_suite_generator', ref: 'b7d35902727343e898cd8d03dff600823b15384c'
