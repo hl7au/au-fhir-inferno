@@ -21,7 +21,7 @@ eval_gemfile 'Gemfile.common'
 # lock (bundle update au_core_test_kit) to adopt new 1.4.x releases; widen to '~> 1.4'
 # only if you want 1.5+ automatically.
 gem 'au_core_test_kit', git: 'https://github.com/hl7au/au-fhir-core-inferno',
-                        ref: 'a27782f17363a8277a4f6c819647d32048541188'
+                        ref: '282313023cd6492fe483266f614b72e20f558062'
 
 # AU PS test kit — no RubyGems release exists yet, so pin a stable commit on master
 # (currently master HEAD, which includes the noEcosystem validator perf fix).
