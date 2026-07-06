@@ -16,11 +16,11 @@
 
 eval_gemfile 'Gemfile.common'
 
-# Released AU Core test kit (published on RubyGems by hl7au). '~> 1.4.0' means
-# >= 1.4.0, < 1.5.0; Gemfile.lock pins the exact version (currently 1.4.2). Bump the
-# lock (bundle update au_core_test_kit) to adopt new 1.4.x releases; widen to '~> 1.4'
-# only if you want 1.5+ automatically.
-gem 'au_core_test_kit', '~> 1.4.0'
+# Released AU Core test kit (published on RubyGems by hl7au). '~> 1.4.3' means
+# >= 1.4.3, < 1.5.0; Gemfile.lock pins the exact version. 1.4.3 is the first release that
+# includes the AU Core 2.1.0-draft suite. Bump the lock (bundle update au_core_test_kit)
+# to adopt new 1.4.x releases.
+gem 'au_core_test_kit', '~> 1.4.3'
 
 # AU PS test kit — no RubyGems release exists yet, so pin a stable commit on master
 # (currently master HEAD, which includes the noEcosystem validator perf fix).
