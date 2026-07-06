@@ -18,11 +18,13 @@ gem 'pg'
 # floated to the beda-software default branch, including in prod).
 gem 'validation_test_kit', git: 'https://github.com/beda-software/validation-test-kit', ref: '3438159ae5860216d37c559725fbfdc316ad745c'
 
-# NOTE: inferno_suite_generator is a RUNTIME dependency of the generated AU Core suites
-# (they `require 'inferno_suite_generator/utils/helpers'` and subclass its test classes),
-# and its ref must track whichever au_core_test_kit each environment pins — a bleeding-edge
-# au_core needs a newer generator than the released one. Because it now differs per
-# environment it is declared in the including Gemfile / Gemfile.dev, NOT here.
+# inferno_suite_generator is a runtime dependency of the generated AU Core suites (they
+# require 'inferno_suite_generator/utils/helpers' and subclass its test classes). Its ref
+# must match the version the pinned au_core_test_kit was built against. Both envs now track
+# the released 1.4.3 gem (built against 9b0d17e), so it lives here again; split it back into
+# the including Gemfiles only if dev and prod ever pin au_core versions needing different
+# generators.
+gem 'inferno_suite_generator', github: 'hl7au/inferno_suite_generator', ref: '9b0d17ef2ade2027cce33cca5539f84ab5bf5f85'
 
 gem 'sinatra'
 gem 'sidekiq-cron'
