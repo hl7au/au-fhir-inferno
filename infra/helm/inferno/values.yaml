@@ -90,7 +90,7 @@ warmer:
   # Live AU Core endpoint the capability-statement warm runs against (external dependency;
   # only hit on startup + after a restart).
   aucoreServerUrl: "https://fhir.hl7.org.au/aucore/fhir/DEFAULT"
-  auCoreSuites: "au_core_v100,au_core_v200"
+  auCoreSuites: "au_core_v100,au_core_v200,au_core_v210_draft"
   auPsSuiteId: "au_ps_v100"
   auPsProfile: "http://hl7.org.au/fhir/ps/StructureDefinition/au-ps-bundle"
   pollTimeout: 300      # max seconds to wait for a warm run to finish
