@@ -1,0 +1,22 @@
+{{- /*
+PodDisruptionBudgets for multi-replica inferno workloads. Populated per environment via
+.Values.podDisruptionBudgets (empty by default). maxUnavailable is always used (never
+minAvailable) so a workload at its minimum replica count never blocks Karpenter
+consolidation or a node drain entirely, while a scaled-out workload loses at most one
+pod at a time to voluntary disruption.
+*/ -}}
+{{- range .Values.podDisruptionBudgets }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .app }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ .app }}
+spec:
+  maxUnavailable: {{ .maxUnavailable | default 1 }}
+  selector:
+    matchLabels:
+      app: {{ .app }}
+{{- end }}

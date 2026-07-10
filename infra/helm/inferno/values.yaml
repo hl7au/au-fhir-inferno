@@ -115,3 +115,8 @@ postgresql:
         username: "postgres"
         password: "password"
         database: "inferno"
+
+# PodDisruptionBudgets for multi-replica workloads (rendered by templates/pdb.yaml).
+# Empty by default: dev and preview run single-replica, where a PDB is a no-op. Prod
+# populates this list in values-prod.yaml.
+podDisruptionBudgets: []
