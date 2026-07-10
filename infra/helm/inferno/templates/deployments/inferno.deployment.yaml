@@ -60,11 +60,16 @@ spec:
             name: postgresql-secret
         resources:
           requests:
-            memory: "2Gi"
+            # Memory right-sized from the Sparked event (07-01..09): inferno-app
+            # peaked 366Mi (prod), 350Mi (dev) and 228-348Mi across ~5 preview
+            # envs, vs the old 2Gi request (~5.5x over). This block is shared by
+            # every env, so the saving multiplies across all preview namespaces.
+            memory: "768Mi"
             cpu: "1000m"
           limits:
-            memory: "4Gi"
+            memory: "1536Mi"
             cpu: "2000m"
+# CPU (not memory) gates session-build latency, so it is left unchanged:
 # at 512Mi and 100m CPU takes 30sec to create new session
 # at 2Gi and 1000m CPU takes 9sec to create new session
       - name: nginx

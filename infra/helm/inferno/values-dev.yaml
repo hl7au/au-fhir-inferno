@@ -13,6 +13,16 @@ inferno:
 validator:
   replicas: 1
   storageClassName: "gp3-encrypted"
+  # Dev-only memory reclaim. During the Sparked event dev validator peaked
+  # 8.9Gi early (07-01/02) then settled to a 2.7-4.5Gi baseline for the rest of
+  # the window, so the base 10Gi request over-reserves ~4Gi here. Lower the
+  # request to cover the baseline and let the (unchanged) 12Gi limit absorb the
+  # occasional warm-cache burst burstably. Heap (-Xmx8g) is left alone so a real
+  # heavy dev validation still has room; this is a deliberate dev-only
+  # over-commit tradeoff, not applied to prod (prod peaked 9.4Gi, keeps 10Gi).
+  resources:
+    requests:
+      memory: "6Gi"
 
 autoscaling:
   enabled: false
