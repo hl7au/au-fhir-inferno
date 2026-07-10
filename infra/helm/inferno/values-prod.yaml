@@ -44,3 +44,15 @@ postgresql:
     postgresql:
       auth:
         database: inferno
+
+# Cap voluntary disruption (Karpenter consolidation, node drain) to one pod at a time
+# for each replicated workload: worker and nginx run 2 replicas, redirect-nginx runs 2,
+# and inferno-app autoscales 1 to 6. maxUnavailable of 1 is permissive at 1 replica and
+# protective above it, and never blocks consolidation. inferno-redis and validator-api
+# are deliberately omitted: they are singletons whose protection is on-demand pinning,
+# not a no-op PDB.
+podDisruptionBudgets:
+  - app: inferno-app
+  - app: inferno-worker
+  - app: nginx-app
+  - app: redirect-nginx
