@@ -1,6 +1,6 @@
 # Upstream bug: InfernoSuiteGenerator::MSChecker sets @metadata in initialize
 # but FHIRResourceNavigation#find_slice_via_discriminator calls metadata as a
-# method — missing attr_reader. Triggered by au_core_test_kit >= 1.4.1.
+# method, but the attr_reader is missing. Triggered by au_core_test_kit >= 1.4.1.
 # Remove once inferno_suite_generator is updated.
 require 'inferno_suite_generator/test_utils/ms_checker'
 
@@ -54,3 +54,41 @@ module FixValidatorSessionKeyCollision
 end
 
 Inferno::Application.singleton_class.prepend(FixValidatorSessionKeyCollision)
+
+# Emit one OpenTelemetry trace per test instead of one unbounded trace per run.
+#
+# inferno-core executes an entire test run inside a SINGLE Sidekiq job
+# (Inferno::Jobs::ExecuteTestRun -> TestRunner#start -> recursive #run). With the Sidekiq
+# OTel instrumentation enabled (worker.rb), that job's server span becomes the trace root,
+# so the whole run collapses into a single trace: every validator and terminology HTTP
+# request, context propagated by the Faraday / Net::HTTP instrumentation. A full run can
+# be many minutes and tens of thousands of spans, which is effectively unusable telemetry:
+# trace backends reject or truncate traces above a per-trace size limit (e.g. Tempo's
+# max_bytes_per_trace, 5MB by default), silently losing spans, and no trace UI can render
+# a multi-minute, ten-thousand-span trace anyway.
+#
+# Wrap each test in a fresh root span (empty parent context => new trace id) so every test
+# is its own bounded, queryable trace, with its downstream calls as children and a shared
+# inferno.test_run_id attribute to correlate the tests of one run. This belongs upstream in
+# inferno-core (which owns TestRunner and the one-job-per-run model); remove this patch once
+# it offers native per-test tracing. See https://github.com/inferno-framework/inferno-core
+if ENV['OTEL_EXPORTER_OTLP_ENDPOINT']
+  require 'inferno/test_runner'
+
+  module PerTestTraceRoot
+    def run_test(test, scratch)
+      tracer = OpenTelemetry.tracer_provider.tracer('inferno-worker')
+      # Detach from the enclosing Sidekiq job span so the test span starts a new trace.
+      OpenTelemetry::Context.with_current(OpenTelemetry::Context.empty) do
+        tracer.in_span(
+          "inferno.test #{test.id}",
+          attributes: { 'inferno.test_run_id' => test_run.id, 'inferno.test_id' => test.id }
+        ) do
+          super
+        end
+      end
+    end
+  end
+
+  Inferno::TestRunner.prepend(PerTestTraceRoot)
+end
