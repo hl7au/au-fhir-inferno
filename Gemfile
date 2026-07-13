@@ -22,6 +22,6 @@ eval_gemfile 'Gemfile.common'
 # to adopt new 1.4.x releases.
 gem 'au_core_test_kit', '~> 1.4.3'
 
-# AU PS test kit — no RubyGems release exists yet, so pin a stable commit. Pinned to the
-# AU PS 1.0.0 release commit (suite id au_ps_v100).
-gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno', ref: '534d5f26c168d5d6a759ee02df90f2f7692d0a1e'
+# AU PS test kit — no RubyGems release exists yet, so pin a stable commit. Targets the
+# AU PS 1.0.0 IG (suite id au_ps_v100); pinned to a stable au-ps-inferno commit.
+gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno', ref: '540fcd72aa57297775fe6de2f57181c9ebdc5b19'
