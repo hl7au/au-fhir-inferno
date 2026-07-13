@@ -13,13 +13,34 @@ inferno:
 validator:
   replicas: 1
   storageClassName: "gp3-encrypted"
-  # Dev-only memory reclaim. During the Sparked event dev validator peaked
-  # 8.9Gi early (07-01/02) then settled to a 2.7-4.5Gi baseline for the rest of
-  # the window, so the base 10Gi request over-reserves ~4Gi here. Lower the
-  # request to cover the baseline and let the (unchanged) 12Gi limit absorb the
-  # occasional warm-cache burst burstably. Heap (-Xmx8g) is left alone so a real
-  # heavy dev validation still has room; this is a deliberate dev-only
-  # over-commit tradeoff, not applied to prod (prod peaked 9.4Gi, keeps 10Gi).
+  # Dev-only memory reclaim. Two independent knobs, both dev-only (prod keeps the
+  # base values.yaml settings). Heap (-Xmx8g) is left alone in both so a real heavy
+  # dev validation still has room.
+  #
+  # 1. requests.memory 10Gi to 6Gi (below): a scheduling/cost knob only. During the
+  #    Sparked event dev peaked 8.9Gi (07-01/02) then settled to a 2.7-4.5Gi baseline,
+  #    so the base 10Gi request over-reserves here. The (unchanged) 12Gi limit absorbs
+  #    the occasional warm-cache burst. Not applied to prod (prod peaked 9.4Gi).
+  #
+  # 2. sessionCache* (below): the actual-RSS knob, and the one that fixes the recurring
+  #    "Node Memory Saturation" page. requests.memory does NOT bound real memory, and
+  #    that alert measures actual RAM (100 * (1 - MemAvailable/MemTotal) > 90), so the
+  #    request cut alone never quieted it. With the base duration -1 (never expire) +
+  #    size 8, each distinct validation context builds a large resident ValidationEngine
+  #    (~0.8-1.5Gi) held until the pod restarts, so dev RSS ratchets monotonically
+  #    (4.3 to 5.1 to 6.7Gi over 07-13) and parks at the top. On the 8Gi dev node that
+  #    crosses the 90% line (RSS has to stay under ~6Gi). Dev runs on a cheap 8Gi node
+  #    and idles between test sessions, so:
+  #      - sessionCacheDuration: 30  re-enables idle expiry. Value is MINUTES
+  #        (Guava expireAfterAccess; -1 disables). Idle >30 min reclaims engines back
+  #        toward the JVM baseline. Prod keeps -1 for permanent warmth.
+  #      - sessionCacheSize: 5       LRU cap (warmer builds ~4 contexts + 1 spare); also
+  #        bounds the peak during active testing. Prod keeps 8.
+  #    Accepted dev-only trade-off: the first validation after a >30 min idle gap, or of
+  #    a context beyond the 5 resident, pays a ~50s cold engine rebuild. The warmer
+  #    sidecar only re-warms on validator restart, not on cache expiry.
+  sessionCacheDuration: 30
+  sessionCacheSize: 5
   resources:
     requests:
       memory: "6Gi"
