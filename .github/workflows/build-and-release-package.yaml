@@ -9,9 +9,10 @@ on:
   push:
     branches:
       - master            # the trunk
-    paths-ignore:         # config-only pushes (image-tag write-backs, docs) must not rebuild
+    paths-ignore:         # config-only pushes must not rebuild / open a promotion PR
       - 'infra/**'
       - 'docs/**'
+      - '.github/**'       # CI, CODEOWNERS, templates: never change the app image
       - '*.md'
   pull_request:
     # Preview images for `preview`-labelled PRs (any base). PR quality gating lives in
@@ -218,6 +219,16 @@ jobs:
             else
               PR_URL=$(GH_TOKEN="$PROMOTE_TOKEN" gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url')
             fi
+
+            # Close any OLDER open promotion PRs — this build supersedes them (merging a
+            # stale one would deploy an older image and cut a lower version number).
+            NEW_NUM="${PR_URL##*/}"
+            for OLD in $(GH_TOKEN="$PROMOTE_TOKEN" gh pr list --state open --json number,headRefName \
+                --jq '.[] | select(.headRefName|startswith("promote/prod-")) | .number'); do
+              [ "$OLD" = "$NEW_NUM" ] && continue
+              GH_TOKEN="$PROMOTE_TOKEN" gh pr close "$OLD" \
+                --comment "Superseded by #${NEW_NUM} (newer prod promotion)." --delete-branch || true
+            done
             {
               echo "## 🚀 Prod promotion PR opened (draft)"
               echo ""
