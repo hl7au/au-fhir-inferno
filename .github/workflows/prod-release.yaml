@@ -1,0 +1,203 @@
+# Prod release: fires when a prod-promotion PR (head `promote/prod-<sha>`) merges to
+# master. The merge is the release gate; this workflow makes the release legible and
+# verifiable:
+#   1. Resolve the SemVer (PR label release:* wins; else an explicit `-> vX.Y.Z` in the
+#      PR title; else a patch bump of the latest vX.Y.Z tag).
+#   2. Alias the already-built SHA-tagged images to the semver tag in ghcr (no rebuild).
+#   3. Create the annotated git tag + a GitHub Release (changelog since the previous tag).
+#   4. Record a deployment against the `production` Environment, wait for prod to come up
+#      on the new build, then mark the deployment success/failure.
+#
+# values-prod.yaml stays pinned to the immutable SHA (the promotion PR bumped it);
+# vX.Y.Z is the human-facing release identity + a convenience image alias. ArgoCD
+# (inferno-prod, targetRevision: master) performs the actual deploy on merge.
+name: Prod Release
+
+on:
+  pull_request:
+    types: [closed]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  PROD_URL: https://inferno.hl7.org.au
+
+concurrency:
+  group: prod-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # Only for a MERGED promotion PR.
+    if: >-
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'promote/prod-')
+    permissions:
+      contents: write      # create git tag + GitHub Release
+      packages: write      # push the semver image alias to ghcr
+      deployments: write   # record the production deployment + status
+    steps:
+      - name: Checkout (merge commit)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0     # need tags to compute the changelog range
+
+      - name: Resolve release version
+        id: ver
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ' ') }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          # The built image SHA is encoded in the promotion branch name.
+          BUILD_SHA="${HEAD_REF#promote/prod-}"
+
+          # Latest existing vX.Y.Z tag (bump base).
+          LATEST=$(gh api "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/v" \
+            --jq '[.[].ref | ltrimstr("refs/tags/") | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))]
+                  | sort_by(ltrimstr("v") | split(".") | map(tonumber)) | last // ""' 2>/dev/null || echo "")
+          [ -z "$LATEST" ] && LATEST="v0.0.0"
+          IFS='.' read -r MA MI PA <<< "${LATEST#v}"
+
+          # Precedence: a release:* label overrides the title; otherwise an explicit
+          # `vX.Y.Z` in the PR title; otherwise a patch bump.
+          VER=""
+          case " $PR_LABELS " in
+            *" release:major "*) VER="v$((MA + 1)).0.0" ;;
+            *" release:minor "*) VER="v${MA}.$((MI + 1)).0" ;;
+            *" release:patch "*) VER="v${MA}.${MI}.$((PA + 1))" ;;
+          esac
+          if [ -z "$VER" ] && [[ "$PR_TITLE" =~ v([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+            VER="v${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
+          fi
+          [ -z "$VER" ] && VER="v${MA}.${MI}.$((PA + 1))"
+
+          if gh release view "$VER" >/dev/null 2>&1; then
+            echo "Release $VER already exists — aborting to avoid clobbering." >&2
+            exit 1
+          fi
+
+          echo "version=$VER"      >> "$GITHUB_OUTPUT"
+          echo "prev_tag=$LATEST"  >> "$GITHUB_OUTPUT"
+          echo "build_sha=$BUILD_SHA" >> "$GITHUB_OUTPUT"
+          echo "Resolved release version: $VER (prev $LATEST, build ${BUILD_SHA:0:7})"
+
+      - name: Log in to Container registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Alias SHA-tagged images to the semver tag
+        env:
+          VER: ${{ steps.ver.outputs.version }}
+          BUILD_SHA: ${{ steps.ver.outputs.build_sha }}
+        run: |
+          set -euo pipefail
+          IMG="${REGISTRY}/${IMAGE_NAME}"
+          # Copy the existing manifests to semver tags (no rebuild, digest-identical).
+          docker buildx imagetools create -t "${IMG}:${VER}"        "${IMG}:${BUILD_SHA}"
+          docker buildx imagetools create -t "${IMG}:${VER}-nginx"  "${IMG}:${BUILD_SHA}-nginx"
+
+      - name: Create tag + GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VER: ${{ steps.ver.outputs.version }}
+          PREV: ${{ steps.ver.outputs.prev_tag }}
+          BUILD_SHA: ${{ steps.ver.outputs.build_sha }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          set -euo pipefail
+          IMG="${REGISTRY}/${IMAGE_NAME}"
+
+          # Changelog from local history (we fetched full history + tags). If the previous
+          # release tag exists use PREV..HEAD; otherwise (first release) cap at the last 40.
+          if git rev-parse -q --verify "refs/tags/${PREV}" >/dev/null 2>&1; then
+            RANGE_BASE="$PREV"
+            LOG=$(git log --no-merges --pretty=format:'%s' "${PREV}..${MERGE_SHA}")
+          else
+            RANGE_BASE=""
+            LOG=$(git log --no-merges -n 40 --pretty=format:'%s' "${MERGE_SHA}")
+          fi
+          CHANGELOG=$(printf '%s\n' "$LOG" \
+            | grep -viE 'skip ci|promote prod|^Merge (pull request|branch)' \
+            | sed 's/^/- /' )
+          [ -z "$CHANGELOG" ] && CHANGELOG="- (no user-facing commits)"
+
+          NOTES_FILE="${RUNNER_TEMP}/notes.md"
+          {
+            echo "## Changelog"
+            echo "${CHANGELOG}"
+            echo ""
+            echo "## Deployed artifact"
+            echo "- app:   \`${IMG}:${VER}\` (alias of \`${BUILD_SHA:0:12}\`)"
+            echo "- nginx: \`${IMG}:${VER}-nginx\`"
+            echo ""
+            if [ -n "$RANGE_BASE" ]; then
+              echo "**Full diff:** https://github.com/${GITHUB_REPOSITORY}/compare/${RANGE_BASE}...${VER}"
+            fi
+          } > "$NOTES_FILE"
+
+          gh release create "$VER" \
+            --target "$MERGE_SHA" \
+            --title "$VER" \
+            --notes-file "$NOTES_FILE"
+          echo "Created release $VER at ${MERGE_SHA:0:7}"
+
+      - name: Record production deployment
+        id: deploy
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VER: ${{ steps.ver.outputs.version }}
+        run: |
+          set -euo pipefail
+          DEP_ID=$(gh api "repos/${GITHUB_REPOSITORY}/deployments" \
+            -f ref="$VER" \
+            -f environment=production \
+            -f description="Release $VER" \
+            -F auto_merge=false \
+            -F required_contexts='[]' \
+            --jq '.id')
+          echo "deployment_id=$DEP_ID" >> "$GITHUB_OUTPUT"
+          gh api "repos/${GITHUB_REPOSITORY}/deployments/${DEP_ID}/statuses" \
+            -f state=in_progress -f environment=production \
+            -f environment_url="${PROD_URL}" -f description="ArgoCD syncing $VER" >/dev/null
+
+      - name: Wait for prod to serve the release
+        id: smoke
+        run: |
+          set -uo pipefail
+          # ArgoCD (inferno-prod) polls master ~every 3 min; give it up to ~10 min.
+          OK=0
+          for i in $(seq 1 20); do
+            CODE=$(curl -fsS -o /dev/null -w '%{http_code}' "${PROD_URL}/" 2>/dev/null || echo "000")
+            echo "attempt ${i}: HTTP ${CODE}"
+            if [ "$CODE" = "200" ]; then OK=1; break; fi
+            sleep 30
+          done
+          echo "ok=${OK}" >> "$GITHUB_OUTPUT"
+
+      - name: Finalise deployment status
+        if: always() && steps.deploy.outputs.deployment_id != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VER: ${{ steps.ver.outputs.version }}
+          DEP_ID: ${{ steps.deploy.outputs.deployment_id }}
+          OK: ${{ steps.smoke.outputs.ok }}
+        run: |
+          set -euo pipefail
+          if [ "${OK:-0}" = "1" ]; then STATE=success; DESC="prod serving $VER"; else STATE=failure; DESC="prod did not return 200 for $VER within the wait window"; fi
+          gh api "repos/${GITHUB_REPOSITORY}/deployments/${DEP_ID}/statuses" \
+            -f state="$STATE" -f environment=production \
+            -f environment_url="${PROD_URL}" -f description="$DESC" >/dev/null
+          {
+            echo "## Prod release ${VER}"
+            echo "- deployment status: **${STATE}**"
+            echo "- ${DESC}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          [ "$STATE" = "success" ]
