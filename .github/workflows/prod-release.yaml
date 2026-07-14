@@ -156,13 +156,13 @@ jobs:
           VER: ${{ steps.ver.outputs.version }}
         run: |
           set -euo pipefail
-          DEP_ID=$(gh api "repos/${GITHUB_REPOSITORY}/deployments" \
-            -f ref="$VER" \
-            -f environment=production \
-            -f description="Release $VER" \
-            -F auto_merge=false \
-            -F required_contexts='[]' \
-            --jq '.id')
+          # Build the JSON payload explicitly: `gh api -F required_contexts='[]'` sends the
+          # STRING "[]", which the deployments API rejects (422 — not an array). auto_merge
+          # false + empty required_contexts force the deployment to be created directly
+          # rather than queued behind branch merges / status checks.
+          DEP_ID=$(jq -n --arg ref "$VER" --arg desc "Release $VER" \
+            '{ref:$ref, environment:"production", description:$desc, auto_merge:false, required_contexts:[]}' \
+            | gh api "repos/${GITHUB_REPOSITORY}/deployments" --input - --jq '.id')
           echo "deployment_id=$DEP_ID" >> "$GITHUB_OUTPUT"
           gh api "repos/${GITHUB_REPOSITORY}/deployments/${DEP_ID}/statuses" \
             -f state=in_progress -f environment=production \
