@@ -11,12 +11,11 @@
 # need a release owner. Code that reaches PROD goes through a promotion PR that bumps
 # infra/helm/inferno/values-prod.yaml, which is covered by /infra/ below.
 #
+# Release owners: @KyleOps and @brettesler-ext (either can approve a prod-affecting PR).
 # Available maintainers: @ir4y @projkov @xmhorsehead @KyleOps @heathfrankel @Sudo-JHare
-# TODO(release owners): add Brett's GitHub handle alongside @KyleOps on every line below,
-# then enable require_code_owner_review on the master ruleset.
 
-/.github/          @KyleOps
-/infra/            @KyleOps
-/Dockerfile        @KyleOps
-/nginx.Dockerfile  @KyleOps
-/Gemfile*          @KyleOps
+/.github/          @KyleOps @brettesler-ext
+/infra/            @KyleOps @brettesler-ext
+/Dockerfile        @KyleOps @brettesler-ext
+/nginx.Dockerfile  @KyleOps @brettesler-ext
+/Gemfile*          @KyleOps @brettesler-ext
