@@ -1,18 +1,22 @@
-# Code owners — GitHub auto-requests these reviewers when matching files change.
-# NOTE: starting default only — replace with the real review owners/team.
-# Available maintainers: @ir4y @projkov @xmhorsehead @KyleOps @heathfrankel @Sudo-JHare
+# Code owners for the prod deploy gate.
 #
-# Enforcement (requiring owner review before merge) needs branch protection on
-# master, which is a repo-admin action — see the CI/CD overhaul plan (Track B).
+# In GitOps the merge to master IS the prod deploy, so owning the deploy surface
+# (Helm chart + values, dependencies, CI, image build) gates prod. When the master
+# ruleset has require_code_owner_review enabled, any PR touching these paths needs an
+# approving review from one of the listed owners before it can merge. Listing more than
+# one owner means ANY one of them satisfies the review (either can release).
+#
+# There is deliberately no `*` default owner: routine feature PRs (web/, lib/) only reach
+# staging on merge and still require the normal 1 review + quality-control; they do not
+# need a release owner. Code that reaches PROD goes through a promotion PR that bumps
+# infra/helm/inferno/values-prod.yaml, which is covered by /infra/ below.
+#
+# Available maintainers: @ir4y @projkov @xmhorsehead @KyleOps @heathfrankel @Sudo-JHare
+# TODO(release owners): add Brett's GitHub handle alongside @KyleOps on every line below,
+# then enable require_code_owner_review on the master ruleset.
 
-# Default owner for everything in the repo.
-*                       @KyleOps
-
-# Deployment + CI/CD surface.
-/.github/               @KyleOps
-/infra/                 @KyleOps
-/Dockerfile             @KyleOps
-/nginx.Dockerfile       @KyleOps
-/Gemfile                @KyleOps
-/Gemfile.lock           @KyleOps
-/Gemfile.common         @KyleOps
+/.github/          @KyleOps
+/infra/            @KyleOps
+/Dockerfile        @KyleOps
+/nginx.Dockerfile  @KyleOps
+/Gemfile*          @KyleOps
