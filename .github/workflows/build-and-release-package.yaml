@@ -113,17 +113,27 @@ jobs:
       # for the newest master build and writes the tag to apps/inferno-dev/image-values.yaml
       # in that repo, which the inferno-dev Application consumes. So this workflow no longer
       # writes back to master at all — nothing here pushes to the trunk. Prod stays a PR.
-
-      # Prod promotion: push the SAME artifact's tags to a branch and surface a one-click
-      # PR link whose body is PREFILLED with a changelog + risk flags (deps / app / chart),
-      # diffed via the compare API between the SHA prod runs now and this build. Merging the
-      # PR = the prod release (human gate). ArgoCD (inferno-prod, targetRevision: master)
-      # syncs prod on merge. Prefill (vs auto-opening the PR) avoids needing "Actions can
-      # create PRs" AND keeps the PR human-authored so quality-control still runs on it.
+      #
+      # Prod promotion: push the SAME artifact's tags to a branch that bumps
+      # values-prod.yaml, then EITHER auto-open a draft PR (when a PROMOTE_TOKEN secret
+      # exists) OR surface a one-click prefilled compare link (fallback). Either way the PR
+      # body carries a changelog + risk flags (deps / app / chart) diffed via the compare
+      # API between the SHA prod runs now and this build, plus a proposed SemVer. Merging
+      # the PR = the prod release (human gate); prod-release.yaml then tags vX.Y.Z, aliases
+      # the images, and cuts a GitHub Release. ArgoCD (inferno-prod, targetRevision: master)
+      # syncs prod on merge.
+      #
+      # values-prod.yaml stays pinned to the immutable SHA (reproducible); vX.Y.Z is the
+      # human-facing release identity (git tag + Release + a semver image alias).
+      #
+      # PROMOTE_TOKEN must be a GitHub App token or fine-grained PAT (NOT the default
+      # GITHUB_TOKEN): PRs opened with GITHUB_TOKEN do not trigger further workflows, so
+      # quality-control would silently skip. Absent the secret we fall back to the link.
       - name: Prepare prod-promotion PR (changelog + risk flags)
         if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROMOTE_TOKEN: ${{ secrets.PROMOTE_TOKEN }}
         run: |
           APP="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.app_tag }}"
           NGINX="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.nginx_tag }}"
@@ -133,6 +143,16 @@ jobs:
           # The SHA prod runs now = the image tag in values-prod.yaml BEFORE we bump it
           # (the staging step above reset the tree to the current master tip).
           PROD_SHA=$(grep -m1 'imageUrl:' infra/helm/inferno/values-prod.yaml | sed -E 's#.*:([0-9a-f]{7,40}).*#\1#' || true)
+
+          # Proposed next version = patch bump of the latest vX.Y.Z tag. The human sets the
+          # real version by editing the PR title (`... -> vX.Y.Z`) or applying a
+          # release:major|minor|patch label; prod-release.yaml resolves it at merge time.
+          LATEST_TAG=$(gh api "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/v" \
+            --jq '[.[].ref | ltrimstr("refs/tags/") | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))]
+                  | sort_by(ltrimstr("v") | split(".") | map(tonumber)) | last // ""' 2>/dev/null || echo "")
+          [ -z "$LATEST_TAG" ] && LATEST_TAG="v0.0.0"
+          IFS='.' read -r MA MI PA <<< "${LATEST_TAG#v}"
+          PROPOSED="v${MA}.${MI}.$((PA + 1))"
 
           # Diff "what prod runs now" against this build via the compare API — works on a
           # shallow checkout, no deep clone needed. Build a changelog (drop merge/chore
@@ -161,10 +181,15 @@ jobs:
           git commit -am "chore: promote prod to ${GITHUB_SHA}"
           git push --force-with-lease origin "$BRANCH"
 
-          # Assemble the PR body, then prefill it into the one-click compare link.
+          # Assemble the shared PR body.
           BODY_FILE="${RUNNER_TEMP}/pr-body.md"
           {
             echo "Promote prod \`${PROD_SHA:0:7}\` → \`${GITHUB_SHA:0:7}\` — staging already runs this exact artifact."
+            echo ""
+            echo "## Release version"
+            echo "Proposed: **${PROPOSED}** (patch bump of \`${LATEST_TAG}\`)."
+            echo "To choose a different version, edit this PR's **title** to end with \`-> vX.Y.Z\`,"
+            echo "or apply a \`release:major\` / \`release:minor\` / \`release:patch\` label before merging."
             echo ""
             echo "## Risk flags"
             echo "- Dependencies / test kits (\`Gemfile.lock\`): **${DEPS}**"
@@ -180,22 +205,38 @@ jobs:
             echo "- nginx: \`${NGINX}\`"
           } > "$BODY_FILE"
 
-          TITLE=$(printf 'Promote prod → %s' "${GITHUB_SHA:0:7}" | jq -sRr @uri)
-          BODY=$(jq -sRr @uri < "$BODY_FILE")
-          LINK="${REPO_URL}/compare/master...${BRANCH}?expand=1&title=${TITLE}&body=${BODY}"
-          {
-            echo "## 🚀 Prod promotion ready"
-            echo ""
-            echo "**[Open the promotion PR — prefilled with changelog + risk flags](${LINK})**"
-            echo ""
-            echo "Merging it releases \`${GITHUB_SHA:0:7}\` to prod (the human gate)."
-            echo ""
-            echo "- app:   \`${APP}\`"
-            echo "- nginx: \`${NGINX}\`"
-            echo ""
-            echo "<details><summary>PR body preview</summary>"
-            echo ""
-            cat "$BODY_FILE"
-            echo ""
-            echo "</details>"
-          } >> "$GITHUB_STEP_SUMMARY"
+          PR_TITLE="Promote prod -> ${PROPOSED}"
+
+          if [ -n "$PROMOTE_TOKEN" ]; then
+            # Auto-open a DRAFT PR with the elevated token so quality-control triggers.
+            # Idempotent: skip if a PR already exists for this branch (e.g. re-run).
+            EXISTING=$(GH_TOKEN="$PROMOTE_TOKEN" gh pr list --head "$BRANCH" --state open --json number --jq 'length')
+            if [ "$EXISTING" = "0" ]; then
+              PR_URL=$(GH_TOKEN="$PROMOTE_TOKEN" gh pr create \
+                --draft --base master --head "$BRANCH" \
+                --title "$PR_TITLE" --body-file "$BODY_FILE")
+            else
+              PR_URL=$(GH_TOKEN="$PROMOTE_TOKEN" gh pr list --head "$BRANCH" --state open --json url --jq '.[0].url')
+            fi
+            {
+              echo "## 🚀 Prod promotion PR opened (draft)"
+              echo ""
+              echo "**${PR_URL}**"
+              echo ""
+              echo "Proposed version **${PROPOSED}**. Mark ready, review, and merge to release to prod (the human gate)."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            # Fallback: one-click prefilled compare link (no PROMOTE_TOKEN provisioned).
+            TITLE=$(printf '%s' "$PR_TITLE" | jq -sRr @uri)
+            BODY=$(jq -sRr @uri < "$BODY_FILE")
+            LINK="${REPO_URL}/compare/master...${BRANCH}?expand=1&title=${TITLE}&body=${BODY}"
+            {
+              echo "## 🚀 Prod promotion ready"
+              echo ""
+              echo "**[Open the promotion PR — prefilled with changelog + risk flags](${LINK})**"
+              echo ""
+              echo "Proposed version **${PROPOSED}**. Merging releases \`${GITHUB_SHA:0:7}\` to prod (the human gate)."
+              echo ""
+              echo "> Tip: set a \`PROMOTE_TOKEN\` secret (GitHub App token or fine-grained PAT) to auto-open this PR as a draft."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
