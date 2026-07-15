@@ -11,7 +11,7 @@ redirectIngress:
   targetUrl: "https://inferno.hl7.org.au"
 
 inferno:
-  imageUrl: ghcr.io/hl7au/au-fhir-inferno:d0cbd6b9b2c624c798bc43b7a17b4fdb08f4d7f9
+  imageUrl: ghcr.io/hl7au/au-fhir-inferno:213f6c898b0b059a86a477f68f2248b926bea4d0
   usesWrapper: true
   # Pinned to match the version dev has soaked on (dev tracks :latest, currently 1.0.78 /
   # core 6.9.7). 1.0.78 adds a ReentrantLock + cooldown around the heap-pressure engine
@@ -28,7 +28,7 @@ autoscaling:
   targetCPUUtilizationPercentage: 70
 
 nginx:
-  platformImageUri: ghcr.io/hl7au/au-fhir-inferno:d0cbd6b9b2c624c798bc43b7a17b4fdb08f4d7f9-nginx
+  platformImageUri: ghcr.io/hl7au/au-fhir-inferno:213f6c898b0b059a86a477f68f2248b926bea4d0-nginx
 
 
 externalSecrets:
