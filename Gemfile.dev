@@ -17,4 +17,4 @@ gem 'au_core_test_kit', '>= 1.4.3'
 
 # AU PS test kit — tracking master (incl. the noEcosystem perf fix). Re-point to a
 # bleeding-edge branch here when one is ready and verified.
-gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno', ref: 'd617981aaac4aa7b859e8b4500fa97f0e7e0a13e'
+gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno', ref: '261e7440e93cce850fa182f51ff1b1bf56b6f4e4'
