@@ -24,4 +24,4 @@ gem 'au_core_test_kit', '~> 1.4.3'
 
 # AU PS test kit — no RubyGems release exists yet, so pin a stable commit. Targets the
 # AU PS 1.0.0 IG (suite id au_ps_v100); pinned to a stable au-ps-inferno commit.
-gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno', ref: '540fcd72aa57297775fe6de2f57181c9ebdc5b19'
+gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno', ref: 'b2d03bb1f87cb2f01a2719a2d2deb42096a9b416'
