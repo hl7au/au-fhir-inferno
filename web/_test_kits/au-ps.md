@@ -5,7 +5,7 @@ test_kit_id: au_ps_suite
 maturity: 0
 tags: [ AU ]
 date: 2026-07-21
-version: 0.2.0
+version: 0.2.1
 canonical_url: "http://hl7.org.au/fhir/ps"
 logo: /assets/images/au-core-logo.png
 preview_text: The AU PS Test Kit validates the conformance of a server implementation to a specific version of the AU PS IG

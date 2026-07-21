@@ -22,6 +22,6 @@ eval_gemfile 'Gemfile.common'
 # to adopt new 1.4.x releases.
 gem 'au_core_test_kit', '~> 1.4.3'
 
-# Released AU PS test kit (published on RubyGems by hl7au). '~> 0.2.0' means
-# >= 0.2.0, < 0.3.0; Gemfile.lock pins the exact version.
-gem 'au_ps_inferno', '~> 0.2.0'
+# Released AU PS test kit (published on RubyGems by hl7au). '~> 0.2.1' means
+# >= 0.2.1, < 0.3.0; Gemfile.lock pins the exact version.
+gem 'au_ps_inferno', '~> 0.2.1'
