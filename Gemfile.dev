@@ -15,6 +15,6 @@ eval_gemfile 'Gemfile.common'
 # Bleeding-edge AU Core test kit — unreleased commit ahead of the RubyGems release.
 gem 'au_core_test_kit', '>= 1.4.3'
 
-# AU PS test kit — tracking master (incl. the noEcosystem perf fix). Re-point to a
-# bleeding-edge branch here when one is ready and verified.
-gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno', ref: '540fcd72aa57297775fe6de2f57181c9ebdc5b19'
+
+# Bleeding-edge AU PS test kit — unreleased commit ahead of the RubyGems release.
+gem 'au_ps_inferno', '>= 0.2.0'
