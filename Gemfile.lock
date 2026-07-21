@@ -7,14 +7,6 @@ GIT
       inferno_core (>= 0.4.2)
 
 GIT
-  remote: https://github.com/hl7au/au-ps-inferno
-  revision: 540fcd72aa57297775fe6de2f57181c9ebdc5b19
-  ref: 540fcd72aa57297775fe6de2f57181c9ebdc5b19
-  specs:
-    au_ps_inferno (0.1.0)
-      inferno_core (~> 1.0.6)
-
-GIT
   remote: https://github.com/hl7au/inferno_suite_generator.git
   revision: 9b0d17ef2ade2027cce33cca5539f84ab5bf5f85
   ref: 9b0d17ef2ade2027cce33cca5539f84ab5bf5f85
@@ -42,6 +34,8 @@ GEM
       inferno_core (>= 1.0.6)
       smart_app_launch_test_kit (>= 0.4.0)
       tls_test_kit (~> 0.2.0)
+    au_ps_inferno (0.2.0)
+      inferno_core (~> 1.0.6)
     auth-sanitizer (0.2.2)
       version_gem (~> 1.1, >= 1.1.10)
     base62-rb (0.3.1)
@@ -529,7 +523,7 @@ PLATFORMS
 
 DEPENDENCIES
   au_core_test_kit (~> 1.4.3)
-  au_ps_inferno!
+  au_ps_inferno (~> 0.2.0)
   connection_pool (~> 2.5)
   database_cleaner-sequel (~> 1.8)
   factory_bot (~> 6.1)
