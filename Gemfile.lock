@@ -8,10 +8,10 @@ GIT
 
 GIT
   remote: https://github.com/hl7au/au-fhir-core-inferno
-  revision: 546c005b5301132c9daf21ffc8e66756c0638113
-  ref: 546c005b5301132c9daf21ffc8e66756c0638113
+  revision: b0bae19fdcd84427e1164009fdb4297ad9935f4f
+  ref: b0bae19fdcd84427e1164009fdb4297ad9935f4f
   specs:
-    au_core_test_kit (1.4.3)
+    au_core_test_kit (1.4.4)
       inferno_core (>= 1.0.6)
       smart_app_launch_test_kit (>= 0.4.0)
       tls_test_kit (~> 0.2.0)
