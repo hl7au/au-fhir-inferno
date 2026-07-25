@@ -4,7 +4,9 @@ Documents all configuration decisions made to the HAPI FHIR validator-wrapper de
 
 ## Current Architecture
 
-The validator runs as a **StatefulSet** (2 replicas in prod, 1 in dev), each pod with its own persistent volumes for package and terminology caches. A Kubernetes Service with `sessionAffinity: ClientIP` ensures each Inferno pod always hits the same validator pod.
+The validator runs as a **single-pod Deployment** (`validator.replicas: 1`) with persistent volumes for the package and terminology caches, a `session-warmer` sidecar that rebuilds the Inferno-keyed session engines after a restart, and empty `presets.json` (no base-engine cloning). Heap is `-Xmx5g` with the wrapper's heap-pressure reload guard pinned low.
+
+> The StatefulSet + 2 replicas + `sessionAffinity: ClientIP` design described in §1 and §4 is **superseded**; see [§8](#8-2026-06-session-lifecycle-multi-pod-thrash-and-single-pod-deployment) for why it thrashed and [§10](#10-2026-07-heap-right-sizing-rss-is-not-the-working-set) for the current heap sizing. Sections below are kept in chronological order as a decision record, not as current-state documentation.
 
 ---
 
@@ -296,6 +298,67 @@ Prod AU Core runs intermittently 500'd with `java.lang.Error: Unable to resolve 
 **Fix — stop cloning: empty `presets.json`** (`templates/configs/validator-presets-configmap.yaml` → `[]`). With no matching preset, `ValidationService.getValidationEngineFromParameters` takes the `buildValidationEngine()` fallback and builds the session **fresh from the request's `igs`** via `CanonicalResourceManager.see()`, which populates `url|version` keys correctly and never touches the shallow `copy()`. The `au_core_test_kit` suites still send `baseEngine AU_CORE_V*`; an unknown key is silently ignored (verified live: unknown `baseEngine` + real `igs` → HTTP 200, resolves). LRU eviction and heap reload also recreate fresh from the stored cliContext, so no clone path remains. A `checksum/presets` annotation on the validator Deployment rolls the pod when this ConfigMap changes (the wrapper reads presets only at startup). Cost is a fresh ~35–50s build for the first session per suite after a restart — but cloning gave no real speedup on these core versions (§8) and the warmer pre-warms after restart. Restore the presets only once upstream `copy()` deep-copies all indexes.
 
 **Immediate mitigation** when a poisoned session is live: `kubectl rollout restart deploy/validator-api -n <ns>` drops the in-memory cache; the next run rebuilds a clean session.
+
+### 10. 2026-07: heap right-sizing — RSS is not the working set
+
+Every memory decision before this point (§1's sizing, §6's `SESSION_CACHE_SIZE` note, the dev-only reclaim in `values-dev.yaml`) read **RSS** and concluded the validator needed 10-12Gi. RSS was the wrong signal. G1 commits heap on demand and **never uncommits it** without periodic-GC tuning, so the pod parks at the `-Xmx` ceiling forever regardless of how much data is actually live. The `-Xmx8g` setting was manufacturing the 8.9Gi RSS it was then justified by.
+
+**What the telemetry actually says.** Thirty days of prod (`jvm_memory_used_after_last_gc_bytes`, the live set after each collection, via the OTel Java agent to Mimir):
+
+| Metric | Value |
+|---|---|
+| **Live heap after GC** | **2083Mi**, flat within ±3% for 18 days (Old Gen pinned at 2021Mi) |
+| Committed heap | 8192Mi, constant, never uncommits |
+| Used heap (live + garbage) | sawtooths 3037 → 7339Mi |
+| Non-heap (metaspace + code) | 208Mi |
+| Container working set | 8889Mi, flat for 11 days |
+| Request / limit (before) | 10Gi / 12Gi |
+| Restarts / OOMKills, 30d | **0 / 0** |
+| GC pause fraction | p95 0.00, max 0.03 |
+| CPU | 2m idle; peak utilisation ratio 0.16 |
+
+So `8889Mi RSS = 8192Mi committed heap + 208Mi non-heap + ~490Mi native/JIT/threads`, against a **true working set of ~2.3Gi**. That is also mechanically consistent: ~5 warm contexts against a flat 2021Mi live Old Gen puts one resident `ValidationEngine` at **~400Mi**, so the 8-slot `SESSION_CACHE_SIZE` worst case is ~3.2Gi.
+
+**§9's fix is visible in the same data,** which is the strongest confirmation it worked. Daily max live heap:
+
+```
+06-25  691Mi   06-29 3190Mi   07-03 1827Mi   07-07 2217Mi   07-15 2057Mi   07-21 2079Mi
+06-26  688Mi   06-30 3162Mi   07-04    0Mi   07-08 2054Mi   07-16 2071Mi   07-22 2083Mi
+06-27  690Mi   07-01 3267Mi   07-05    0Mi   07-09 2028Mi   07-17 2081Mi   07-23 2091Mi
+06-28  688Mi   07-02 6064Mi   07-06   58Mi   07-10 2031Mi   07-18 2075Mi   07-24 2091Mi
+                    ^^^^^^ pre-fix peak                                     07-25 2083Mi
+```
+
+The 6064Mi peak on 07-02 sits exactly on the rollout of #121 (pin 1.0.78) and **#123 (drop base-engine presets)**, both 2026-07-01. That same day carries **76 `Unable to resolve profile` log lines and every other day of the month carries zero**. So the peak is the clone-desync configuration dying, not a representative load peak — resident base engines plus cloned session engines is precisely what §9 removed. From 07-07 the current config is flat at ~2.05Gi.
+
+**The coupled trap: `VALIDATION_SERVICE_ENGINE_RELOAD_THRESHOLD`.** From `ValidationServiceFactoryImpl.getValidationService()` in the wrapper:
+
+```kotlin
+val freeMemory = Runtime.getRuntime().freeMemory()
+if (freeMemory < validationServiceConfig.engineReloadThreshold) { ...
+    validationService = createEmptyValidationServiceInstance()   // discards ALL cached sessions
+    System.gc()
+    validationService = createValidationServiceInstance() }
+```
+
+The value is in **bytes** (`application.conf`: `engine-reload-threshold = 250000000`, so 250 MB), and `Runtime.freeMemory()` is free-within-**committed** heap, not free-within-`-Xmx`. On a right-sized heap that number is naturally near zero immediately before any ordinary collection. At `-Xmx8g`, committed stayed pinned at 8192Mi and the sawtooth floor left ~850Mi free, always above 250 MB — which is the only reason this never fired in prod (confirmed: zero reload log lines in 30 days of Loki). **Cutting the heap without cutting this would make healthy GC behaviour wipe every warm session on a 5-minute cooldown (`RELOAD_COOLDOWN_MS`), re-introducing the ~50s cold rebuild.** The oversized heap was accidentally load-bearing.
+
+**What changed:**
+
+| Setting | Before | After |
+|---|---|---|
+| `validator.javaOpts` | `-Xmx8g` | **`-Xmx5g`** (~2.4x steady live, ~1.5x the 8-slot worst case) |
+| `validator.engineReloadThreshold` | *(unset → 250000000)* | **`10000000`** (10 MB) — last-resort guard only |
+| `validator.resources.requests.memory` | `10Gi` | **`6Gi`** |
+| `validator.resources.limits.memory` | `12Gi` | **`8Gi`** |
+
+Dropping the reload threshold is safe here because the 30-day Old Gen trace is flat: there is no leak or drift for that valve to relieve, and a genuine OOM is already covered by the container limit, the restart, and the warmer sidecar rebuilding sessions. Leaving it at the default while shrinking the heap is the actively dangerous combination.
+
+**Not done, and why.** Periodic-GC uncommit (`-XX:G1PeriodicGCInterval`, `MaxHeapFreeRatio`) would let RSS track the live set with a larger `-Xmx` for burst headroom, but it fights the same `freeMemory()` heuristic from the other direction — shrinking committed heap is exactly what trips the reload. Not worth it while the wrapper keeps that check.
+
+**Rule for future sizing: measure `jvm_memory_used_after_last_gc_bytes`, never RSS or `kubectl top`.** On a JVM with a fixed `-Xmx` and no periodic GC, RSS tells you what you configured, not what you need.
+
+---
 
 ## Managing PVCs
 

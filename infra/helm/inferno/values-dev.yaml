@@ -14,21 +14,30 @@ validator:
   replicas: 1
   storageClassName: "gp3-encrypted"
   # Dev-only memory reclaim. Two independent knobs, both dev-only (prod keeps the
-  # base values.yaml settings). Heap (-Xmx8g) is left alone in both so a real heavy
-  # dev validation still has room.
+  # base values.yaml settings).
   #
-  # 1. requests.memory 10Gi to 6Gi (below): a scheduling/cost knob only. During the
-  #    Sparked event dev peaked 8.9Gi (07-01/02) then settled to a 2.7-4.5Gi baseline,
-  #    so the base 10Gi request over-reserves here. The (unchanged) 12Gi limit absorbs
-  #    the occasional warm-cache burst. Not applied to prod (prod peaked 9.4Gi).
+  # Heap is no longer "left alone": as of §10 the BASE javaOpts is -Xmx5g (was -Xmx8g),
+  # sized from 30 days of prod live-heap telemetry, and dev inherits it. That attacks
+  # the RSS problem knob 2 was working around at its source, because RSS parks at the
+  # -Xmx ceiling (G1 commits on demand, never uncommits). Keep both dev knobs for now
+  # and re-measure dev RSS after this rolls: if it settles well under the ~6Gi the 8Gi
+  # dev node needs, sessionCacheDuration can likely go back to -1 (permanent warmth, no
+  # ~50s post-idle rebuild) and this block shrinks to just the request override.
   #
-  # 2. sessionCache* (below): the actual-RSS knob, and the one that fixes the recurring
+  # 1. requests.memory to 6Gi (below): a scheduling/cost knob only. During the Sparked
+  #    event dev peaked 8.9Gi (07-01/02) then settled to a 2.7-4.5Gi baseline. Now equal
+  #    to the base request, so this is a no-op kept as an explicit floor. The earlier
+  #    "not applied to prod (prod peaked 9.4Gi)" rationale was reading RSS, which is
+  #    committed heap rather than live data — prod's live set is 2.09Gi (§10).
+  #
+  # 2. sessionCache* (below): an actual-RSS knob, and the one that fixed the recurring
   #    "Node Memory Saturation" page. requests.memory does NOT bound real memory, and
   #    that alert measures actual RAM (100 * (1 - MemAvailable/MemTotal) > 90), so the
   #    request cut alone never quieted it. With the base duration -1 (never expire) +
   #    size 8, each distinct validation context builds a large resident ValidationEngine
-  #    (~0.8-1.5Gi) held until the pod restarts, so dev RSS ratchets monotonically
-  #    (4.3 to 5.1 to 6.7Gi over 07-13) and parks at the top. On the 8Gi dev node that
+  #    (estimated ~0.8-1.5Gi here from RSS growth; prod's live-heap trace since §9 puts
+  #    it nearer ~400Mi, so this over-counted) held until the pod restarts, so dev RSS
+  #    ratchets monotonically (4.3 to 5.1 to 6.7Gi over 07-13) and parks at the top. On the 8Gi dev node that
   #    crosses the 90% line (RSS has to stay under ~6Gi). Dev runs on a cheap 8Gi node
   #    and idles between test sessions, so:
   #      - sessionCacheDuration: 30  re-enables idle expiry. Value is MINUTES

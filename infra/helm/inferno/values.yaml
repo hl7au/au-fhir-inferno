@@ -35,12 +35,16 @@ validator:
   #
   # duration < 0 disables time-based expiry (sessions kept until LRU-evicted). size is
   # the max number of resident engines (LRU). Each engine is large (loads ~20+ IG/tx
-  # packages), so size is memory-bound: the pod sits ~9.4Gi/12Gi at idle, so raise size
-  # only with headroom and watch RSS. The shared validator boot-warms one session per
-  # registered suite — dev warms ~5 distinct contexts (AU PS preview, AU Core
-  # 1.0.0-ballot/1.0.0/2.0.0, smart-app-launch) — so size must clear that working set
-  # plus headroom, else LRU (now the only eviction path) re-introduces cold starts.
-  # Each resident engine is a full build (~80-150Mi); 8 covers the 5 contexts + spare.
+  # packages), so size is memory-bound. Judge that against LIVE heap, not RSS: RSS
+  # tracks the -Xmx ceiling because G1 never uncommits (§10). The shared validator
+  # boot-warms one session per registered suite — prod warms ~5 distinct contexts (AU PS
+  # preview, AU Core 1.0.0-ballot/1.0.0/2.0.0, smart-app-launch) — so size must clear
+  # that working set plus headroom, else LRU (now the only eviction path) re-introduces
+  # cold starts. Prod's flat 2021Mi live Old Gen across those ~5 contexts puts a resident
+  # engine at ~400Mi, so 8 slots is a ~3.2Gi worst case; that is what -Xmx5g is sized
+  # against. (An earlier ~80-150Mi per-engine estimate here was inferred from RSS growth
+  # and undercounted; the ~0.8-1.5Gi figure in values-dev.yaml overcounted for the same
+  # reason. Both predate the post-§9 live-heap measurement.)
   sessionCacheDuration: -1
   sessionCacheSize: 8
   # Singleton: the session cache is per-pod and in-memory, so the validator runs as a
@@ -51,15 +55,44 @@ validator:
   # nodes so reschedule is reliable. Raising this above 1 reintroduces cross-pod thrash.
   replicas: 1
   # JVM heap. Must fit the loaded IG/terminology context; preview overrides it lower.
-  javaOpts: "-Xmx8g"
-  # Pod resources. Defaults sized for dev/prod (load-tested: one warm pod serves 10
-  # concurrent at ~2.0/3 cores, ~9.5Gi mem). Preview overrides these much lower.
+  #
+  # Sized from 30 days of prod telemetry (VALIDATOR_OPTIMIZATION.md §10), not from RSS.
+  # RSS is a poor proxy here: G1 commits on demand and never uncommits, so the pod parks
+  # at the -Xmx ceiling regardless of how much is live. Measured on prod since the §9 fix
+  # settled (07-07 onward): live heap after GC is flat at 2028-2091Mi for 18 straight
+  # days, non-heap ~208Mi, GC pause fraction ~0, zero OOMKills. 5g is ~2.4x the steady
+  # live set and ~1.5x the all-8-slots worst case (~3.2Gi).
+  #
+  # MUST be changed together with engineReloadThreshold below — see the warning there.
+  javaOpts: "-Xmx5g"
+  # Wrapper heap-pressure guard (env: VALIDATION_SERVICE_ENGINE_RELOAD_THRESHOLD, BYTES,
+  # wrapper default 250000000). ValidationServiceFactoryImpl.getValidationService() checks
+  # Runtime.freeMemory() < threshold on EVERY request and, if so, throws away the entire
+  # ValidationService — wiping every cached session — then System.gc()s and rebuilds.
+  #
+  # The trap: freeMemory() is free-within-COMMITTED heap, so it is naturally near zero
+  # just before any normal GC on a right-sized heap. At -Xmx8g the sawtooth floor was
+  # ~850Mi free, always above the 250MB default, which is the only reason this never
+  # fired in prod (confirmed: zero reload log lines in 30 days). Cutting the heap to 5g
+  # without also cutting this would make it fire routinely on healthy GC behaviour,
+  # wiping warm sessions and re-introducing the ~50s cold rebuild every 5 min (the
+  # RELOAD_COOLDOWN_MS floor). Set to 10MB so it stays a genuine last-resort guard and
+  # cannot trip on ordinary allocation. Safe because the 30-day Old Gen trace is flat
+  # (2021Mi, no leak) — there is no drift for this valve to relieve, and a true OOM is
+  # already handled by the container limit plus restart plus the warmer sidecar.
+  # Quoted deliberately: unquoted, Helm/YAML coerces this to a float and renders it as
+  # "1e+07", which the wrapper's HOCON config parser does not read as a byte count.
+  engineReloadThreshold: "10000000"
+  # Pod resources. Sized to the 5g heap: 5g heap + ~208Mi non-heap + ~500Mi native/JIT/
+  # threads lands ~5.8Gi, so 6Gi request / 8Gi limit keeps the same headroom ratio the
+  # 10Gi/12Gi pair had against -Xmx8g. Load-tested: one warm pod serves 10 concurrent at
+  # ~2.0/3 cores. Preview overrides these much lower.
   resources:
     requests:
-      memory: "10Gi"
+      memory: "6Gi"
       cpu: "1000m"
     limits:
-      memory: "12Gi"
+      memory: "8Gi"
       cpu: "3000m"
 
 # NOTE: validator autoscaling (HPA) was removed. It does not fit this validator: each
