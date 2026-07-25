@@ -4,7 +4,7 @@ Documents all configuration decisions made to the HAPI FHIR validator-wrapper de
 
 ## Current Architecture
 
-The validator runs as a **single-pod Deployment** (`validator.replicas: 1`) with persistent volumes for the package and terminology caches, a `session-warmer` sidecar that rebuilds the Inferno-keyed session engines after a restart, and empty `presets.json` (no base-engine cloning). Heap is `-Xmx5g` with the wrapper's heap-pressure reload guard pinned low.
+The validator runs as a **single-pod Deployment** (`validator.replicas: 1`) with persistent volumes for the package and terminology caches, a `session-warmer` sidecar that rebuilds the Inferno-keyed session engines after a restart, and empty `presets.json` (no base-engine cloning). Heap is sized per environment from measured live heap (`-Xmx6g` prod, `3g` dev, `2g` previews) with the wrapper's heap-pressure reload guard pinned low and resident engines capped per environment.
 
 > The StatefulSet + 2 replicas + `sessionAffinity: ClientIP` design described in §1 and §4 is **superseded**; see [§8](#8-2026-06-session-lifecycle-multi-pod-thrash-and-single-pod-deployment) for why it thrashed and [§10](#10-2026-07-heap-right-sizing-rss-is-not-the-working-set) for the current heap sizing. Sections below are kept in chronological order as a decision record, not as current-state documentation.
 
@@ -361,12 +361,78 @@ The value is in **bytes** (`application.conf`: `engine-reload-threshold = 250000
 
 **What changed:**
 
-| Setting | Before | After |
+| Setting | Before | After (prod) |
 |---|---|---|
-| `validator.javaOpts` | `-Xmx8g` | **`-Xmx5g`** (~2.4x steady live, ~1.5x the 8-slot worst case) |
+| `validator.javaOpts` | `-Xmx8g` | **`-Xmx6g`** (71% live occupancy at 4 contexts) |
 | `validator.engineReloadThreshold` | *(unset → 250000000)* | **`10000000`** (10 MB) — last-resort guard only |
-| `validator.resources.requests.memory` | `10Gi` | **`6Gi`** |
-| `validator.resources.limits.memory` | `12Gi` | **`8Gi`** |
+| `validator.sessionCacheSize` | `8` | **`4`** — caps the working set at the number of registered suites |
+| `validator.resources.requests.memory` | `10Gi` | **`7Gi`** |
+| `validator.resources.limits.memory` | `12Gi` | **`9Gi`** |
+
+### 10a. Correction: the first cut sized from the wrong state
+
+**`-Xmx5g` was proposed first and is wrong.** It came from prod's 30-day post-GC trace
+(flat 2028-2091Mi), which is dominated by *idle* periods and understates the loaded
+working set by roughly half. Stress testing the preview with real suite runs — forced
+`jcmd GC.run` then `GC.heap_info`, so a true live set rather than `used - young` —
+produced this:
+
+| resident contexts | live heap | environment |
+|---|---|---|
+| 0 | 30Mi | — |
+| 1 | **947Mi** | previews (`sessionCacheSize: 1`) |
+| 2 | **1826Mi** | dev (`sessionCacheSize: 2`) |
+| 3 | 3305Mi | — |
+| 4 | **4350Mi** | prod (`sessionCacheSize: 4`) |
+
+A bare engine is ~900Mi; sustained load adds ~700Mi of in-heap validation and terminology
+cache on top. **Size against the loaded figure.**
+
+At 4 contexts that puts `-Xmx5g` at **85% live occupancy with ~770Mi free**, outside the
+usual G1 guidance of <=70-75%, where concurrent marking runs near-continuously and there is
+little room to evacuate into. `-Xmx6g` is **71% with ~1.8Gi free**. The free space above the
+live set is the number that matters: the live set is a floor of resident engines that never
+get collected, and every concurrent validation allocates *above* it.
+
+It is also sticky rather than transient. With `sessionCacheDuration: -1` nothing expires, so
+prod sits at 4 contexts from the first AU Core 1.0.0 run until the next restart.
+
+**Three lessons, all of which cost a wrong number first:**
+
+1. **Size from forced-GC live heap under load.** Not RSS (tracks the `-Xmx` ceiling because
+   G1 never uncommits), not idle telemetry (halves the answer), not `used - young` (counts
+   uncollected old-gen garbage as live).
+2. **Derive requests from heap + metaspace + native, not from `kubectl top`.** Working set
+   includes reclaimable page cache from the PVC-backed terminology cache — at 1 context it
+   read 3.7Gi against a 947Mi live heap.
+3. **Cap resident engines per environment.** `sessionCacheSize` bounds the count, so the
+   working set cannot drift; only the number of *registered suites* ever justifies raising
+   it. Concurrency is unaffected — Inferno keys one session per
+   `(test_suite_id, suite_options, validator_name)`, so any number of concurrent runs of one
+   suite share a single engine and a single cache slot.
+
+### 10b. Per-environment sizing
+
+Each environment holds only the contexts it actually needs, so each is sized to
+`(cache cap x ~1Gi) + headroom` rather than inheriting prod's:
+
+| env | `sessionCacheSize` | live | `-Xmx` | occupancy | request / limit | warmer |
+|---|---|---|---|---|---|---|
+| prod | 4 | 4350Mi | `6g` | 71% | 7Gi / 9Gi | on (AU Core 1.0.0 excluded) |
+| dev | 2 | 1826Mi | `3g` | 59% | 4Gi / 5Gi | off |
+| preview | 1 | 947Mi | `2g` | 46% | 3Gi / 4Gi | off |
+
+Dev's row is also the fix for the **2026-07-21 OOMKill**: its node is an `m6a.large` with
+6.9Gi allocatable while the pod carried a 12Gi limit, so the cgroup limit could never bind
+and the JVM grew into node exhaustion instead. A 5Gi limit sits inside what the node can
+deliver, so it can actually fire.
+
+**Coupled settings — change these together or not at all:**
+
+- `javaOpts` and `engineReloadThreshold` (see the trap below)
+- `sessionCacheSize` and `javaOpts` (the cap sets the heap floor)
+- `sessionCacheSize` and `warmer.auCoreSuites` (warming more suites than the cap thrashes:
+  each build LRU-evicts an earlier one, wasting a ~50s build per restart)
 
 Dropping the reload threshold is safe here because the 30-day Old Gen trace is flat: there is no leak or drift for that valve to relieve, and a genuine OOM is already covered by the container limit, the restart, and the warmer sidecar rebuilding sessions. Leaving it at the default while shrinking the heap is the actively dangerous combination.
 

@@ -118,17 +118,33 @@ validator:
   # warmer sidecar rebuilds the session engine on restart, so a reclaim costs a ~50s
   # cold build rather than a broken environment.
   replicas: 1
-  # JVM heap. Must fit the loaded IG/terminology context; preview overrides it lower.
+  # JVM heap. PROD value; dev and previews override lower (they hold fewer contexts).
   #
-  # Sized from 30 days of prod telemetry (VALIDATOR_OPTIMIZATION.md §10), not from RSS.
-  # RSS is a poor proxy here: G1 commits on demand and never uncommits, so the pod parks
-  # at the -Xmx ceiling regardless of how much is live. Measured on prod since the §9 fix
-  # settled (07-07 onward): live heap after GC is flat at 2028-2091Mi for 18 straight
-  # days, non-heap ~208Mi, GC pause fraction ~0, zero OOMKills. 5g is ~2.4x the steady
-  # live set and ~1.5x the all-8-slots worst case (~3.2Gi).
+  # Sized from FORCED-GC LIVE HEAP MEASURED UNDER LOAD (VALIDATOR_OPTIMIZATION.md §10),
+  # not from RSS and not from idle telemetry. Both of those mislead here: RSS parks at the
+  # -Xmx ceiling because G1 never uncommits, and prod's idle figure understates the loaded
+  # working set by roughly half.
+  #
+  #   contexts   live      env
+  #   0            30Mi
+  #   1           947Mi    preview
+  #   2          1826Mi    dev
+  #   3          3305Mi
+  #   4          4350Mi    prod  <- sessionCacheSize: 4
+  #
+  # A bare engine is ~900Mi; sustained load adds ~700Mi of in-heap validation/terminology
+  # cache on top. Size against the LOADED figure.
+  #
+  # 6g puts prod at 71% live occupancy with ~1.8Gi free above the live set. That free space
+  # is what matters: the live set is a floor of resident engines, and every concurrent
+  # validation allocates above it. -Xmx5g was tried and measured at 85% occupancy with only
+  # ~770Mi of headroom, which is outside the usual G1 guidance of <=70-75% and leaves little
+  # room to evacuate into. Note this is sticky, not transient: with sessionCacheDuration -1
+  # nothing expires, so prod sits at 4 contexts from the first AU Core 1.0.0 run until the
+  # next restart.
   #
   # MUST be changed together with engineReloadThreshold below — see the warning there.
-  javaOpts: "-Xmx5g"
+  javaOpts: "-Xmx6g"
   # Wrapper heap-pressure guard (env: VALIDATION_SERVICE_ENGINE_RELOAD_THRESHOLD, BYTES,
   # wrapper default 250000000). ValidationServiceFactoryImpl.getValidationService() checks
   # Runtime.freeMemory() < threshold on EVERY request and, if so, throws away the entire
@@ -170,16 +186,22 @@ validator:
   # The knob is kept for the escape hatch: if a future wrapper or tx-server change makes
   # cache ids misbehave, this can be pinned without editing the deployment by hand.
   # terminologyClientUseCacheId: "false"
-  # Pod resources. Sized to the 5g heap: 5g heap + ~208Mi non-heap + ~500Mi native/JIT/
-  # threads lands ~5.8Gi, so 6Gi request / 8Gi limit keeps the same headroom ratio the
-  # 10Gi/12Gi pair had against -Xmx8g. Load-tested: one warm pod serves 10 concurrent at
-  # ~2.0/3 cores. Preview overrides these much lower.
+  # Pod resources, derived from heap + metaspace + native — NOT from observed RSS.
+  # `kubectl top` reports working set, which includes reclaimable page cache from the
+  # PVC-backed terminology cache (/tmp/default-tx-cache); at 1 context it read 3.7Gi
+  # against a 947Mi live heap. Sizing requests off that would over-reserve badly.
+  #
+  #   6g heap ceiling + ~124Mi metaspace + ~480Mi native/JIT/threads ~= 6.6Gi
+  #
+  # 7Gi request covers it; 9Gi limit leaves burst room while staying low enough to
+  # actually bind, so a runaway is a container OOMKill (diagnosable, warmer re-warms)
+  # rather than node exhaustion. Dev and previews override both.
   resources:
     requests:
-      memory: "6Gi"
+      memory: "7Gi"
       cpu: "1000m"
     limits:
-      memory: "8Gi"
+      memory: "9Gi"
       cpu: "3000m"
 
 # NOTE: validator autoscaling (HPA) was removed. It does not fit this validator: each

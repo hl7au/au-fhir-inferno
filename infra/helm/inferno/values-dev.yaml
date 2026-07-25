@@ -35,9 +35,21 @@ validator:
   # because the warmer is disabled below.
   sessionCacheDuration: 30
   sessionCacheSize: 2
+  # Heap sized to dev's 2-context cap from a forced-GC measurement, not inherited from
+  # prod's 4-context figure: 2 resident engines measured 1826Mi live, so -Xmx3g sits at
+  # 59% occupancy with ~1.2Gi free above the live set. See VALIDATOR_OPTIMIZATION.md §10.
+  #
+  # This is also the direct fix for the 2026-07-21 OOMKill. Dev's node is an m6a.large
+  # with 6.9Gi allocatable while the pod carried a 12Gi limit, so the cgroup limit could
+  # never bind and the JVM grew into node exhaustion instead. 3g heap + ~124Mi metaspace
+  # + ~480Mi native lands ~3.6Gi, and a 5Gi limit now sits inside what the node can
+  # actually deliver, so it can bind.
+  javaOpts: "-Xmx3g"
   resources:
     requests:
-      memory: "6Gi"
+      memory: "4Gi"
+    limits:
+      memory: "5Gi"
 
 autoscaling:
   enabled: false

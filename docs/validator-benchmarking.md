@@ -84,6 +84,12 @@ in au-ps-inferno's `bundle_module.rb` is behaviour-inert; pinning it to `preview
 - The validator runs as a **single-pod Deployment** (`replicas: 1`): one cache, no cross-pod
   thrash, automatic failover when the pod is replaced. (Earlier 2-replica setups thrashed —
   see `VALIDATOR_OPTIMIZATION.md` §8.)
+- **Resident engines are capped per environment** (`SESSION_CACHE_SIZE`): prod 4, dev 2,
+  previews 1. This bounds memory, not concurrency — Inferno keys one session per
+  `(test_suite_id, suite_options, validator_name)`, so any number of concurrent runs of the
+  same suite share one engine and one cache slot. Measured live heap per resident engine is
+  ~900Mi bare, ~1Gi under load; see `VALIDATOR_OPTIMIZATION.md` §10a-b for the full table
+  and the per-environment `-Xmx` values derived from it.
 - **`baseEngine` does not help** — cloning a preset's base engine measured ~as slow as a full
   build (~35–45s), so it can't cheaply re-warm. Ruled out. Measured on core 6.6.3/6.9.7; the
   deployed core is now 6.9.12 (wrapper 1.0.81) and this has **not** been re-measured, but
