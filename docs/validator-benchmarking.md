@@ -84,15 +84,26 @@ in au-ps-inferno's `bundle_module.rb` is behaviour-inert; pinning it to `preview
 - The validator runs as a **single-pod Deployment** (`replicas: 1`): one cache, no cross-pod
   thrash, automatic failover when the pod is replaced. (Earlier 2-replica setups thrashed —
   see `VALIDATOR_OPTIMIZATION.md` §8.)
-- **`baseEngine` does not help** — on the deployed core (6.6.3/6.9.7) cloning a preset's base
-  engine is ~as slow as a full build (~35–45s), so it can't cheaply re-warm. Ruled out.
+- **`baseEngine` does not help** — cloning a preset's base engine measured ~as slow as a full
+  build (~35–45s), so it can't cheaply re-warm. Ruled out. Measured on core 6.6.3/6.9.7; the
+  deployed core is now 6.9.12 (wrapper 1.0.81) and this has **not** been re-measured, but
+  presets are disabled outright (`VALIDATOR_OPTIMIZATION.md` §9) so the clone path is not in
+  use regardless.
 
 ## Keeping it warm
 
 - `SESSION_CACHE_DURATION=-1` holds the session warm while the pod lives.
-- The **warmer CronJob** (`templates/validator-warmer.cronjob.yaml`) runs one validation
-  through Inferno every ~30 min: re-warms the session after a restart (under the same id real
-  users hit) and the tx cache, and doubles as an end-to-end synthetic health check.
+- The **warmer runs as a `session-warmer` sidecar** in the validator pod
+  (`templates/configs/validator-warmer-configmap.yaml` + `files/warmer.py`). It warms once on
+  startup, then polls the co-located validator on `localhost:3500` and re-warms on an
+  unreachable→reachable transition, i.e. exactly when the validator restarted. It warms
+  **through Inferno**, so the session is built under the id Inferno actually reuses.
+
+  > This previously described a "warmer CronJob (`templates/validator-warmer.cronjob.yaml`)"
+  > running every ~30 min and doubling as a synthetic health check. That is wrong on every
+  > count as of #127: the file does not exist, there is no CronJob in any namespace (verified
+  > 2026-07-25), there is no timer, and it is explicitly **not** a health check. Sessions never
+  > time-expire, so warming is only needed after a restart. See `VALIDATOR_OPTIMIZATION.md` §8.
 - **Before a high-load event:** warm the **full** example set (not just the one warmer bundle)
   so the tx cache covers all the codes participants will use.
 

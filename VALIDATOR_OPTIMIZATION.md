@@ -165,7 +165,7 @@ Prod's default jar presets (DEFAULT/IPS/IPS_AU/CDA/US_CCDA) load in seconds but 
 
 **Fresh PVC benefit (rolling updates):** Without presets, the first user after a pod replacement waits for network package downloads (~1–2 min). With presets, downloads happen during the startup window before the readiness probe passes — users never see them.
 
-**Updating presets when IG versions change:** Edit `validator-presets-configmap.yaml` and roll the StatefulSet. The new pod downloads the new packages during its startup window.
+**Updating presets when IG versions change:** Edit `validator-presets-configmap.yaml` and roll the workload (`kubectl rollout restart deploy/validator-api -n <ns>` — it is a Deployment since §8, not a StatefulSet; a `checksum/presets` annotation also rolls it automatically when the ConfigMap changes). The new pod downloads the new packages during its startup window. **Superseded by §9: `presets.json` is intentionally empty, so there is nothing to update here today.**
 
 **How the JVM warming and `baseEngine` work (source-verified from validator-wrapper):**
 
@@ -283,7 +283,9 @@ This comes up because the validator-wrapper *does* ship a self-warm feature (pre
 
 **In one line:** warming is external-by-necessity, not by preference — the validator can persist packages/terminology and hold a session open, but it cannot *originate* the Inferno-keyed session that production traffic reuses, and its only built-in shortcut for doing so (preset base-engine cloning) is both a no-op on cost here and the cause of the bug we removed.
 
-**Useful wrapper ops endpoints:** `GET /validator/presets` (loaded base engines), `/validator/engines` (cached sessions), `/txStatus`, `/packStatus`, `/validator/version`.
+**Useful wrapper ops endpoints:** `GET /validator/presets` (loaded base engines — returns `[]` for us, per §9), `/txStatus`, `/packStatus`, `/validator/version`.
+
+> `/validator/engines` (cached sessions) was listed here but **404s on 1.0.78 and 1.0.81** (verified 2026-07-25). There is no supported endpoint for enumerating cached sessions on the deployed versions; use the `Cached session exists` log lines instead. The container image has no `curl`, so probe from the `session-warmer` sidecar (which has Python) or via `kubectl port-forward`.
 
 ---
 
@@ -291,9 +293,23 @@ This comes up because the validator-wrapper *does* ship a self-warm feature (pre
 
 Prod AU Core runs intermittently 500'd with `java.lang.Error: Unable to resolve profile http://hl7.org.au/fhir/core/StructureDefinition/au-core-patient|<version>` (from `ValidationEngine.asSdList`), always on a **reused/cached** session (`Cached session exists …`), never on a fresh session. Initially only **v1.0.0** failed (v2.0.0 fine); after the wrapper bump below it flipped to **v2.0.0** failing (v1.0.0 fine) — the tell that it's a *co-residency* defect, not a version-specific one.
 
-**Root cause — the base-engine clone path.** A "preset" preloads a base `ValidationEngine`; when a request's `baseEngine` names a preset, the wrapper serves the session by CLONING that base engine (`new ValidationEngine(other)` → `SimpleWorkerContext(other)` → `BaseWorkerContext.copy()` → `CanonicalResourceManager.copy()`), and **ignores the request's `igs` entirely**. `CanonicalResourceManager.copy()` is shallow — in 6.6.3 it copied neither `listForUrl` nor `listForId`; even after 6.9.7 fixed `listForUrl` (commit `3a08028b3b`, [org.hl7.fhir.core#2327](https://github.com/hapifhir/org.hl7.fhir.core/pull/2327)) it still does **not** copy `listForId`/`supplements`, so the clone's canonical indexes stay internally inconsistent. A later `drop()`/reindex on the clone corrupts the exact `url|version` key; `get(url, version)` is strict (tries `url|version` then `url|majmin`, **no** bare-url fallback), so resolution returns null for the life of that cached session. With AU Core 1.0.0 and 2.0.0 both loaded, whichever version isn't the current bare-url "winner" rides the fragile per-version key and is the one that breaks.
+**Root cause — the base-engine clone path.** A "preset" preloads a base `ValidationEngine`; when a request's `baseEngine` names a preset, the wrapper serves the session by CLONING that base engine (`new ValidationEngine(other)` → `SimpleWorkerContext(other)` → `BaseWorkerContext.copy()` → `CanonicalResourceManager.copy()`), and **ignores the request's `igs` entirely**. `CanonicalResourceManager` maintains **six** collections and `copy()` populates only **three**:
 
-**Wrapper 1.0.78 (core 6.9.7) — necessary but NOT sufficient.** The bump was still made and kept (it fixes the `listForUrl` half of `copy()` and adds a `ReentrantLock` + 5-min cooldown on the heap-pressure engine reload that 1.0.68 fired unconditionally per request under `freeMemory() < VALIDATION_SERVICE_ENGINE_RELOAD_THRESHOLD`, ~238 MB default — which had multiplied clone churn). But the residual shallow-copy of `listForId`/`supplements` still desynced clones, so the error reappeared on v2.0.0.
+| Field | populated by `see()` | copied by `copy()` |
+|---|---|---|
+| `allResources`, `indexedResources` | ✓ | ✓ |
+| `listForUrl` | ✓ | ✓ *(added in 6.9.7, [#2327](https://github.com/hapifhir/org.hl7.fhir.core/pull/2327))* |
+| `listForId`, `masterDefinitions`, `supplements` | ✓ | **✗** |
+
+So a cloned manager holds every resource but three empty indexes, and `copy()`'s only caller is the clone-constructor chain, which never reindexes afterwards.
+
+The clearest consequence is `masterDefinitions`, consulted **first** on bare-URL resolution (`CanonicalResourceManager.get(String url)`): `see()` populates it for master-package CodeSystems/ValueSets and specializing StructureDefinitions, so it encodes **master-package precedence for a versionless canonical**. In a clone it is empty, so `get(url)` silently skips that precedence and returns whatever `indexedResources` holds instead. With AU Core 1.0.0 and 2.0.0 co-resident that flips which version wins for a bare canonical — which is why the failure *moved* between versions rather than staying on one, the tell that it is a co-residency defect.
+
+> Corrected 2026-07-25. This section previously attributed the fault to `listForId` plus a corrupted `url|version` key. `listForId` is indeed not copied, but `masterDefinitions` is the field on the primary resolution path and is the better-supported mechanism. The precedence-flip explanation is **inferred from source, not reproduced in an isolated test** — see the caveats in [docs/issues/upstream-canonicalresourcemanager-copy.md](docs/issues/upstream-canonicalresourcemanager-copy.md), which is the full brief for reporting this upstream.
+
+**Wrapper 1.0.78 (core 6.9.7) — necessary but NOT sufficient.** The bump was still made and kept (it fixes the `listForUrl` third of `copy()` and adds a `ReentrantLock` + 5-min cooldown on the heap-pressure engine reload that 1.0.68 fired unconditionally per request under `freeMemory() < VALIDATION_SERVICE_ENGINE_RELOAD_THRESHOLD`, 250 MB default — which had multiplied clone churn). But the residual shallow copy still desynced clones, so the error reappeared on v2.0.0.
+
+**Still unfixed at core 6.9.12 (wrapper 1.0.81).** Verified 2026-07-25: `CanonicalResourceManager.copy()` at tag `6.9.12` is **byte-identical** to `6.9.7`. `listForId`, `masterDefinitions` and `supplements` are still not copied. A search of upstream issues and PRs found nothing covering this (the nearest, [#2484](https://github.com/hapifhir/org.hl7.fhir.core/issues/2484), is a different `listForId` bug in `drop()`). **Do not re-enable presets on the strength of a core bump** without re-reading that method — and note §8 measured `baseEngine` cloning as giving no speedup anyway, so a fix alone is not a reason to re-enable.
 
 **Fix — stop cloning: empty `presets.json`** (`templates/configs/validator-presets-configmap.yaml` → `[]`). With no matching preset, `ValidationService.getValidationEngineFromParameters` takes the `buildValidationEngine()` fallback and builds the session **fresh from the request's `igs`** via `CanonicalResourceManager.see()`, which populates `url|version` keys correctly and never touches the shallow `copy()`. The `au_core_test_kit` suites still send `baseEngine AU_CORE_V*`; an unknown key is silently ignored (verified live: unknown `baseEngine` + real `igs` → HTTP 200, resolves). LRU eviction and heap reload also recreate fresh from the stored cliContext, so no clone path remains. A `checksum/presets` annotation on the validator Deployment rolls the pod when this ConfigMap changes (the wrapper reads presets only at startup). Cost is a fresh ~35–50s build for the first session per suite after a restart — but cloning gave no real speedup on these core versions (§8) and the warmer pre-warms after restart. Restore the presets only once upstream `copy()` deep-copies all indexes.
 
@@ -362,11 +378,15 @@ Dropping the reload threshold is safe here because the 30-day Old Gen trace is f
 
 ## Managing PVCs
 
-StatefulSet PVCs persist after pod deletion and must be removed manually if a full reset is needed:
+The cache PVCs persist after pod deletion and must be removed manually if a full reset is needed. Since §8 they are ordinary named PVCs on a Deployment, **not** StatefulSet `volumeClaimTemplates`:
 
 ```bash
-kubectl delete pvc -n <namespace> -l app=validator-api
+kubectl delete pvc -n <namespace> validator-fhir-package-cache validator-terminology-cache
 ```
+
+> This previously documented `kubectl delete pvc -n <namespace> -l app=validator-api`. **That selector matches nothing** — the PVCs carry no `app` label, so the command silently deleted nothing and appeared to succeed (verified against prod, 2026-07-25). Delete by name.
+
+Deleting the package cache forces a re-download of all IG packages on next startup; deleting the terminology cache re-introduces the slow-concurrency cold-tx behaviour measured in [docs/validator-benchmarking.md](docs/validator-benchmarking.md) until it re-warms.
 
 Deleting PVCs forces re-download of all packages on next startup (~30–60 seconds with current CPU allocation).
 
