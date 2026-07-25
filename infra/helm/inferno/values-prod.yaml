@@ -13,29 +13,24 @@ redirectIngress:
 inferno:
   imageUrl: ghcr.io/hl7au/au-fhir-inferno:213f6c898b0b059a86a477f68f2248b926bea4d0
   usesWrapper: true
-  # Pinned to match the version dev has soaked on (dev tracks :latest, currently 1.0.81 /
-  # core 6.9.12). Prod stays pinned (never :latest) so promotions are explicit; bump this
-  # tag to adopt a newer soaked version.
+  # HELD AT 1.0.78. Prod stays pinned (never :latest) so promotions are explicit, but
+  # this pin is now a deliberate hold rather than a lag: do not advance it without
+  # reading docs/issues/validator-wrapper-1079-terminology-regression.md.
   #
-  # Retained from 1.0.78: the ReentrantLock + 5-min cooldown around the heap-pressure
-  # engine reload that 1.0.68 lacked (1.0.68 rebuilt the whole ValidationService — wiping
-  # the session cache — on ANY request seeing free heap under the ~238MB default
-  # threshold, with no cooldown). §10 now pins that threshold to 10MB outright.
+  # 1.0.79 upgrades org.hl7.fhir.core 6.9.7 -> 6.9.11, which replaces the terminology
+  # cache-id protocol: the client probes for a server-advertised $cache-control
+  # operation and, when absent, stops sending cache ids rather than falling back to the
+  # old client-generated ones. tx.dev.hl7.org.au is Ontoserver 6.25.2 and does not
+  # advertise $cache-control, so from 1.0.79 server-side terminology caching is off for
+  # us. Measured conc=10 mean on one node: 1.0.78 2.58s, 1.0.79 4.82s, 1.0.81 4.91s,
+  # confirmed by a full version crossover across two node types.
   #
-  # New in 1.0.79 to 1.0.81, and the reason for this bump: terminology caching. 1.0.79
-  # "use terminology server cacheing features" + core 6.9.11; 1.0.80 core 6.9.12; 1.0.81
-  # adds TERMINOLOGY_CLIENT_USE_CACHE_ID (default TRUE). The cold terminology cache is
-  # the measured concurrency limiter for this deployment (docs/validator-benchmarking.md:
-  # conc=10 on a large bundle is ~13s with a warm tx cache vs ~180s cold, while CPU sits
-  # at only ~1.7/3 cores), so this is the release range that targets the real bottleneck.
-  #
-  # CONFORMANCE NOTE: 6.9.7 to 6.9.12 is a validation-engine change and can legitimately
-  # alter validation results. Verified on the PR preview with a full AU Core v2.1.0-draft
-  # run before merging (see the PR's load-test comment). Presets remain empty (§9), so the
-  # base-engine clone path behind the profile-resolve desync is still not in play. Do NOT
-  # re-enable presets on the strength of this core bump without first re-checking whether
-  # CanonicalResourceManager.copy() now deep-copies listForId as well as listForUrl.
-  validatorImageUri: markiantorno/validator-wrapper:1.0.81
+  # Retained rationale for being on 1.0.78 rather than older: it carries the
+  # ReentrantLock + 5-min cooldown around the heap-pressure engine reload that 1.0.68
+  # lacked (1.0.68 rebuilt the whole ValidationService, wiping the session cache, on ANY
+  # request seeing free heap under the ~238MB default threshold, with no cooldown).
+  # VALIDATOR_OPTIMIZATION.md §10 now pins that threshold to 10MB outright.
+  validatorImageUri: markiantorno/validator-wrapper:1.0.78
 
 autoscaling:
   enabled: true

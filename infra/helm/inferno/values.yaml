@@ -20,13 +20,33 @@ inferno:
   terminologyServer: "https://tx.dev.hl7.org.au/fhir"
   externalValidatorUrl: null  # This can be overridden during chart deployment
   # Base default, inherited by preview environments (values-dev tracks :latest,
-  # values-prod pins explicitly). 1.0.81 brings org.hl7.fhir.core 6.9.12 and, more
-  # to the point, the terminology-cache work in 1.0.79 ("use terminology server
-  # cacheing features") and 1.0.81 (TERMINOLOGY_CLIENT_USE_CACHE_ID, default TRUE).
-  # docs/validator-benchmarking.md measured the cold terminology cache as THE
-  # concurrency limiter (conc=10 large bundle: ~13s tx-warm vs ~180s tx-cold, at
-  # only ~1.7/3 cores), so that is the line item worth chasing here.
-  validatorImageUri: "markiantorno/validator-wrapper:1.0.81"
+  # values-prod pins explicitly).
+  #
+  # HELD AT 1.0.78 DELIBERATELY. Do not bump past this without re-reading
+  # docs/issues/validator-wrapper-1079-terminology-regression.md.
+  #
+  # 1.0.79 upgrades org.hl7.fhir.core 6.9.7 -> 6.9.11, which replaces the terminology
+  # cache-id protocol. The client now probes for a server-advertised $cache-control
+  # operation and, when it is absent, STOPS sending cache ids altogether rather than
+  # falling back to the old client-generated ones. Our tx server is Ontoserver 6.25.2,
+  # which does not advertise $cache-control, so from 1.0.79 onward server-side
+  # terminology caching is simply off for us and every code check pays a full round
+  # trip. That change was made to fix tx.fhir.org; it regresses Ontoserver-backed
+  # deployments.
+  #
+  # Measured, same node (m6a.xlarge), same chart, same warm session, conc=10 mean:
+  #
+  #   1.0.78  core 6.9.7    2.58s
+  #   1.0.79  core 6.9.11   4.82s   <- regression enters here
+  #   1.0.81  core 6.9.12   4.91s
+  #
+  # A full crossover (versions swapped between two previews on 2- and 4-vCPU nodes)
+  # confirmed the cost follows the VERSION, not the hardware: ~1.95x with 1.0.78
+  # winning all 12 paired rounds. Validation RESULTS are identical across the range
+  # (full AU Core v2.1.0-draft: 487 pass / 20 fail / 26 skip on both 6.9.7 and 6.9.12),
+  # so this is purely a throughput decision. TERMINOLOGY_CLIENT_USE_CACHE_ID does not
+  # rescue it: disabling it makes 1.0.81 worse still.
+  validatorImageUri: "markiantorno/validator-wrapper:1.0.78"
   # Performance monitoring (request/validator timing + /performance page + its DB
   # migration). Dev-only feature; OFF by default, enabled per-env in values-dev.yaml.
   performanceMonitoring: false
