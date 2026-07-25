@@ -3,6 +3,21 @@
 # pre-existing namespaces. See templates/namespace.yaml.
 createNamespace: false
 
+# Karpenter capacity type for the four workloads that pin it (validator-api, redis,
+# inferno-app, inferno-worker). Spot NodePools already exist in the cluster and are
+# weighted ABOVE on-demand (spot 60, on-demand 50), so nothing at the NodePool level
+# keeps these pods off spot — the pods' own nodeSelector is a hard constraint that no
+# NodePool weight can override. Hence this knob.
+#
+# Default on-demand so PROD is unchanged: a spot reclaim there costs a ~50s validator
+# cold rebuild and kills any in-flight test run, and redis is the single-replica Sidekiq
+# queue. Dev and previews override to "spot" — both are disposable, both tolerate a
+# reclaim (the warmer sidecar re-warms the validator automatically on restart), and it is
+# the largest single cost lever available since every preview provisions its own nodes.
+#
+# Set to null/empty to drop the constraint entirely and let Karpenter's weighting decide.
+capacityType: "on-demand"
+
 ingress:
   hostnames:
     - example.inferno.sparked-fhir.com
@@ -78,8 +93,14 @@ validator:
   # single-pod Deployment (a 2nd replica can't share the cache and would only thrash it).
   # A standby gives no benefit either — it can't be warm for the one session id Inferno
   # reuses, so failover cold-rebuilds regardless. The plain validator-api Service has one
-  # endpoint and auto-fails-over when the pod is replaced; pods run on on-demand (stable)
-  # nodes so reschedule is reliable. Raising this above 1 reintroduces cross-pod thrash.
+  # endpoint and auto-fails-over when the pod is replaced. Raising this above 1
+  # reintroduces cross-pod thrash.
+  #
+  # Node stability is now environment-dependent, not assumed: see capacityType above.
+  # Prod stays on-demand precisely so a reschedule is rare and predictable. Dev and
+  # previews run on spot and DO expect reclamation — that is safe only because the
+  # warmer sidecar rebuilds the session engine on restart, so a reclaim costs a ~50s
+  # cold build rather than a broken environment.
   replicas: 1
   # JVM heap. Must fit the loaded IG/terminology context; preview overrides it lower.
   #

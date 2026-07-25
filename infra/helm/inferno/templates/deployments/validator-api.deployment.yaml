@@ -35,7 +35,9 @@ spec:
         fsGroup: 1000  # Ensures volumes are writable by ktor user (UID 1000)
       nodeSelector:
         kubernetes.io/arch: amd64
-        karpenter.sh/capacity-type: on-demand  # stable nodes: avoid spot-reclamation churn disrupting test runs
+        {{- with .Values.capacityType }}
+        karpenter.sh/capacity-type: {{ . }}
+        {{- end }}
       affinity:
         # The validator is the heaviest pod we run (multi-GB JVM heap, ~9.5Gi resident).
         # Never put two validators on the same node: when two warm up together their real

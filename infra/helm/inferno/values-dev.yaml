@@ -1,3 +1,8 @@
+# Dev is disposable and idles between test sessions, so it runs on spot (see the
+# capacityType notes in values.yaml). A reclaim costs a ~50s validator cold rebuild,
+# which the warmer sidecar handles automatically, in exchange for ~70% off node cost.
+capacityType: "spot"
+
 ingress:
   hostnames:
     - development.inferno.sparked-fhir.com
