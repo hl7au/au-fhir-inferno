@@ -26,7 +26,7 @@ inferno:
   # docs/validator-benchmarking.md measured the cold terminology cache as THE
   # concurrency limiter (conc=10 large bundle: ~13s tx-warm vs ~180s tx-cold, at
   # only ~1.7/3 cores), so that is the line item worth chasing here.
-  validatorImageUri: "markiantorno/validator-wrapper:1.0.78"
+  validatorImageUri: "markiantorno/validator-wrapper:1.0.81"
   # Performance monitoring (request/validator timing + /performance page + its DB
   # migration). Dev-only feature; OFF by default, enabled per-env in values-dev.yaml.
   performanceMonitoring: false
