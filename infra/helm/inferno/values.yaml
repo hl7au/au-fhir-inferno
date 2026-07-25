@@ -19,7 +19,14 @@ inferno:
   imageUrl: "ghcr.io/hl7au/au-fhir-inferno:overridden-per-environment"
   terminologyServer: "https://tx.dev.hl7.org.au/fhir"
   externalValidatorUrl: null  # This can be overridden during chart deployment
-  validatorImageUri: "markiantorno/validator-wrapper:1.0.78"
+  # Base default, inherited by preview environments (values-dev tracks :latest,
+  # values-prod pins explicitly). 1.0.81 brings org.hl7.fhir.core 6.9.12 and, more
+  # to the point, the terminology-cache work in 1.0.79 ("use terminology server
+  # cacheing features") and 1.0.81 (TERMINOLOGY_CLIENT_USE_CACHE_ID, default TRUE).
+  # docs/validator-benchmarking.md measured the cold terminology cache as THE
+  # concurrency limiter (conc=10 large bundle: ~13s tx-warm vs ~180s tx-cold, at
+  # only ~1.7/3 cores), so that is the line item worth chasing here.
+  validatorImageUri: "markiantorno/validator-wrapper:1.0.81"
   # Performance monitoring (request/validator timing + /performance page + its DB
   # migration). Dev-only feature; OFF by default, enabled per-env in values-dev.yaml.
   performanceMonitoring: false
