@@ -18,43 +18,23 @@ inferno:
 validator:
   replicas: 1
   storageClassName: "gp3-encrypted"
-  # Dev-only memory reclaim. Two independent knobs, both dev-only (prod keeps the
-  # base values.yaml settings).
+  # Dev-only caps. Dev runs on a cheap m6a.large (6.9Gi allocatable) and idles between
+  # test sessions, and its validator was OOMKilled on 2026-07-21 because the pod carried a
+  # 12Gi limit the node could never satisfy, so the cgroup limit never bound and the JVM
+  # grew into node exhaustion. The base -Xmx5g (see values.yaml) is the primary fix; these
+  # tighten it further.
   #
-  # Heap is no longer "left alone": as of §10 the BASE javaOpts is -Xmx5g (was -Xmx8g),
-  # sized from 30 days of prod live-heap telemetry, and dev inherits it. That attacks
-  # the RSS problem knob 2 was working around at its source, because RSS parks at the
-  # -Xmx ceiling (G1 commits on demand, never uncommits). Keep both dev knobs for now
-  # and re-measure dev RSS after this rolls: if it settles well under the ~6Gi the 8Gi
-  # dev node needs, sessionCacheDuration can likely go back to -1 (permanent warmth, no
-  # ~50s post-idle rebuild) and this block shrinks to just the request override.
+  #   sessionCacheDuration: 30  MINUTES (Guava expireAfterAccess; -1 disables). Re-enables
+  #     idle expiry so engines are reclaimed between sessions. Prod keeps -1 for permanent
+  #     warmth; dev accepts a ~50s rebuild after a >30 min gap.
+  #   sessionCacheSize: 2       Dev does not need every suite resident. At ~1Gi per engine
+  #     this bounds dev to ~2.2Gi live, comfortably inside -Xmx5g on a 6.9Gi node.
   #
-  # 1. requests.memory to 6Gi (below): a scheduling/cost knob only. During the Sparked
-  #    event dev peaked 8.9Gi (07-01/02) then settled to a 2.7-4.5Gi baseline. Now equal
-  #    to the base request, so this is a no-op kept as an explicit floor. The earlier
-  #    "not applied to prod (prod peaked 9.4Gi)" rationale was reading RSS, which is
-  #    committed heap rather than live data — prod's live set is 2.09Gi (§10).
-  #
-  # 2. sessionCache* (below): an actual-RSS knob, and the one that fixed the recurring
-  #    "Node Memory Saturation" page. requests.memory does NOT bound real memory, and
-  #    that alert measures actual RAM (100 * (1 - MemAvailable/MemTotal) > 90), so the
-  #    request cut alone never quieted it. With the base duration -1 (never expire) +
-  #    size 8, each distinct validation context builds a large resident ValidationEngine
-  #    (estimated ~0.8-1.5Gi here from RSS growth; prod's live-heap trace since §9 puts
-  #    it nearer ~400Mi, so this over-counted) held until the pod restarts, so dev RSS
-  #    ratchets monotonically (4.3 to 5.1 to 6.7Gi over 07-13) and parks at the top. On the 8Gi dev node that
-  #    crosses the 90% line (RSS has to stay under ~6Gi). Dev runs on a cheap 8Gi node
-  #    and idles between test sessions, so:
-  #      - sessionCacheDuration: 30  re-enables idle expiry. Value is MINUTES
-  #        (Guava expireAfterAccess; -1 disables). Idle >30 min reclaims engines back
-  #        toward the JVM baseline. Prod keeps -1 for permanent warmth.
-  #      - sessionCacheSize: 5       LRU cap (warmer builds ~4 contexts + 1 spare); also
-  #        bounds the peak during active testing. Prod keeps 8.
-  #    Accepted dev-only trade-off: the first validation after a >30 min idle gap, or of
-  #    a context beyond the 5 resident, pays a ~50s cold engine rebuild. The warmer
-  #    sidecar only re-warms on validator restart, not on cache expiry.
+  # Accepted trade-off: a run of a third distinct suite, or the first run after a >30 min
+  # idle gap, pays a ~50s cold engine rebuild. Nothing warms it back automatically here,
+  # because the warmer is disabled below.
   sessionCacheDuration: 30
-  sessionCacheSize: 5
+  sessionCacheSize: 2
   resources:
     requests:
       memory: "6Gi"
@@ -82,3 +62,10 @@ postgresql:
     postgresql:
       auth:
         database: inferno
+# Warmer is PROD-ONLY. It exists to spare real users the ~50s cold engine build after a
+# validator restart, which only matters where people are actively running conformance
+# tests. On dev it would hold engines warm against the sessionCacheDuration: 30 idle
+# expiry above (working directly against the memory reclaim this file exists for) and
+# would keep hitting the external AU Core server on every restart for no benefit.
+warmer:
+  enabled: false

@@ -82,13 +82,29 @@ validator:
   # boot-warms one session per registered suite — prod warms ~5 distinct contexts (AU PS
   # preview, AU Core 1.0.0-ballot/1.0.0/2.0.0, smart-app-launch) — so size must clear
   # that working set plus headroom, else LRU (now the only eviction path) re-introduces
-  # cold starts. Prod's flat 2021Mi live Old Gen across those ~5 contexts puts a resident
-  # engine at ~400Mi, so 8 slots is a ~3.2Gi worst case; that is what -Xmx5g is sized
-  # against. (An earlier ~80-150Mi per-engine estimate here was inferred from RSS growth
-  # and undercounted; the ~0.8-1.5Gi figure in values-dev.yaml overcounted for the same
-  # reason. Both predate the post-§9 live-heap measurement.)
+  # cold starts.
+  #
+  # SIZE THIS FROM FORCED-GC LIVE HEAP MEASURED UNDER LOAD. A resident AU Core engine
+  # costs ~1Gi, not the ~400Mi an earlier idle-derived estimate here claimed:
+  #
+  #   3 contexts (AU PS + 2.1.0-draft + 2.0.0)    3305Mi live   65% of -Xmx5g
+  #   4 contexts (+ AU Core 1.0.0)               ~4350Mi live   85% of -Xmx5g
+  #
+  # Measured on a preview after back-to-back full suite runs, i.e. with the in-heap
+  # validation/terminology caches hot. Prod's 30-day ~2050Mi figure is LOWER because it is
+  # dominated by idle periods; do not size from it. The earlier ~80-150Mi estimate here and
+  # the ~0.8-1.5Gi one in values-dev.yaml were both inferred from RSS and are wrong.
+  #
+  # 4 is the prod cap: the warmer keeps 3 suites hot (AU Core 1.0.0 dropped, see warmer
+  # below) and the 4th slot lets a rare AU Core 1.0.0 run load WITHOUT evicting a hot one.
+  # This is STICKY, not transient: with duration -1 nothing expires, so once 1.0.0 is
+  # touched prod sits at 4 contexts / ~85% of heap until the next restart. Size javaOpts
+  # for 4 contexts, not 3.
+  #
+  # Lower environments cap lower because they do not need every suite resident:
+  # dev 2, previews 1 (a preview exercises the one suite its PR touches).
   sessionCacheDuration: -1
-  sessionCacheSize: 8
+  sessionCacheSize: 4
   # Singleton: the session cache is per-pod and in-memory, so the validator runs as a
   # single-pod Deployment (a 2nd replica can't share the cache and would only thrash it).
   # A standby gives no benefit either — it can't be warm for the one session id Inferno
@@ -194,7 +210,12 @@ warmer:
   # Live AU Core endpoint the capability-statement warm runs against (external dependency;
   # only hit on startup + after a restart).
   aucoreServerUrl: "https://fhir.hl7.org.au/aucore/fhir/DEFAULT"
-  auCoreSuites: "au_core_v100,au_core_v200,au_core_v210_draft"
+  # AU Core 1.0.0 deliberately NOT warmed: least-run suite, and warming it would hold a
+  # ~1Gi engine permanently (duration -1 never expires) to save a ~50s cold build on a rare
+  # run. Keep this list <= validator.sessionCacheSize, or the warmer builds engines that
+  # immediately LRU-evict each other, wasting a ~50s build per restart and leaving a suite
+  # cold regardless.
+  auCoreSuites: "au_core_v200,au_core_v210_draft"
   auPsSuiteId: "au_ps_v100"
   auPsProfile: "http://hl7.org.au/fhir/ps/StructureDefinition/au-ps-bundle"
   pollTimeout: 300      # max seconds to wait for a warm run to finish
