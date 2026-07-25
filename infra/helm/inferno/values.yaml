@@ -93,17 +93,26 @@ validator:
   # Wrapper 1.0.81+ (TERMINOLOGY_CLIENT_USE_CACHE_ID, wrapper default TRUE). Controls
   # whether the terminology client sends a cache id to the tx server.
   #
-  # UNDER TEST — not a settled default. Measured on the PR preview at conc=10 (23KB AU PS
-  # bundle, one warm session, 6 runs): 1.0.81 sits at ~3.1s (2.71-3.66) against a single
-  # 1.0.78 baseline sample of 2.23s. Per-run `min` stays ~0.7-1.6s while p50/max sit at
-  # ~2.7-3.7s, i.e. one request completes promptly and the rest queue — a serialisation
-  # signature, which is what a shared cache-id negotiation would produce. GC is ruled out
-  # (4.15s total GC over 3h, zero full GCs, heap never passed 3292Mi of a 5g ceiling).
+  # DELIBERATELY UNSET — leave it that way. The key is intentionally absent so the wrapper
+  # default (TRUE) applies; the template only emits the env var when the key is present.
+  # Do NOT "disable" this by setting it to "" — the wrapper reads it as
+  # getenv(...).uppercase() == "TRUE", so an empty string means FALSE, not unset.
   #
-  # Set to "false" here to A/B it against the wrapper default. Comment the key out entirely
-  # to restore the wrapper's behaviour — do NOT set it to "" (see the template: an empty
-  # value reads as FALSE, not as unset).
-  terminologyClientUseCacheId: "false"
+  # A/B measured on the PR preview (same pod spec, same -Xmx5g, wrapper 1.0.81, 23KB AU PS
+  # bundle, one warm session, 6 runs at conc=10):
+  #
+  #   useCacheId=true  (default)   conc=1 0.67-0.86s   conc=10 ~3.10s (2.71-3.66)
+  #   useCacheId=false             conc=1 1.12-1.43s   conc=10 ~4.62s (4.06-6.00)
+  #
+  # Turning it OFF is ~40% SLOWER at both concurrency levels, so the default is the right
+  # setting and this was tested and rejected, not merely left alone. Caveat on the numbers:
+  # the false-run measured a pod whose terminology cache had been populated while the flag
+  # was true, so some of that penalty may be cache mismatch rather than steady-state cost.
+  # The direction is consistent enough that inverting the default is not worth pursuing.
+  #
+  # The knob is kept for the escape hatch: if a future wrapper or tx-server change makes
+  # cache ids misbehave, this can be pinned without editing the deployment by hand.
+  # terminologyClientUseCacheId: "false"
   # Pod resources. Sized to the 5g heap: 5g heap + ~208Mi non-heap + ~500Mi native/JIT/
   # threads lands ~5.8Gi, so 6Gi request / 8Gi limit keeps the same headroom ratio the
   # 10Gi/12Gi pair had against -Xmx8g. Load-tested: one warm pod serves 10 concurrent at
