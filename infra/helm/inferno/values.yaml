@@ -24,7 +24,7 @@ inferno:
   # the 1.0.81 preview on perf/validator-heap-rightsize. Every other value on this
   # branch is byte-identical to that one, so the wrapper version is the ONLY variable.
   # Delete this branch once the comparison is recorded on #156.
-  validatorImageUri: "markiantorno/validator-wrapper:1.0.78"
+  validatorImageUri: "markiantorno/validator-wrapper:1.0.81"
   # Performance monitoring (request/validator timing + /performance page + its DB
   # migration). Dev-only feature; OFF by default, enabled per-env in values-dev.yaml.
   performanceMonitoring: false
