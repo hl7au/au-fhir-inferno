@@ -90,6 +90,20 @@ validator:
   # Quoted deliberately: unquoted, Helm/YAML coerces this to a float and renders it as
   # "1e+07", which the wrapper's HOCON config parser does not read as a byte count.
   engineReloadThreshold: "10000000"
+  # Wrapper 1.0.81+ (TERMINOLOGY_CLIENT_USE_CACHE_ID, wrapper default TRUE). Controls
+  # whether the terminology client sends a cache id to the tx server.
+  #
+  # UNDER TEST — not a settled default. Measured on the PR preview at conc=10 (23KB AU PS
+  # bundle, one warm session, 6 runs): 1.0.81 sits at ~3.1s (2.71-3.66) against a single
+  # 1.0.78 baseline sample of 2.23s. Per-run `min` stays ~0.7-1.6s while p50/max sit at
+  # ~2.7-3.7s, i.e. one request completes promptly and the rest queue — a serialisation
+  # signature, which is what a shared cache-id negotiation would produce. GC is ruled out
+  # (4.15s total GC over 3h, zero full GCs, heap never passed 3292Mi of a 5g ceiling).
+  #
+  # Set to "false" here to A/B it against the wrapper default. Comment the key out entirely
+  # to restore the wrapper's behaviour — do NOT set it to "" (see the template: an empty
+  # value reads as FALSE, not as unset).
+  terminologyClientUseCacheId: "false"
   # Pod resources. Sized to the 5g heap: 5g heap + ~208Mi non-heap + ~500Mi native/JIT/
   # threads lands ~5.8Gi, so 6Gi request / 8Gi limit keeps the same headroom ratio the
   # 10Gi/12Gi pair had against -Xmx8g. Load-tested: one warm pod serves 10 concurrent at

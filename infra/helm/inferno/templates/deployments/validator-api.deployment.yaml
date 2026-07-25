@@ -91,6 +91,14 @@ spec:
         # values.yaml and VALIDATOR_OPTIMIZATION.md §10.
         - name: VALIDATION_SERVICE_ENGINE_RELOAD_THRESHOLD
           value: {{ .Values.validator.engineReloadThreshold | default 250000000 | quote }}
+        {{- if hasKey .Values.validator "terminologyClientUseCacheId" }}
+        # Wrapper 1.0.81+ only. Emitted ONLY when explicitly set, because the wrapper reads
+        # it as `getenv(...).uppercase() == "TRUE"` — an empty or absent-but-present value
+        # would evaluate to FALSE and silently flip behaviour, so there is no safe "unset"
+        # string to template. Omitting the key entirely leaves the wrapper's own default.
+        - name: TERMINOLOGY_CLIENT_USE_CACHE_ID
+          value: {{ .Values.validator.terminologyClientUseCacheId | quote }}
+        {{- end }}
         ports:
         - containerPort: 3500
         volumeMounts:
