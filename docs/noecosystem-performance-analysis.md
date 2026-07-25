@@ -1,5 +1,11 @@
 # noEcosystem Performance Analysis
 
+> **Historical record, not current state.** This is a point-in-time comparison from
+> 2026-06-04. Every version, image tag and deployment detail below is as-of that date
+> (validator-wrapper `1.0.68`, a 2-replica StatefulSet, presets enabled). For the current
+> deployment see [`../VALIDATOR_OPTIMIZATION.md`](../VALIDATOR_OPTIMIZATION.md) §8-§10.
+> The `noEcosystem` finding itself still stands and is still applied.
+
 **Date:** 2026-06-04  
 **Compared:** au_core_v100 test suite, same FHIR server (smile.sparked-fhir.com/aucore)  
 **Prod session:** [cyCQ11nBExO](https://inferno.hl7.org.au/suites/au_core_v100/cyCQ11nBExO#au_core_v100) — `au_core_test_kit` 1.4.0, no `noEcosystem`  

@@ -27,7 +27,9 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
       nodeSelector:
         kubernetes.io/arch: amd64
-        karpenter.sh/capacity-type: on-demand  # avoid spot reclamation taking the single-replica job queue down mid-run
+        {{- with .Values.capacityType }}
+        karpenter.sh/capacity-type: {{ . }}
+        {{- end }}
       containers:
       - name: redis
         image: redis:8.2-alpine

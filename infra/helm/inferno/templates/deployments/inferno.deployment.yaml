@@ -19,7 +19,9 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/arch: amd64
-        karpenter.sh/capacity-type: on-demand  # prod: avoid spot-reclamation churn disrupting test runs (redis already pinned)
+        {{- with .Values.capacityType }}
+        karpenter.sh/capacity-type: {{ . }}
+        {{- end }}
       volumes:
         - name: examplenginx-config
           configMap:

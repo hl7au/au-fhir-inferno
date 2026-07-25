@@ -35,7 +35,9 @@ spec:
         fsGroup: 1000  # Ensures volumes are writable by ktor user (UID 1000)
       nodeSelector:
         kubernetes.io/arch: amd64
-        karpenter.sh/capacity-type: on-demand  # stable nodes: avoid spot-reclamation churn disrupting test runs
+        {{- with .Values.capacityType }}
+        karpenter.sh/capacity-type: {{ . }}
+        {{- end }}
       affinity:
         # The validator is the heaviest pod we run (multi-GB JVM heap, ~9.5Gi resident).
         # Never put two validators on the same node: when two warm up together their real
@@ -76,11 +78,29 @@ spec:
         # wrapper's 60-min expire-after-access default silently evict them (which forces
         # a ~50s cold engine rebuild on the first validation of a later run). See the
         # validator.sessionCache* notes in values.yaml. size is memory-bound — each
-        # cached engine is large and these pods run close to the 12Gi limit.
+        # cached engine is ~400Mi of live heap, so the LRU cap sets the heap floor.
         - name: SESSION_CACHE_DURATION
           value: {{ .Values.validator.sessionCacheDuration | default -1 | quote }}
         - name: SESSION_CACHE_SIZE
           value: {{ .Values.validator.sessionCacheSize | default 6 | quote }}
+        # Heap-pressure guard, in BYTES. The wrapper checks Runtime.freeMemory() against
+        # this on every request and, when under, discards the whole ValidationService —
+        # wiping every cached session — then System.gc()s and rebuilds. freeMemory() is
+        # free-within-COMMITTED heap, so it dips naturally just before any normal GC once
+        # the heap is right-sized. That makes this coupled to javaOpts: it must not be
+        # left at the 250MB wrapper default alongside a smaller -Xmx, or healthy GC
+        # behaviour wipes warm sessions every 5 min (the reload cooldown). See
+        # values.yaml and VALIDATOR_OPTIMIZATION.md §10.
+        - name: VALIDATION_SERVICE_ENGINE_RELOAD_THRESHOLD
+          value: {{ .Values.validator.engineReloadThreshold | default 250000000 | quote }}
+        {{- if hasKey .Values.validator "terminologyClientUseCacheId" }}
+        # Wrapper 1.0.81+ only. Emitted ONLY when explicitly set, because the wrapper reads
+        # it as `getenv(...).uppercase() == "TRUE"` — an empty or absent-but-present value
+        # would evaluate to FALSE and silently flip behaviour, so there is no safe "unset"
+        # string to template. Omitting the key entirely leaves the wrapper's own default.
+        - name: TERMINOLOGY_CLIENT_USE_CACHE_ID
+          value: {{ .Values.validator.terminologyClientUseCacheId | quote }}
+        {{- end }}
         ports:
         - containerPort: 3500
         volumeMounts:
@@ -93,11 +113,11 @@ spec:
         - name: validator-presets
           mountPath: /presets
           readOnly: true
-        # Defaults (values.yaml) sized for dev/prod: request is memory-driven (10Gi) onto
-        # 2-4 vCPU r-family nodes; cpu limit 3000m is a burst ceiling (validations are
-        # CPU-bound and starved the health endpoint at 2000m), request stays 1000m. Load
-        # test: one warm pod handles 10 concurrent at ~2.0/3 cores, mem flat ~9.5Gi. Preview
-        # overrides these much lower (see the inferno-previews ApplicationSet).
+        # Defaults (values.yaml) sized for dev/prod: request is memory-driven (6Gi, sized
+        # to the 5g heap per §10) onto 2-4 vCPU r-family nodes; cpu limit 3000m is a burst
+        # ceiling (validations are CPU-bound and starved the health endpoint at 2000m),
+        # request stays 1000m. Load test: one warm pod handles 10 concurrent at ~2.0/3
+        # cores. Preview overrides these much lower (see the inferno-previews ApplicationSet).
         resources:
           {{- toYaml .Values.validator.resources | nindent 10 }}
         startupProbe:

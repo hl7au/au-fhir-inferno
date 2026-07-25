@@ -3,6 +3,21 @@
 # pre-existing namespaces. See templates/namespace.yaml.
 createNamespace: false
 
+# Karpenter capacity type for the four workloads that pin it (validator-api, redis,
+# inferno-app, inferno-worker). Spot NodePools already exist in the cluster and are
+# weighted ABOVE on-demand (spot 60, on-demand 50), so nothing at the NodePool level
+# keeps these pods off spot — the pods' own nodeSelector is a hard constraint that no
+# NodePool weight can override. Hence this knob.
+#
+# Default on-demand so PROD is unchanged: a spot reclaim there costs a ~50s validator
+# cold rebuild and kills any in-flight test run, and redis is the single-replica Sidekiq
+# queue. Dev and previews override to "spot" — both are disposable, both tolerate a
+# reclaim (the warmer sidecar re-warms the validator automatically on restart), and it is
+# the largest single cost lever available since every preview provisions its own nodes.
+#
+# Set to null/empty to drop the constraint entirely and let Karpenter's weighting decide.
+capacityType: "on-demand"
+
 ingress:
   hostnames:
     - example.inferno.sparked-fhir.com
@@ -19,6 +34,33 @@ inferno:
   imageUrl: "ghcr.io/hl7au/au-fhir-inferno:overridden-per-environment"
   terminologyServer: "https://tx.dev.hl7.org.au/fhir"
   externalValidatorUrl: null  # This can be overridden during chart deployment
+  # Base default, inherited by preview environments (values-dev tracks :latest,
+  # values-prod pins explicitly).
+  #
+  # HELD AT 1.0.78 DELIBERATELY. Do not bump past this without re-reading
+  # docs/issues/validator-wrapper-1079-terminology-regression.md.
+  #
+  # 1.0.79 upgrades org.hl7.fhir.core 6.9.7 -> 6.9.11, which replaces the terminology
+  # cache-id protocol. The client now probes for a server-advertised $cache-control
+  # operation and, when it is absent, STOPS sending cache ids altogether rather than
+  # falling back to the old client-generated ones. Our tx server is Ontoserver 6.25.2,
+  # which does not advertise $cache-control, so from 1.0.79 onward server-side
+  # terminology caching is simply off for us and every code check pays a full round
+  # trip. That change was made to fix tx.fhir.org; it regresses Ontoserver-backed
+  # deployments.
+  #
+  # Measured, same node (m6a.xlarge), same chart, same warm session, conc=10 mean:
+  #
+  #   1.0.78  core 6.9.7    2.58s
+  #   1.0.79  core 6.9.11   4.82s   <- regression enters here
+  #   1.0.81  core 6.9.12   4.91s
+  #
+  # A full crossover (versions swapped between two previews on 2- and 4-vCPU nodes)
+  # confirmed the cost follows the VERSION, not the hardware: ~1.95x with 1.0.78
+  # winning all 12 paired rounds. Validation RESULTS are identical across the range
+  # (full AU Core v2.1.0-draft: 487 pass / 20 fail / 26 skip on both 6.9.7 and 6.9.12),
+  # so this is purely a throughput decision. TERMINOLOGY_CLIENT_USE_CACHE_ID does not
+  # rescue it: disabling it makes 1.0.81 worse still.
   validatorImageUri: "markiantorno/validator-wrapper:1.0.78"
   # Performance monitoring (request/validator timing + /performance page + its DB
   # migration). Dev-only feature; OFF by default, enabled per-env in values-dev.yaml.
@@ -35,31 +77,131 @@ validator:
   #
   # duration < 0 disables time-based expiry (sessions kept until LRU-evicted). size is
   # the max number of resident engines (LRU). Each engine is large (loads ~20+ IG/tx
-  # packages), so size is memory-bound: the pod sits ~9.4Gi/12Gi at idle, so raise size
-  # only with headroom and watch RSS. The shared validator boot-warms one session per
-  # registered suite — dev warms ~5 distinct contexts (AU PS preview, AU Core
-  # 1.0.0-ballot/1.0.0/2.0.0, smart-app-launch) — so size must clear that working set
-  # plus headroom, else LRU (now the only eviction path) re-introduces cold starts.
-  # Each resident engine is a full build (~80-150Mi); 8 covers the 5 contexts + spare.
+  # packages), so size is memory-bound. Judge that against LIVE heap, not RSS: RSS
+  # tracks the -Xmx ceiling because G1 never uncommits (§10). The shared validator
+  # boot-warms one session per registered suite — prod warms ~5 distinct contexts (AU PS
+  # preview, AU Core 1.0.0-ballot/1.0.0/2.0.0, smart-app-launch) — so size must clear
+  # that working set plus headroom, else LRU (now the only eviction path) re-introduces
+  # cold starts.
+  #
+  # SIZE THIS FROM FORCED-GC LIVE HEAP MEASURED UNDER LOAD. A resident AU Core engine
+  # costs ~1Gi, not the ~400Mi an earlier idle-derived estimate here claimed:
+  #
+  #   3 contexts (AU PS + 2.1.0-draft + 2.0.0)    3305Mi live   65% of -Xmx5g
+  #   4 contexts (+ AU Core 1.0.0)               ~4350Mi live   85% of -Xmx5g
+  #
+  # Measured on a preview after back-to-back full suite runs, i.e. with the in-heap
+  # validation/terminology caches hot. Prod's 30-day ~2050Mi figure is LOWER because it is
+  # dominated by idle periods; do not size from it. The earlier ~80-150Mi estimate here and
+  # the ~0.8-1.5Gi one in values-dev.yaml were both inferred from RSS and are wrong.
+  #
+  # 4 is the prod cap: the warmer keeps 3 suites hot (AU Core 1.0.0 dropped, see warmer
+  # below) and the 4th slot lets a rare AU Core 1.0.0 run load WITHOUT evicting a hot one.
+  # This is STICKY, not transient: with duration -1 nothing expires, so once 1.0.0 is
+  # touched prod sits at 4 contexts / ~85% of heap until the next restart. Size javaOpts
+  # for 4 contexts, not 3.
+  #
+  # Lower environments cap lower because they do not need every suite resident:
+  # dev 2, previews 1 (a preview exercises the one suite its PR touches).
   sessionCacheDuration: -1
-  sessionCacheSize: 8
+  sessionCacheSize: 4
   # Singleton: the session cache is per-pod and in-memory, so the validator runs as a
   # single-pod Deployment (a 2nd replica can't share the cache and would only thrash it).
   # A standby gives no benefit either — it can't be warm for the one session id Inferno
   # reuses, so failover cold-rebuilds regardless. The plain validator-api Service has one
-  # endpoint and auto-fails-over when the pod is replaced; pods run on on-demand (stable)
-  # nodes so reschedule is reliable. Raising this above 1 reintroduces cross-pod thrash.
+  # endpoint and auto-fails-over when the pod is replaced. Raising this above 1
+  # reintroduces cross-pod thrash.
+  #
+  # Node stability is now environment-dependent, not assumed: see capacityType above.
+  # Prod stays on-demand precisely so a reschedule is rare and predictable. Dev and
+  # previews run on spot and DO expect reclamation — that is safe only because the
+  # warmer sidecar rebuilds the session engine on restart, so a reclaim costs a ~50s
+  # cold build rather than a broken environment.
   replicas: 1
-  # JVM heap. Must fit the loaded IG/terminology context; preview overrides it lower.
-  javaOpts: "-Xmx8g"
-  # Pod resources. Defaults sized for dev/prod (load-tested: one warm pod serves 10
-  # concurrent at ~2.0/3 cores, ~9.5Gi mem). Preview overrides these much lower.
+  # JVM heap. PROD value; dev and previews override lower (they hold fewer contexts).
+  #
+  # Sized from FORCED-GC LIVE HEAP MEASURED UNDER LOAD (VALIDATOR_OPTIMIZATION.md §10),
+  # not from RSS and not from idle telemetry. Both of those mislead here: RSS parks at the
+  # -Xmx ceiling because G1 never uncommits, and prod's idle figure understates the loaded
+  # working set by roughly half.
+  #
+  #   contexts   live      env
+  #   0            30Mi
+  #   1           947Mi    preview
+  #   2          1826Mi    dev
+  #   3          3305Mi
+  #   4          4350Mi    prod  <- sessionCacheSize: 4
+  #
+  # A bare engine is ~900Mi; sustained load adds ~700Mi of in-heap validation/terminology
+  # cache on top. Size against the LOADED figure.
+  #
+  # 6g puts prod at 71% live occupancy with ~1.8Gi free above the live set. That free space
+  # is what matters: the live set is a floor of resident engines, and every concurrent
+  # validation allocates above it. -Xmx5g was tried and measured at 85% occupancy with only
+  # ~770Mi of headroom, which is outside the usual G1 guidance of <=70-75% and leaves little
+  # room to evacuate into. Note this is sticky, not transient: with sessionCacheDuration -1
+  # nothing expires, so prod sits at 4 contexts from the first AU Core 1.0.0 run until the
+  # next restart.
+  #
+  # MUST be changed together with engineReloadThreshold below — see the warning there.
+  javaOpts: "-Xmx6g"
+  # Wrapper heap-pressure guard (env: VALIDATION_SERVICE_ENGINE_RELOAD_THRESHOLD, BYTES,
+  # wrapper default 250000000). ValidationServiceFactoryImpl.getValidationService() checks
+  # Runtime.freeMemory() < threshold on EVERY request and, if so, throws away the entire
+  # ValidationService — wiping every cached session — then System.gc()s and rebuilds.
+  #
+  # The trap: freeMemory() is free-within-COMMITTED heap, so it is naturally near zero
+  # just before any normal GC on a right-sized heap. At -Xmx8g the sawtooth floor was
+  # ~850Mi free, always above the 250MB default, which is the only reason this never
+  # fired in prod (confirmed: zero reload log lines in 30 days). Cutting the heap to 5g
+  # without also cutting this would make it fire routinely on healthy GC behaviour,
+  # wiping warm sessions and re-introducing the ~50s cold rebuild every 5 min (the
+  # RELOAD_COOLDOWN_MS floor). Set to 10MB so it stays a genuine last-resort guard and
+  # cannot trip on ordinary allocation. Safe because the 30-day Old Gen trace is flat
+  # (2021Mi, no leak) — there is no drift for this valve to relieve, and a true OOM is
+  # already handled by the container limit plus restart plus the warmer sidecar.
+  # Quoted deliberately: unquoted, Helm/YAML coerces this to a float and renders it as
+  # "1e+07", which the wrapper's HOCON config parser does not read as a byte count.
+  engineReloadThreshold: "10000000"
+  # Wrapper 1.0.81+ (TERMINOLOGY_CLIENT_USE_CACHE_ID, wrapper default TRUE). Controls
+  # whether the terminology client sends a cache id to the tx server.
+  #
+  # DELIBERATELY UNSET — leave it that way. The key is intentionally absent so the wrapper
+  # default (TRUE) applies; the template only emits the env var when the key is present.
+  # Do NOT "disable" this by setting it to "" — the wrapper reads it as
+  # getenv(...).uppercase() == "TRUE", so an empty string means FALSE, not unset.
+  #
+  # A/B measured on the PR preview (same pod spec, same -Xmx5g, wrapper 1.0.81, 23KB AU PS
+  # bundle, one warm session, 6 runs at conc=10):
+  #
+  #   useCacheId=true  (default)   conc=1 0.67-0.86s   conc=10 ~3.10s (2.71-3.66)
+  #   useCacheId=false             conc=1 1.12-1.43s   conc=10 ~4.62s (4.06-6.00)
+  #
+  # Turning it OFF is ~40% SLOWER at both concurrency levels, so the default is the right
+  # setting and this was tested and rejected, not merely left alone. Caveat on the numbers:
+  # the false-run measured a pod whose terminology cache had been populated while the flag
+  # was true, so some of that penalty may be cache mismatch rather than steady-state cost.
+  # The direction is consistent enough that inverting the default is not worth pursuing.
+  #
+  # The knob is kept for the escape hatch: if a future wrapper or tx-server change makes
+  # cache ids misbehave, this can be pinned without editing the deployment by hand.
+  # terminologyClientUseCacheId: "false"
+  # Pod resources, derived from heap + metaspace + native — NOT from observed RSS.
+  # `kubectl top` reports working set, which includes reclaimable page cache from the
+  # PVC-backed terminology cache (/tmp/default-tx-cache); at 1 context it read 3.7Gi
+  # against a 947Mi live heap. Sizing requests off that would over-reserve badly.
+  #
+  #   6g heap ceiling + ~124Mi metaspace + ~480Mi native/JIT/threads ~= 6.6Gi
+  #
+  # 7Gi request covers it; 9Gi limit leaves burst room while staying low enough to
+  # actually bind, so a runaway is a container OOMKill (diagnosable, warmer re-warms)
+  # rather than node exhaustion. Dev and previews override both.
   resources:
     requests:
-      memory: "10Gi"
+      memory: "7Gi"
       cpu: "1000m"
     limits:
-      memory: "12Gi"
+      memory: "9Gi"
       cpu: "3000m"
 
 # NOTE: validator autoscaling (HPA) was removed. It does not fit this validator: each
@@ -90,7 +232,12 @@ warmer:
   # Live AU Core endpoint the capability-statement warm runs against (external dependency;
   # only hit on startup + after a restart).
   aucoreServerUrl: "https://fhir.hl7.org.au/aucore/fhir/DEFAULT"
-  auCoreSuites: "au_core_v100,au_core_v200,au_core_v210_draft"
+  # AU Core 1.0.0 deliberately NOT warmed: least-run suite, and warming it would hold a
+  # ~1Gi engine permanently (duration -1 never expires) to save a ~50s cold build on a rare
+  # run. Keep this list <= validator.sessionCacheSize, or the warmer builds engines that
+  # immediately LRU-evict each other, wasting a ~50s build per restart and leaving a suite
+  # cold regardless.
+  auCoreSuites: "au_core_v200,au_core_v210_draft"
   auPsSuiteId: "au_ps_v100"
   auPsProfile: "http://hl7.org.au/fhir/ps/StructureDefinition/au-ps-bundle"
   pollTimeout: 300      # max seconds to wait for a warm run to finish
