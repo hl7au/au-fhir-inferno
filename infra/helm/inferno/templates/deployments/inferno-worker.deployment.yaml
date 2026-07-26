@@ -39,6 +39,12 @@ spec:
             name: postgresql-configmap
         - secretRef:
             name: postgresql-secret
+        {{- if .Values.healthProbes.enabled }}
+        # Gated on healthProbes.enabled because scripts/sidekiq_health.rb ships in the
+        # application image, and inferno.imageUrl is pinned per environment and promoted
+        # separately from this chart. An environment on an image without that script fails
+        # every new pod's startup probe and wedges the rollout. See values.yaml.
+        #
         # Sidekiq serves no HTTP, so these are exec probes over its own Redis heartbeat
         # (see scripts/sidekiq_health.rb). Without them a worker that exits or wedges is
         # never restarted and the pod still reports Ready. The script exits 0 when Redis
@@ -62,6 +68,7 @@ spec:
           periodSeconds: 30
           timeoutSeconds: 15
           failureThreshold: 2
+        {{- end }}
         resources:
           requests:
             # Sparked event (07-01..09): the worker climbs and plateaus (Sidekiq

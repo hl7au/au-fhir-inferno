@@ -267,3 +267,15 @@ postgresql:
 # Empty by default: dev and preview run single-replica, where a PDB is a no-op. Prod
 # populates this list in values-prod.yaml.
 podDisruptionBudgets: []
+
+# Liveness/readiness probes for inferno-app and inferno-worker.
+#
+# These depend on code that ships in the application image: the /healthz endpoints mounted
+# in config.ru, and scripts/sidekiq_health.rb. inferno.imageUrl is pinned per environment
+# and promoted independently of this chart, so an environment still running an image from
+# before those files existed must keep this off. Otherwise every new pod fails its startup
+# probe, gets killed, and the rollout wedges behind the last healthy pod.
+#
+# Turn it on for an environment in the same change that promotes an image containing them.
+healthProbes:
+  enabled: true

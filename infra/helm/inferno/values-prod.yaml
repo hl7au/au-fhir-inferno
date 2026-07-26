@@ -67,3 +67,9 @@ podDisruptionBudgets:
   - app: inferno-worker
   - app: nginx-app
   - app: redirect-nginx
+
+healthProbes:
+  # Prod pins inferno.imageUrl to a promoted SHA that predates the /healthz endpoints and
+  # scripts/sidekiq_health.rb, so probing them here fails every new pod. Flip this to true
+  # in the same PR that promotes prod to an image containing them.
+  enabled: false

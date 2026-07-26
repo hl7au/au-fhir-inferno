@@ -60,6 +60,12 @@ spec:
             name: postgresql-configmap
         - secretRef:
             name: postgresql-secret
+        {{- if .Values.healthProbes.enabled }}
+        # Gated on healthProbes.enabled because these endpoints ship in the application
+        # image, and inferno.imageUrl is pinned per environment and promoted separately
+        # from this chart. An environment on an image without them fails every new pod's
+        # startup probe and wedges the rollout. See values.yaml.
+        #
         # Liveness is dependency-free (/healthz/live) so a slow or absent database can
         # never trigger a restart loop. Readiness does a real database round trip
         # (/healthz/ready): when Postgres is rescheduled the pooled connections all die
@@ -86,6 +92,7 @@ spec:
           periodSeconds: 15
           timeoutSeconds: 5
           failureThreshold: 3
+        {{- end }}
         resources:
           requests:
             # Memory right-sized from the Sparked event (07-01..09): inferno-app
