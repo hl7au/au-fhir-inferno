@@ -60,6 +60,32 @@ spec:
             name: postgresql-configmap
         - secretRef:
             name: postgresql-secret
+        # Liveness is dependency-free (/healthz/live) so a slow or absent database can
+        # never trigger a restart loop. Readiness does a real database round trip
+        # (/healthz/ready): when Postgres is rescheduled the pooled connections all die
+        # and every request 500s with PG::ConnectionBad, which a liveness-only check
+        # cannot see. failureThreshold is generous because booting Inferno loads every
+        # test kit, and startupProbe covers that window so liveness never fires early.
+        startupProbe:
+          httpGet:
+            path: /healthz/live
+            port: 4567
+          periodSeconds: 5
+          failureThreshold: 60   # up to 5 min to finish loading test kits
+        livenessProbe:
+          httpGet:
+            path: /healthz/live
+            port: 4567
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /healthz/ready
+            port: 4567
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
         resources:
           requests:
             # Memory right-sized from the Sparked event (07-01..09): inferno-app
