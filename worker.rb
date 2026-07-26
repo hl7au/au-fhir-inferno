@@ -3,6 +3,7 @@ require 'sidekiq-cron'
 
 require_relative 'lib/inferno_platform_template/delete_old_sessions'
 require_relative 'lib/inferno_platform_template/patches'
+require_relative 'lib/inferno_platform_template/database_pool'
 
 # Performance monitoring timing middleware is dev-only (see config.ru).
 if ENV['PERFORMANCE_MONITORING_ENABLED'] == 'true'
@@ -30,5 +31,7 @@ if ENV['OTEL_EXPORTER_OTLP_ENDPOINT']
 end
 
 Inferno::Application.finalize!
+
+InfernoPlatformTemplate::DatabasePool.configure!
 
 InfernoPlatformTemplate::DeleteOldSessions.add_to_schedule

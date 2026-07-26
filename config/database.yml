@@ -10,10 +10,25 @@ development:
 production:
   adapter: postgres
   host: <%= ENV['POSTGRES_HOST'] %>
-  post: <%= ENV['POSTGRES_PORT'] %> # this should probably be port not post? will check with pavel
+  # Was `post:`, so POSTGRES_PORT was read from the configmap but never reached Sequel.
+  # It happened to work only because libpq defaults to 5432; a non-default RDS port would
+  # have failed silently.
+  port: <%= ENV.fetch('POSTGRES_PORT', 5432).to_i %>
   database: <%= ENV['POSTGRES_DB'] %>
   username: <%= ENV['POSTGRES_USER'] %>
   password: "<%= ENV['POSTGRES_PASSWORD'] %>"
+  # Sequel defaults to 4. Both consumers of this file want at least 5: Puma runs up to 5
+  # threads and Sidekiq 7 defaults to concurrency 5, so the default left every process one
+  # connection short and threads queued on checkout under load. 8 leaves headroom for the
+  # cron job and migrations. Cheap: RDS allows 400 connections and prod currently uses ~15.
+  max_connections: <%= ENV.fetch('DB_MAX_CONNECTIONS', 8).to_i %>
+  # When the Postgres pod is rescheduled, every pooled connection is dead and each one
+  # takes a request down with PG::ConnectionBad on checkout. Preview pr-155 sat in exactly
+  # that state for 42h. connection_validator pings a connection that has been idle before
+  # handing it out, so the pool heals itself instead of serving errors until a restart.
+  # The validation timeout is not a connect option; it is set in
+  # InfernoPlatformTemplate::DatabasePool.
+  extensions: connection_validator
 
 test:
   adapter: sqlite
