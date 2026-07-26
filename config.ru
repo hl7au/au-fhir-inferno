@@ -1,5 +1,10 @@
 require 'inferno'
 require_relative 'lib/inferno_platform_template/patches'
+require_relative 'lib/inferno_platform_template/health_check'
+
+# Outermost middleware: /healthz answers before static assets, the request logger and
+# routing, so probes stay cheap and out of the access log.
+use InfernoPlatformTemplate::HealthCheck
 
 # Performance monitoring (request/validator timing + the /performance page) is dev-only,
 # gated by PERFORMANCE_MONITORING_ENABLED. Kept off in prod so the timing middleware —

@@ -39,6 +39,29 @@ spec:
             name: postgresql-configmap
         - secretRef:
             name: postgresql-secret
+        # Sidekiq serves no HTTP, so these are exec probes over its own Redis heartbeat
+        # (see scripts/sidekiq_health.rb). Without them a worker that exits or wedges is
+        # never restarted and the pod still reports Ready. The script exits 0 when Redis
+        # is unreachable, so a Redis outage cannot turn into a worker restart loop.
+        # startupProbe covers boot, which loads every test kit.
+        startupProbe:
+          exec:
+            command: ["bundle", "exec", "ruby", "scripts/sidekiq_health.rb"]
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 30   # up to 5 min to finish loading test kits
+        livenessProbe:
+          exec:
+            command: ["bundle", "exec", "ruby", "scripts/sidekiq_health.rb"]
+          periodSeconds: 30
+          timeoutSeconds: 15
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command: ["bundle", "exec", "ruby", "scripts/sidekiq_health.rb"]
+          periodSeconds: 30
+          timeoutSeconds: 15
+          failureThreshold: 2
         resources:
           requests:
             # Sparked event (07-01..09): the worker climbs and plateaus (Sidekiq
