@@ -22,6 +22,10 @@ spec:
         {{- with .Values.capacityType }}
         karpenter.sh/capacity-type: {{ . }}
         {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       volumes:
         - name: examplenginx-config
           configMap:
