@@ -97,6 +97,34 @@ inferno:
   # migration). Dev-only feature; OFF by default, enabled per-env in values-dev.yaml.
   performanceMonitoring: false
 
+nginx:
+  # Reverse proxy in front of inferno-app (templates/deployments/nginx.deployment.yaml,
+  # the backend the HTTPRoute sends "/" to). Same placeholder treatment as
+  # inferno.imageUrl above: always overridden per environment, so this default only
+  # exists to keep the chart renderable on its own.
+  platformImageUri: "ghcr.io/hl7au/au-fhir-inferno:overridden-per-environment-nginx"
+
+# HPA for inferno-app (templates/deployments/inferno.hpa.yaml). OFF by default: only
+# prod autoscales, dev and previews run fixed single replicas. The min/max/target values
+# are carried here so an environment that flips enabled: true without restating them
+# still renders a valid HPA.
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+# AWS Secrets Manager -> Kubernetes Secret sync for the RDS credential
+# (templates/configs/external-secrets.yaml). OFF by default: dev and prod each enable it
+# with their own IAM role and secret ARN, and previews run an in-namespace Postgres with
+# no external secret at all.
+externalSecrets:
+  enabled: false
+  roleArn: ""
+  secretArn: ""
+  username: "postgres"
+  region: "ap-southeast-2"
+
 validator:
   storageClassName: "gp3-encrypted"  # Use default EBS storage class for validator caches
   # Validator session cache (env: SESSION_CACHE_DURATION / SESSION_CACHE_SIZE on the

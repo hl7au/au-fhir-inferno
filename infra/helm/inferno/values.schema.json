@@ -1,0 +1,205 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "inferno-helmd values",
+  "description": "Values contract for the Inferno chart. additionalProperties is false at the top level and on every block this chart owns, so a misspelled or obsolete key fails the render instead of being silently ignored. That silence has already cost real money: preview environments set capacityType before the chart supported it, Helm dropped the unknown key without a word, and every preview kept running on on-demand nodes at roughly twice the price per vCPU with nothing to indicate the setting was inert. Adding a value here is part of adding it to a template.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "inferno",
+    "nginx",
+    "validator",
+    "warmer",
+    "ingress",
+    "redirectIngress",
+    "autoscaling",
+    "externalSecrets",
+    "healthProbes",
+    "postgresql"
+  ],
+  "properties": {
+    "createNamespace": {
+      "type": "boolean",
+      "description": "Render the destination Namespace as a managed resource (preview environments only)."
+    },
+    "capacityType": {
+      "type": ["string", "null"],
+      "description": "Karpenter capacity type pinned via nodeSelector on validator-api, redis, inferno-app and inferno-worker. Null or empty drops the constraint.",
+      "enum": ["on-demand", "spot", "", null]
+    },
+    "tolerations": {
+      "type": "array",
+      "description": "Pod tolerations for the same four workloads capacityType pins. Pairs with capacityType: the nodeSelector demands a capacity type, the toleration is what gets the pod onto a pool that taints itself.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "key": { "type": "string" },
+          "operator": { "type": "string", "enum": ["Exists", "Equal"] },
+          "value": { "type": "string" },
+          "effect": { "type": "string", "enum": ["NoSchedule", "PreferNoSchedule", "NoExecute", ""] },
+          "tolerationSeconds": { "type": "integer" }
+        }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hostnames"],
+      "properties": {
+        "hostnames": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        }
+      }
+    },
+    "redirectIngress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "hostnames": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "targetUrl": { "type": "string" }
+      }
+    },
+    "inferno": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["imageUrl", "validatorImageUri"],
+      "properties": {
+        "imageUrl": { "type": "string" },
+        "validatorImageUri": { "type": "string" },
+        "terminologyServer": { "type": "string" },
+        "externalValidatorUrl": { "type": ["string", "null"] },
+        "redisUrl": { "type": ["string", "null"] },
+        "railsEnv": { "type": ["string", "null"] },
+        "initializeValidatorSessions": { "type": ["boolean", "null"] },
+        "performanceMonitoring": { "type": "boolean" },
+        "replicas": { "type": "integer", "minimum": 0 },
+        "workerReplicas": { "type": "integer", "minimum": 0 },
+        "usesWrapper": {
+          "type": "boolean",
+          "description": "No longer read by any template. Accepted so existing environments that still pass it keep rendering; drop it from the consumer and then from this schema."
+        }
+      }
+    },
+    "nginx": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platformImageUri"],
+      "properties": {
+        "platformImageUri": { "type": "string" }
+      }
+    },
+    "validator": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "replicas": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Singleton by design: the session cache is per-pod and in-memory, so a second replica only thrashes it. See docs/VALIDATOR_OPTIMIZATION.md."
+        },
+        "storageClassName": { "type": "string" },
+        "javaOpts": { "type": "string" },
+        "sessionCacheDuration": { "type": "integer" },
+        "sessionCacheSize": { "type": "integer", "minimum": 1 },
+        "engineReloadThreshold": {
+          "type": ["string", "integer"],
+          "description": "Bytes. Quote it: unquoted, YAML coerces large values to a float and renders 1e+07, which the wrapper's config parser does not read as a byte count."
+        },
+        "terminologyClientUseCacheId": {
+          "type": "string",
+          "description": "Deliberately absent by default so the wrapper default applies; the template only emits the env var when the key is present."
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": { "type": "object" },
+            "limits": { "type": "object" }
+          }
+        }
+      }
+    },
+    "warmer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "image": { "type": "string" },
+        "infernoUrl": { "type": "string" },
+        "aucoreServerUrl": { "type": "string" },
+        "auCoreSuites": { "type": "string" },
+        "auPsSuiteId": { "type": "string" },
+        "auPsProfile": { "type": "string" },
+        "pollTimeout": { "type": "integer", "minimum": 1 },
+        "recheckInterval": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "autoscaling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "minReplicas": { "type": "integer", "minimum": 1 },
+        "maxReplicas": { "type": "integer", "minimum": 1 },
+        "targetCPUUtilizationPercentage": { "type": "integer", "minimum": 1, "maximum": 100 }
+      }
+    },
+    "validatorAutoscaling": {
+      "type": "object",
+      "description": "No longer read by any template: the validator HPA was removed because each session is per-pod in-memory state, so scaling out thrashes the cache. Accepted so existing environments that still pass it keep rendering; drop it from the consumer and then from this schema.",
+      "properties": {
+        "enabled": { "type": "boolean" }
+      }
+    },
+    "externalSecrets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "roleArn": { "type": "string" },
+        "secretArn": { "type": "string" },
+        "username": { "type": "string" },
+        "region": { "type": "string" }
+      }
+    },
+    "podDisruptionBudgets": {
+      "type": "array",
+      "description": "One entry per workload to protect from voluntary disruption. maxUnavailable defaults to 1.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["app"],
+        "properties": {
+          "app": { "type": "string" },
+          "maxUnavailable": { "type": ["integer", "string"] }
+        }
+      }
+    },
+    "healthProbes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" }
+      }
+    },
+    "postgresql": {
+      "type": "object",
+      "description": "Values for the bundled bitnami postgresql subchart. Intentionally not constrained here: the subchart's own value tree is coalesced into this key, and it carries its own schema."
+    },
+    "global": {
+      "type": "object",
+      "description": "Helm global values, shared with subcharts. Not constrained here."
+    }
+  }
+}
