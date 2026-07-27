@@ -57,14 +57,33 @@ jobs:
           helm template inferno . -n inferno -f values-prod.yaml > /dev/null
           echo "::endgroup::"
           echo "::group::preview"
+          # Mirrors the inline values block of the inferno-previews ApplicationSet in
+          # aehrc/sparked-argo (apps/inferno-previews.yaml). Keep the KEY SET in step
+          # with it, not just the values: values.schema.json rejects unknown keys, so a
+          # key the ApplicationSet passes but this render omits would break every
+          # preview environment while CI still reported green.
           helm template inferno-pr-0 . -n inferno-pr-0 \
             --set createNamespace=true \
+            --set capacityType=spot \
             --set postgresql.enabled=true \
             --set externalSecrets.enabled=false \
             --set 'postgresql.externaldbhost=' \
+            --set warmer.enabled=false \
             --set autoscaling.enabled=false \
+            --set validatorAutoscaling.enabled=false \
             --set inferno.imageUrl=ghcr.io/hl7au/au-fhir-inferno:ci-pr \
+            --set inferno.usesWrapper=true \
+            --set inferno.replicas=1 \
+            --set inferno.workerReplicas=1 \
             --set nginx.platformImageUri=ghcr.io/hl7au/au-fhir-inferno:ci-nginx-pr \
+            --set validator.replicas=1 \
+            --set validator.storageClassName=gp3-encrypted \
+            --set validator.sessionCacheSize=1 \
+            --set validator.javaOpts=-Xmx2g \
+            --set validator.resources.requests.memory=3Gi \
+            --set validator.resources.requests.cpu=250m \
+            --set validator.resources.limits.memory=4Gi \
+            --set validator.resources.limits.cpu=2000m \
             --set 'ingress.hostnames[0]=pr-0.preview.inferno.sparked-fhir.com' > /dev/null
           echo "::endgroup::"
 

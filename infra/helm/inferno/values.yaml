@@ -18,6 +18,37 @@ createNamespace: false
 # Set to null/empty to drop the constraint entirely and let Karpenter's weighting decide.
 capacityType: "on-demand"
 
+# Pod tolerations for the SAME four workloads capacityType pins (validator-api, redis,
+# inferno-app, inferno-worker). Empty by default, so this is a no-op unless an
+# environment opts in.
+#
+# capacityType and this are two halves of one mechanism and only work together. The
+# nodeSelector says "only a node of this capacity type will do"; it does not grant
+# permission to land there. A taint on the NodePool is what withholds that permission,
+# and a matching toleration is what grants it. Pin without tolerate and the pod stays
+# Pending on a tainted pool; tolerate without pin and the pod is merely eligible for
+# that pool rather than held to it.
+#
+# Concretely, the sparkey cluster taints its on-demand NodePool
+# `dedicated=on-demand:NoSchedule` so that only workloads which explicitly opt in can
+# consume on-demand capacity. Karpenter consolidation never relocates a running pod to a
+# cheaper NodePool, so anything that drifts onto on-demand stays there for the life of
+# the pod; the taint is what stops that drift. Any environment left on the on-demand
+# default above must therefore also set:
+#
+#   tolerations:
+#     - key: dedicated
+#       operator: Equal
+#       value: on-demand
+#       effect: NoSchedule
+#
+# Deliberately NOT applied to nginx-app or redirect-nginx. Neither pins a capacity type,
+# so neither needs to tolerate one, and handing them the toleration would make them
+# eligible for on-demand nodes without holding them there, which is the exact drift the
+# taint exists to prevent. If either ever needs on-demand, give it capacityType pinning
+# in the same change, so the pin and the toleration stay paired.
+tolerations: []
+
 ingress:
   hostnames:
     - example.inferno.sparked-fhir.com
@@ -65,6 +96,34 @@ inferno:
   # Performance monitoring (request/validator timing + /performance page + its DB
   # migration). Dev-only feature; OFF by default, enabled per-env in values-dev.yaml.
   performanceMonitoring: false
+
+nginx:
+  # Reverse proxy in front of inferno-app (templates/deployments/nginx.deployment.yaml,
+  # the backend the HTTPRoute sends "/" to). Same placeholder treatment as
+  # inferno.imageUrl above: always overridden per environment, so this default only
+  # exists to keep the chart renderable on its own.
+  platformImageUri: "ghcr.io/hl7au/au-fhir-inferno:overridden-per-environment-nginx"
+
+# HPA for inferno-app (templates/deployments/inferno.hpa.yaml). OFF by default: only
+# prod autoscales, dev and previews run fixed single replicas. The min/max/target values
+# are carried here so an environment that flips enabled: true without restating them
+# still renders a valid HPA.
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+# AWS Secrets Manager -> Kubernetes Secret sync for the RDS credential
+# (templates/configs/external-secrets.yaml). OFF by default: dev and prod each enable it
+# with their own IAM role and secret ARN, and previews run an in-namespace Postgres with
+# no external secret at all.
+externalSecrets:
+  enabled: false
+  roleArn: ""
+  secretArn: ""
+  username: "postgres"
+  region: "ap-southeast-2"
 
 validator:
   storageClassName: "gp3-encrypted"  # Use default EBS storage class for validator caches

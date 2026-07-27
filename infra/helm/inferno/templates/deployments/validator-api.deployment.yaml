@@ -38,6 +38,10 @@ spec:
         {{- with .Values.capacityType }}
         karpenter.sh/capacity-type: {{ . }}
         {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       affinity:
         # The validator is the heaviest pod we run (multi-GB JVM heap, ~9.5Gi resident).
         # Never put two validators on the same node: when two warm up together their real
