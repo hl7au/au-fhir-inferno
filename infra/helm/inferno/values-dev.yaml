@@ -13,7 +13,6 @@ inferno:
   validatorImageUri: markiantorno/validator-wrapper:latest
   replicas: 1
   workerReplicas: 1
-  performanceMonitoring: true
   resultDuration: true
 
 validator:

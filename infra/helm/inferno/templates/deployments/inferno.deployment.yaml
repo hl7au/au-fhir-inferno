@@ -57,6 +57,15 @@ spec:
         env:
           - name: TX_SERVER_URL
             value: {{ .Values.inferno.terminologyServer }}
+          # Distinct service name from inferno-worker so the two workloads are separable in
+          # Tempo. config.ru only configures the SDK when the endpoint is set, so unsetting
+          # these disables tracing for this container.
+          - name: OTEL_SERVICE_NAME
+            value: "inferno-app"
+          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+            value: "http://k8s-monitoring-alloy-metrics.monitoring.svc:4318"
+          - name: OTEL_EXPORTER_OTLP_PROTOCOL
+            value: "http/protobuf"
         envFrom:
         - configMapRef:
             name: inferno

@@ -458,6 +458,6 @@ Deleting PVCs forces re-download of all packages on next startup (~30–60 secon
 
 ## Related Docs
 
-- [docs/performance-feature.md](docs/performance-feature.md) — per-session performance tracking (FHIR + validator timing)
+- [docs/result-duration.md](docs/result-duration.md) - per-test and per-group execution time on results.duration_ms
 - [docs/noecosystem-performance-analysis.md](docs/noecosystem-performance-analysis.md) — prod vs dev timing comparison
 - [sparked-argo/docs/adr-ontoserver-txreg-redirect.md](https://github.com/hl7au/sparked-argo/blob/main/docs/adr-ontoserver-txreg-redirect.md) — tx-reg decision record
