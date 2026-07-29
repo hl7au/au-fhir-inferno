@@ -9,7 +9,6 @@ data:
   FHIR_RESOURCE_VALIDATOR_URL: {{ default "http://validator-api:3500" .Values.inferno.externalValidatorUrl | quote }}
   REDIS_URL: {{ default "redis://inferno-redis:6379" .Values.inferno.redisUrl | quote }}
   RAILS_ENV: {{ default "production" .Values.inferno.railsEnv | quote }}
-  PERFORMANCE_MONITORING_ENABLED: {{ .Values.inferno.performanceMonitoring | default false | quote }}
   RESULT_DURATION_ENABLED: {{ .Values.inferno.resultDuration | default false | quote }}
   # Disable inferno_core's boot-time per-suite validator-session warming
   # (config/boot/validator.rb). It validates a throwaway Patient for every suite; au_core_v100

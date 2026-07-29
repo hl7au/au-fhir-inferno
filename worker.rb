@@ -5,12 +5,6 @@ require_relative 'lib/inferno_platform_template/delete_old_sessions'
 require_relative 'lib/inferno_platform_template/patches'
 require_relative 'lib/inferno_platform_template/database_pool'
 
-# Performance monitoring timing middleware is dev-only (see config.ru).
-if ENV['PERFORMANCE_MONITORING_ENABLED'] == 'true'
-  require_relative 'lib/inferno_platform_template/request_timing'
-  require_relative 'lib/inferno_platform_template/validator_timing'
-end
-
 # Per-runnable duration tracking is dev-only (see config.ru). Test runs execute in this
 # process, so this is where the measuring happens.
 require_relative 'lib/inferno_platform_template/result_duration' if ENV['RESULT_DURATION_ENABLED'] == 'true'
