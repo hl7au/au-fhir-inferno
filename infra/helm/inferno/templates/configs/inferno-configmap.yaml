@@ -10,6 +10,7 @@ data:
   REDIS_URL: {{ default "redis://inferno-redis:6379" .Values.inferno.redisUrl | quote }}
   RAILS_ENV: {{ default "production" .Values.inferno.railsEnv | quote }}
   PERFORMANCE_MONITORING_ENABLED: {{ .Values.inferno.performanceMonitoring | default false | quote }}
+  RESULT_DURATION_ENABLED: {{ .Values.inferno.resultDuration | default false | quote }}
   # Disable inferno_core's boot-time per-suite validator-session warming
   # (config/boot/validator.rb). It validates a throwaway Patient for every suite; au_core_v100
   # and au_core_v200 get handed the same validator sessionId, which collides on the

@@ -3,6 +3,12 @@ require_relative 'lib/inferno_platform_template/patches'
 require_relative 'lib/inferno_platform_template/health_check'
 require_relative 'lib/inferno_platform_template/database_pool'
 
+# Per-runnable duration tracking (results.duration_ms) is dev-only while it is a
+# prototype of an inferno-core change, gated by RESULT_DURATION_ENABLED. The web process
+# needs it for the entity and serializer patches that expose duration_ms on
+# /api/test_sessions/:id/results; the worker needs it to do the measuring (worker.rb).
+require_relative 'lib/inferno_platform_template/result_duration' if ENV['RESULT_DURATION_ENABLED'] == 'true'
+
 # Outermost middleware: /healthz answers before static assets, the request logger and
 # routing, so probes stay cheap and out of the access log.
 use InfernoPlatformTemplate::HealthCheck

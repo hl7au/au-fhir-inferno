@@ -24,9 +24,17 @@ namespace :db do
     require 'inferno/utils/migration'
     Inferno::Utils::Migration.new.run
 
-    # Local migrations are dev-only (performance monitoring schema); gated by
-    # PERFORMANCE_MONITORING_ENABLED so prod's database schema is left untouched.
-    if ENV['PERFORMANCE_MONITORING_ENABLED'] == 'true'
+    # Local migrations are dev-only, so prod's database schema is left untouched. Two
+    # independent features live here and each has its own flag, because they have
+    # different lifespans: the performance monitoring schema is scheduled for removal in
+    # favour of the OpenTelemetry pipeline, while results.duration_ms is a prototype of an
+    # inferno-core change that outlives it.
+    #
+    # Sequel::Migrator applies a directory as a whole, so either flag runs every local
+    # migration present. That is fine while both are dev-only and dev enables both; if
+    # duration tracking is ever wanted somewhere the performance schema is not, delete the
+    # performance migrations at the same time as their flag.
+    if ENV['PERFORMANCE_MONITORING_ENABLED'] == 'true' || ENV['RESULT_DURATION_ENABLED'] == 'true'
       require 'sequel'
       local_dir = File.join(__dir__, 'db', 'migrate')
       if File.directory?(local_dir) && !Dir.glob("#{local_dir}/*.rb").empty?
