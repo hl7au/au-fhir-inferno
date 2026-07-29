@@ -79,6 +79,7 @@
         "railsEnv": { "type": ["string", "null"] },
         "initializeValidatorSessions": { "type": ["boolean", "null"] },
         "performanceMonitoring": { "type": "boolean" },
+        "resultDuration": { "type": "boolean" },
         "replicas": { "type": "integer", "minimum": 0 },
         "workerReplicas": { "type": "integer", "minimum": 0 },
         "usesWrapper": {

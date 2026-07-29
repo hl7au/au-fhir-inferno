@@ -14,6 +14,7 @@ inferno:
   replicas: 1
   workerReplicas: 1
   performanceMonitoring: true
+  resultDuration: true
 
 validator:
   replicas: 1
