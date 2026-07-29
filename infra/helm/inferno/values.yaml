@@ -93,9 +93,6 @@ inferno:
   # so this is purely a throughput decision. TERMINOLOGY_CLIENT_USE_CACHE_ID does not
   # rescue it: disabling it makes 1.0.81 worse still.
   validatorImageUri: "markiantorno/validator-wrapper:1.0.78"
-  # Performance monitoring (request/validator timing + /performance page + its DB
-  # migration). Dev-only feature; OFF by default, enabled per-env in values-dev.yaml.
-  performanceMonitoring: false
   # Per-runnable execution time on results.duration_ms, plus its DB migration. Prototype
   # of an inferno-core change, kept dev-only until it lands upstream; OFF by default,
   # enabled per-env in values-dev.yaml. Flagged separately from performanceMonitoring

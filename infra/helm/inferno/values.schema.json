@@ -78,7 +78,10 @@
         "redisUrl": { "type": ["string", "null"] },
         "railsEnv": { "type": ["string", "null"] },
         "initializeValidatorSessions": { "type": ["boolean", "null"] },
-        "performanceMonitoring": { "type": "boolean" },
+        "performanceMonitoring": {
+          "type": "boolean",
+          "description": "No longer read by any template; the performance page and its timing middleware were retired in favour of the OpenTelemetry pipeline. Accepted so existing environments that still pass it keep rendering; drop it from the consumer and then from this schema."
+        },
         "resultDuration": { "type": "boolean" },
         "replicas": { "type": "integer", "minimum": 0 },
         "workerReplicas": { "type": "integer", "minimum": 0 },

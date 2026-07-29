@@ -17,10 +17,11 @@ The nearest approximation available today is differencing consecutive results'
 `created_at` within a test run. That breaks down for waiting tests and for any result
 written out of execution order, which parent roll-ups are.
 
-Note this is a different question from the one the `/performance` page answers. That page
-sums outbound FHIR wait and validator wait per session; neither is per-test wall time, and
-neither accounts for Inferno's own CPU. See
-[performance-feature.md](./performance-feature.md).
+This is also a different question from the one the retired `/performance` page answered.
+That page summed outbound FHIR wait and validator wait per session: neither is per-test wall
+time, and neither accounted for Inferno's own CPU. Deep per-call timing now comes from the
+OpenTelemetry spans both processes emit to Tempo, which cover the same calls with full test
+attribution; this column is the summary figure that belongs next to the result itself.
 
 ## How it works
 
@@ -79,9 +80,11 @@ Each result carries `duration_ms`. Worth checking on a full AU Core run:
   core fork and a frontend build. Data and API only.
 - `Result#to_hash` is left alone, so `duration_ms` is absent there. Nothing in this
   repository reads it; the serializer is what feeds the API.
-- `Sequel::Migrator` applies `db/migrate` as a whole, so enabling either local flag runs
-  every local migration present. Fine while both features are dev-only and dev enables
-  both. See the note in the `Rakefile`.
+- `db/migrate` still contains `001` and `002`, which built the retired performance
+  monitoring schema, and `004`, which drops it again. Sequel's IntegerMigrator refuses to
+  run against a database recorded at a higher version than the files present, so deleting
+  applied migrations would break the dev database. Enabling the flag on a fresh database
+  therefore creates and immediately drops those objects. See the note in the `Rakefile`.
 
 ## Upstreaming
 
