@@ -361,6 +361,8 @@ GEM
       opentelemetry-instrumentation-base (~> 0.25)
     opentelemetry-instrumentation-net_http (0.29.0)
       opentelemetry-instrumentation-base (~> 0.25)
+    opentelemetry-instrumentation-rack (0.31.1)
+      opentelemetry-instrumentation-base (~> 0.25)
     opentelemetry-instrumentation-sidekiq (0.29.0)
       opentelemetry-instrumentation-base (~> 0.25)
     opentelemetry-registry (0.6.0)
@@ -539,6 +541,7 @@ DEPENDENCIES
   opentelemetry-exporter-otlp
   opentelemetry-instrumentation-faraday
   opentelemetry-instrumentation-net_http
+  opentelemetry-instrumentation-rack
   opentelemetry-instrumentation-sidekiq
   opentelemetry-sdk
   pg

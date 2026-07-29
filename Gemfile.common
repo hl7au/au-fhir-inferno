@@ -36,11 +36,16 @@ gem 'sidekiq-cron'
 # Sidekiq is on >= 7.3, which adopted the connection_pool 3.0 API.
 gem 'connection_pool', '~> 2.5'
 
-# OpenTelemetry — worker emits spans to Alloy → Tempo
+# OpenTelemetry. The worker and the web process both emit spans to Alloy, which forwards
+# them to Tempo. Rack instrumentation is what gives the web process a server span per
+# inbound HTTP request: without it, work that happens outside a test run (notably session
+# creation, which serialises the whole suite tree) is untraceable, and outbound calls made
+# while serving a request have no parent span to attach to.
 gem 'opentelemetry-sdk'
 gem 'opentelemetry-exporter-otlp'
 gem 'opentelemetry-instrumentation-faraday'
 gem 'opentelemetry-instrumentation-net_http'
+gem 'opentelemetry-instrumentation-rack'
 gem 'opentelemetry-instrumentation-sidekiq'
 
 group :development, :test do
