@@ -44,8 +44,37 @@ finish, long after the ancestor ran, and they happen while the enclosing test's 
 still on the stack. Without suppression a parent would inherit its child's elapsed time.
 
 The duration measures the whole of `run_test` / `run_group`, including input loading,
-instance construction and output persistence, not just the test block. That total is the
-wall time the user experienced, and the difference is where Inferno's own overhead shows up.
+instance construction, saving outputs and writing the result, not just the test block. That
+total is the wall time the user experienced, and the difference is where Inferno's own
+overhead shows up.
+
+### Why it takes two writes
+
+A result row cannot carry the cost of writing itself. `#persist_result` therefore inserts
+the time spent executing the runnable, then updates the row with the elapsed time once the
+write has finished. `super` inside `#persist_result` is exactly `Repositories::Results#create`,
+so the second reading covers the whole write and none of the parent roll-up that `run_group`
+performs afterwards.
+
+The extra write earns its place, because on this workload persistence is not a rounding
+error. Measured over a 498-test AU Core run on dev (session `bcT7dNjmwrt`, run duration
+414.8 s), against the OpenTelemetry `inferno.test` spans that bracket the same method:
+
+| | | |
+|---|---|---|
+| Executing tests | 226.0 s | 54% |
+| Writing their results | 186.6 s | 45% |
+| Everything else in the run | 2.2 s | 1% |
+
+`Repositories::Results#create` writes a row per message and per request, and
+`Repositories::Requests#create` a row per HTTP header, all one INSERT at a time: **38,139
+rows** for that run, 29,889 of them headers. The cost tracks request count almost exactly
+(r = 0.906, roughly 100 ms per persisted request), so measuring only up to the start of the
+write would have understated precisely the request-heavy tests a user is hunting for. One
+test recorded 1.07 s against 3.31 s actually elapsed.
+
+The corrective UPDATE is a single row by primary key, one per result: 533 for that run,
+against the 38,139 INSERTs it already performs.
 
 Three further patches are needed because inferno-core whitelists at every layer:
 
@@ -72,6 +101,17 @@ Each result carries `duration_ms`. Worth checking on a full AU Core run:
   time outside test execution, and quantifying it is the point of the exercise
 - waiting tests, which record time up to the wait; on resume `TestRunner` returns the
   existing result without persisting again, so the post-resume portion is not counted
+
+The check worth repeating is against the traces, since they measure the same method from
+outside the process and so cannot share a mistake with the patch:
+
+```
+{ span.inferno.test_session_id = "<session>" && name = "inferno.test" }
+```
+
+Sum those span durations and compare to the summed `duration_ms` for the session's tests.
+They should now agree within the tracing overhead itself (a few ms per test). A large,
+request-correlated shortfall in `duration_ms` means the corrective update is not running.
 
 ## Known limits
 

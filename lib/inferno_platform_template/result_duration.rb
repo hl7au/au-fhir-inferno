@@ -16,9 +16,22 @@
 # See https://github.com/inferno-framework/inferno-core
 #
 # Note this deliberately measures the whole of `run_test` / `run_group` (input loading,
-# instance construction, the test block, output persistence), not just the test block:
-# that total is the wall time the user experienced, and the difference is where
-# inferno's own overhead would show up.
+# instance construction, the test block, saving outputs and writing the result), not just
+# the test block: that total is the wall time the user experienced, and the difference is
+# where inferno's own overhead would show up.
+#
+# Writing the result is a large part of that overhead, which is why it takes two writes to
+# record (see `#persist_result`). Measured over a 498-test AU Core run on dev:
+#
+#   executing tests                      226.0 s   54%
+#   writing their results                186.6 s   45%
+#   everything else in the run             2.2 s    1%
+#
+# `Repositories::Results#create` writes a row per message and per request, and
+# `Repositories::Requests#create` a row per HTTP header, all one INSERT at a time: 38,139
+# rows for that run, 29,889 of them headers. Measuring only up to the start of that write
+# would have reported 226.0 s of a 414.8 s run and, worse, would have understated exactly
+# the request-heavy tests a user is looking for (a 3.3 s test reporting 1.1 s).
 
 require 'inferno'
 require 'inferno/test_runner'
@@ -63,14 +76,34 @@ module InfernoPlatformTemplate
       duration_frames.pop
     end
 
+    # A result row cannot carry the cost of writing itself, so this takes two writes: the
+    # INSERT gets the time spent executing the runnable, then an UPDATE corrects it to the
+    # elapsed time including persistence, once persistence has finished.
+    #
+    # `super` here is exactly the whole write (`results_repo.create`, which cascades into
+    # the message, request and header rows), so the second reading covers all of it and
+    # none of the parent roll-up that `run_group` performs afterwards.
+    #
+    # The extra UPDATE is one row against a primary key, per result: 533 of them for the
+    # run above, against the 38,139 INSERTs it already performs.
     def persist_result(params)
       started_at_ms = duration_frames.last
       return super if started_at_ms.nil?
 
-      super(params.merge(duration_ms: monotonic_ms - started_at_ms))
+      result = super(params.merge(duration_ms: monotonic_ms - started_at_ms))
+      record_total_duration(result, monotonic_ms - started_at_ms)
     end
 
     private
+
+    # Keeps the in-memory entity consistent with the row. `TestRunner` hands the entity
+    # back to the caller in `run_results`, so leaving it holding the execution-only value
+    # would make the API and a directly returned result disagree.
+    def record_total_duration(result, duration_ms)
+      results_repo.update(result.id, duration_ms:)
+      result.duration_ms = duration_ms
+      result
+    end
 
     def monotonic_ms
       Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
