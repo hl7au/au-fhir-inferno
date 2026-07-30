@@ -26,6 +26,10 @@ if ENV['OTEL_EXPORTER_OTLP_ENDPOINT']
     c.use 'OpenTelemetry::Instrumentation::Net::HTTP'
     c.use 'OpenTelemetry::Instrumentation::Sidekiq'
   end
+
+  # Per-test spans. Required after SDK.configure so the tracer provider it installs is the
+  # one the patch resolves, and only here because test runs execute in this process.
+  require_relative 'lib/inferno_platform_template/test_tracing'
 end
 
 Inferno::Application.finalize!
