@@ -61,7 +61,20 @@ if ENV['OTEL_EXPORTER_OTLP_ENDPOINT']
     # It is worth its own span because nothing else can see it. It is not an HTTP call, so
     # no instrumentation covers it, and it is inside `run_test`, so it is already counted
     # in the test span and in `results.duration_ms` without being distinguishable there.
-    # As a child of the test span it also inherits that test's identity for free.
+    #
+    # It carries its own identity rather than relying on the parent test span for it.
+    # Being a child is not enough: TraceQL's `span.` filters match attributes on the span
+    # itself, so a session-scoped panel written the way every other one is written returns
+    # nothing, and only a trace-level conjunction reaches it:
+    #
+    #   { span.inferno.test_session_id = "..." } && { name = "inferno.persist_result" }
+    #
+    # That form works for search and select(), but it returns the matched spans from both
+    # filters, so a table gets a spurious near-empty row per trace, and an aggregate
+    # grouped by a dimension only the test span carries splits in two. Measured on dev
+    # before this change, `sum_over_time(duration) by (span.inferno.suite_id)` over that
+    # conjunction returned two series, `au_core_v210_draft` and `nil`, with every one of
+    # the persist spans in `nil`.
     def persist_result(params)
       tracer.in_span(PERSIST_SPAN_NAME, attributes: persist_span_attributes(params)) { super }
     end
@@ -84,11 +97,22 @@ if ENV['OTEL_EXPORTER_OTLP_ENDPOINT']
 
     # The row counts are what make a slow write explicable rather than merely visible: the
     # cost tracks the number of requests being written almost exactly.
+    #
+    # The runnable id comes from the params, because `persist_result` receives the
+    # runnable's `reference_hash` merged in and is called for groups and suite roll-ups as
+    # well as tests. Exactly one of `test_id` / `test_group_id` is present on any given
+    # write, neither on a suite, and `compact` drops the absent ones rather than exporting
+    # nils. Attribute names match the test span's, so the two aggregate together.
     def persist_span_attributes(params)
       {
+        'inferno.test_session_id' => test_session.id,
+        'inferno.test_run_id' => test_run.id,
+        'inferno.suite_id' => test_session.test_suite_id,
+        'inferno.test_id' => params[:test_id],
+        'inferno.group_id' => params[:test_group_id],
         'inferno.messages_persisted' => (params[:messages] || []).size,
         'inferno.requests_persisted' => (params[:requests] || []).size
-      }
+      }.compact
     end
 
     def run_span_attributes

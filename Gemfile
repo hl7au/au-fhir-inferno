@@ -16,12 +16,11 @@
 
 eval_gemfile 'Gemfile.common'
 
-# Released AU Core test kit (published on RubyGems by hl7au). '~> 1.4.3' means
-# >= 1.4.3, < 1.5.0; Gemfile.lock pins the exact version. 1.4.3 is the first release that
+# Released AU Core test kit (published on RubyGems by hl7au). '~> 1.4.4' means
+# >= 1.4.4, < 1.5.0; Gemfile.lock pins the exact version. 1.4.4 is the first release that
 # includes the AU Core 2.1.0-draft suite. Bump the lock (bundle update au_core_test_kit)
 # to adopt new 1.4.x releases.
-gem 'au_core_test_kit', git: 'https://github.com/hl7au/au-fhir-core-inferno',
-                        ref: 'b0bae19fdcd84427e1164009fdb4297ad9935f4f'
+gem 'au_core_test_kit', '~> 1.4.4'
 
 # Released AU PS test kit (published on RubyGems by hl7au). '~> 1.0.0' means
 # >= 1.0.0, < 1.1.0; Gemfile.lock pins the exact version.

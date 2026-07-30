@@ -58,12 +58,29 @@ per message, a row per request and a row per HTTP header, one INSERT at a time.
 
 | Attribute | Why |
 |---|---|
+| `inferno.test_session_id`, `inferno.test_run_id`, `inferno.suite_id` | same names as the test span, so the two filter and aggregate alike |
+| `inferno.test_id` *or* `inferno.group_id` | which runnable was written; neither on a suite roll-up |
 | `inferno.messages_persisted` | rows written for this result's messages |
 | `inferno.requests_persisted` | rows written for this result's requests; the count the cost tracks |
 
 It has a span because nothing else can see it. It is not an HTTP call, so no instrumentation
 covers it, and it sits inside `run_test`, so it is already counted in the test span and in
 `results.duration_ms` without being separable from test execution there.
+
+It repeats the parent's identity rather than relying on being a child of it. TraceQL `span.`
+filters match attributes on the span itself, so without those a session-scoped query written
+the way every other one is written returns nothing, and only a trace-level conjunction
+reaches it:
+
+```
+{ span.inferno.test_session_id = "<session>" } && { name = "inferno.persist_result" }
+```
+
+That form works for search and `select()`, but it returns the matched spans from **both**
+filters, so a table gets a spurious near-empty row per trace, and an aggregate grouped by a
+dimension only the test span carries splits in two. Measured on dev before the attributes
+were added, `sum_over_time(duration) by (span.inferno.suite_id)` over that conjunction
+returned two series, `au_core_v210_draft` and `nil`, with every persist span in `nil`.
 
 It is not a minor cost. On a 498-test AU Core run on dev (session `bcT7dNjmwrt`, 414.8 s):
 
@@ -79,8 +96,15 @@ round trip to Postgres from the worker measures 0.25 ms.
 
 ```
 { span.inferno.test_session_id = "<session>" && name = "inferno.persist_result" }
-  | select(span.inferno.requests_persisted)
+  | select(span.inferno.test_id, span.inferno.requests_persisted)
+
+{ span.inferno.test_session_id = "<session>" && name = "inferno.persist_result" }
+  | sum_over_time(duration) by (span.inferno.group_id)
 ```
+
+The second is a TraceQL metrics query, so it is limited to the last 20 minutes on this Tempo.
+See [Why the span name is a constant](#why-the-span-name-is-a-constant) for that limit and
+for why `quantile_over_time` is the wrong aggregate here.
 
 ## Why the span name is a constant
 
@@ -104,12 +128,25 @@ into table columns, and TraceQL metrics aggregate by them:
   | select(span.inferno.test_short_id, span.inferno.test_title, span.inferno.result)
 
 { span.inferno.test_run_id = "<uuid>" && name = "inferno.test" }
-  | quantile_over_time(duration, .95) by (span.inferno.group_id)
+  | max_over_time(duration) by (span.inferno.group_id)
 ```
 
-TraceQL metrics (the `| rate()` and `| quantile_over_time()` forms) are served from Tempo's
-live-store and only cover roughly the **last 20 minutes**; outside that window they error
-rather than return empty. Plain search covers full retention.
+TraceQL metrics (the `| rate()`, `| max_over_time()` and `| quantile_over_time()` forms) are
+served from Tempo's live-store and only cover roughly the **last 20 minutes**; outside that
+window they error rather than return empty. Plain search covers full retention.
+
+**Avoid `quantile_over_time` on these spans.** It is computed from exponentially spaced
+buckets and returns the bucket bound rather than an interpolated value, so it reads high and
+lands on powers of two. Measured against a run whose slowest test took 41.1 s, in a group
+totalling 44.5 s:
+
+| | |
+|---|---|
+| `quantile_over_time(duration, .95)` | 68.7195 s (2^36 ns, 57% high) |
+| `max_over_time(duration)` | 43.6398 s |
+
+One span per test per run means a quantile has almost nothing to smooth anyway. Use
+`max_over_time` for "what was slowest" and `sum_over_time` for totals.
 
 ## Dashboards
 
