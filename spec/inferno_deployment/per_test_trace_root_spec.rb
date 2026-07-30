@@ -155,7 +155,10 @@ RSpec.describe PerTestTraceRoot do
 
   describe 'the result-persistence span' do
     # Two messages and three requests, which is all the patch reads from the params.
-    let(:params) { { messages: [{}, {}], requests: [{}, {}, {}] } }
+    let(:params) do
+      { messages: [{}, {}], requests: [{}, {}, {}],
+        test_id: 'au_core_v210_draft-patient_group-patient_read_test' }
+    end
 
     before { runner.persist_params = params }
 
@@ -186,6 +189,36 @@ RSpec.describe PerTestTraceRoot do
 
       expect(persist_span.attributes['inferno.messages_persisted']).to eq(0)
       expect(persist_span.attributes['inferno.requests_persisted']).to eq(0)
+    end
+
+    # Being a child of the test span is not enough. TraceQL `span.` filters match
+    # attributes on the span itself, so without these a session-scoped panel written the
+    # usual way returns nothing and only a trace-level conjunction finds the span.
+    it 'carries the session and run, so it can be filtered like every other span' do
+      expect(persist_span.attributes['inferno.test_session_id']).to eq('session-uuid')
+      expect(persist_span.attributes['inferno.test_run_id']).to eq('run-uuid')
+      expect(persist_span.attributes['inferno.suite_id']).to eq('au_core_v210_draft')
+    end
+
+    it 'names the runnable it wrote, so the cost can be grouped by test' do
+      expect(persist_span.attributes['inferno.test_id'])
+        .to eq('au_core_v210_draft-patient_group-patient_read_test')
+      expect(persist_span.attributes).to_not have_key('inferno.group_id')
+    end
+
+    it 'names a group write by its group id instead' do
+      runner.persist_params = { test_group_id: 'au_core_v210_draft-patient_group' }
+
+      expect(persist_span.attributes['inferno.group_id']).to eq('au_core_v210_draft-patient_group')
+      expect(persist_span.attributes).to_not have_key('inferno.test_id')
+    end
+
+    it 'omits both on a suite roll-up rather than exporting nils' do
+      runner.persist_params = { test_suite_id: 'au_core_v210_draft' }
+
+      expect(persist_span.attributes).to_not have_key('inferno.test_id')
+      expect(persist_span.attributes).to_not have_key('inferno.group_id')
+      expect(persist_span.attributes['inferno.test_session_id']).to eq('session-uuid')
     end
 
     it 'passes the persisted result through unchanged' do
