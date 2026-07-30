@@ -38,10 +38,15 @@ RSpec.describe PerTestTraceRoot do
   # whose return value is the persisted result, as the real one's is.
   let(:runner_class) do
     Class.new do
-      attr_accessor :test_run, :test_session, :next_result
+      attr_accessor :test_run, :test_session, :next_result, :persist_params
 
       def run_test(_test, _scratch = {})
+        persist_result(@persist_params) if @persist_params
         @next_result
+      end
+
+      def persist_result(_params)
+        :persisted
       end
 
       def start
@@ -145,6 +150,57 @@ RSpec.describe PerTestTraceRoot do
 
     it 'tolerates a nil outcome' do
       expect { run(outcome: nil) }.to_not raise_error
+    end
+  end
+
+  describe 'the result-persistence span' do
+    # Two messages and three requests, which is all the patch reads from the params.
+    let(:params) { { messages: [{}, {}], requests: [{}, {}, {}] } }
+
+    before { runner.persist_params = params }
+
+    def persist_span
+      run.find { |span| span.name == 'inferno.persist_result' }
+    end
+
+    it 'emits a span for the write' do
+      expect(run.map(&:name)).to contain_exactly('inferno.persist_result', 'inferno.test')
+    end
+
+    it 'nests it inside the test span, so it inherits that test identity' do
+      spans = run
+      test_span = spans.find { |span| span.name == 'inferno.test' }
+      persist = spans.find { |span| span.name == 'inferno.persist_result' }
+
+      expect(persist.parent_span_id).to eq(test_span.span_id)
+      expect(persist.trace_id).to eq(test_span.trace_id)
+    end
+
+    it 'records the row counts that explain the cost' do
+      expect(persist_span.attributes['inferno.messages_persisted']).to eq(2)
+      expect(persist_span.attributes['inferno.requests_persisted']).to eq(3)
+    end
+
+    it 'reports zero rather than omitting the counts when there is nothing to write' do
+      runner.persist_params = { result: 'pass' }
+
+      expect(persist_span.attributes['inferno.messages_persisted']).to eq(0)
+      expect(persist_span.attributes['inferno.requests_persisted']).to eq(0)
+    end
+
+    it 'passes the persisted result through unchanged' do
+      expect(runner.persist_result(params)).to eq(:persisted)
+    end
+  end
+
+  # The methods this patch wraps are called from outside the runner: Jobs::ExecuteTestRun
+  # calls #start, and #persist_result is public API on TestRunner. A `private` placed above
+  # a wrapper in the module would make the wrapped method private on TestRunner too, and
+  # the failure would only surface when a real run started.
+  describe 'visibility of the wrapped methods' do
+    it 'leaves them public on TestRunner' do
+      expect(Inferno::TestRunner.public_instance_methods)
+        .to include(:start, :run_test, :persist_result)
     end
   end
 

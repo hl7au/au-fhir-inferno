@@ -6,6 +6,11 @@ require_relative '../../lib/inferno_platform_template/result_duration'
 # run_group calls run_test for its children. The interesting behaviour is which of those
 # writes gets a duration, which is independent of anything Inferno or the database do.
 #
+# The stand-in sleeps inside persist_result as well as inside the runnable, because the two
+# are measured differently: a result row cannot carry the cost of writing itself, so the
+# patch inserts the execution time and then updates the row with the total. Separating the
+# sleeps is what makes the difference between the two values observable.
+#
 # Durations are compared loosely. Process::CLOCK_MONOTONIC in :millisecond truncates both
 # endpoints, so a measured elapsed time is within a millisecond either side of the real
 # one, and exact arithmetic on the values would be flaky.
@@ -13,26 +18,54 @@ require_relative '../../lib/inferno_platform_template/result_duration'
 # example group class, which the anonymous Class.new bodies below cannot resolve.
 SLEEP_SECONDS = 0.01
 SLEEP_MS = 10
+PERSIST_SLEEP_SECONDS = 0.02
+PERSIST_SLEEP_MS = 20
+
+# Stands in for Inferno::Repositories::Results and the Result entity it returns. Only the
+# two things the patch touches are modelled: create returns something with an `id` and a
+# writable `duration_ms`, and update writes to the stored row rather than the entity.
+class FakeResultsRepo
+  Result = Struct.new(:id, :duration_ms)
+
+  attr_reader :rows
+
+  def initialize
+    @rows = {}
+  end
+
+  def create(name, duration_ms)
+    id = "result-#{@rows.size}"
+    @rows[id] = { name:, duration_ms: }
+    Result.new(id, duration_ms)
+  end
+
+  def update(entity_id, params = {})
+    @rows.fetch(entity_id).merge!(params)
+  end
+end
 
 RSpec.describe InfernoPlatformTemplate::ResultDurationPatch do
   let(:runner_class) do
     Class.new do
-      attr_reader :persisted
+      attr_reader :results_repo, :inserted
 
       def initialize
-        @persisted = []
+        @results_repo = FakeResultsRepo.new
+        @inserted = []
       end
 
       def run_test(test, _scratch = {})
         sleep SLEEP_SECONDS
-        persist_result(name: test)
+        result = persist_result(name: test)
         update_parent_result("#{test}-parent")
+        result
       end
 
       def run_group(group, scratch = {})
         %w[child-a child-b].each { |child| run_test(child, scratch) }
-        persist_result(name: group)
+        result = persist_result(name: group)
         update_parent_result("#{group}-parent")
+        result
       end
 
       # Mirrors TestRunner#update_parent_result recursing up the tree, persisting an
@@ -44,17 +77,26 @@ RSpec.describe InfernoPlatformTemplate::ResultDurationPatch do
         update_parent_result("#{parent}-up", depth - 1)
       end
 
+      # Mirrors TestRunner#persist_result: the write cascades into the message, request and
+      # header rows, which is the cost the second reading exists to capture.
       def persist_result(params)
-        @persisted << params
-        params
+        @inserted << params
+        sleep PERSIST_SLEEP_SECONDS
+        @results_repo.create(params[:name], params[:duration_ms])
       end
     end.tap { |klass| klass.prepend(described_class) }
   end
 
   let(:runner) { runner_class.new }
 
+  # What ends up on the row, which is what the API serves.
   def durations_by_name
-    runner.persisted.to_h { |params| [params[:name], params[:duration_ms]] }
+    runner.results_repo.rows.values.to_h { |row| [row[:name], row[:duration_ms]] }
+  end
+
+  # What the INSERT carried, before the corrective update.
+  def inserted_durations_by_name
+    runner.inserted.to_h { |params| [params[:name], params[:duration_ms]] }
   end
 
   describe 'a single test' do
@@ -66,10 +108,45 @@ RSpec.describe InfernoPlatformTemplate::ResultDurationPatch do
     end
 
     it 'leaves parent roll-ups without a duration' do
-      roll_ups = runner.persisted.reject { |params| params[:name] == 'test-1' }
+      roll_ups = runner.results_repo.rows.values.reject { |row| row[:name] == 'test-1' }
 
       expect(roll_ups).to_not be_empty
-      expect(roll_ups.map { |params| params[:duration_ms] }).to all(be_nil)
+      expect(roll_ups.map { |row| row[:duration_ms] }).to all(be_nil)
+    end
+
+    it 'issues no corrective update for a roll-up' do
+      # A nil frame must skip the update as well as the insert, or the patch would write a
+      # duration onto rows it deliberately declined to time.
+      expect(runner.results_repo.rows.values.count { |row| row[:duration_ms] }).to eq(1)
+    end
+  end
+
+  describe 'the cost of writing the result' do
+    before { runner.run_test('test-1') }
+
+    it 'counts persistence towards the recorded duration' do
+      # The reason this matters: on a real AU Core run the write is 45% of the elapsed
+      # time, and it scales with how many requests the test made, so omitting it
+      # understates exactly the request-heavy tests a user is hunting for.
+      expect(durations_by_name['test-1']).to be >= (SLEEP_MS + PERSIST_SLEEP_MS) - 1
+    end
+
+    it 'inserts the execution time and corrects it afterwards' do
+      inserted = inserted_durations_by_name['test-1']
+
+      expect(inserted).to be >= SLEEP_MS - 1
+      expect(inserted).to be < SLEEP_MS + PERSIST_SLEEP_MS
+      expect(durations_by_name['test-1']).to be > inserted
+    end
+
+    it 'corrects the row it just inserted rather than creating another' do
+      expect(runner.results_repo.rows.count { |_id, row| row[:name] == 'test-1' }).to eq(1)
+    end
+
+    it 'leaves the returned entity agreeing with the row' do
+      result = runner.run_test('test-2')
+
+      expect(result.duration_ms).to eq(durations_by_name['test-2'])
     end
   end
 
