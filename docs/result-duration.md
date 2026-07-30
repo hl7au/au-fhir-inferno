@@ -94,3 +94,9 @@ can follow.
 
 Once inferno-core records duration itself, delete `result_duration.rb`, migration `003`,
 the `RESULT_DURATION_ENABLED` plumbing and this document.
+
+## Related
+
+- [tracing.md](./tracing.md) - the OpenTelemetry spans covering the same test executions.
+  `duration_ms` is the summary number to quote to a user; the traces are how you work out why
+  it is what it is.
