@@ -41,15 +41,29 @@ if ENV['OTEL_EXPORTER_OTLP_ENDPOINT']
 
   module PerTestTraceRoot
     SPAN_NAME = 'inferno.test'.freeze
+    PERSIST_SPAN_NAME = 'inferno.persist_result'.freeze
 
     def run_test(test, scratch)
-      tracer = OpenTelemetry.tracer_provider.tracer('inferno-worker')
       # Detach from the enclosing Sidekiq job span so the test span starts a new trace.
       OpenTelemetry::Context.with_current(OpenTelemetry::Context.empty) do
         tracer.in_span(SPAN_NAME, attributes: test_span_attributes(test)) do |span|
           super.tap { |result| annotate_test_result(span, result) }
         end
       end
+    end
+
+    # Writing a result is the second largest cost in a run, behind executing the tests
+    # themselves and ahead of everything else: 186.6 s of a 414.8 s AU Core run on dev.
+    # `Repositories::Results#create` writes a row per message and per request, and
+    # `Repositories::Requests#create` a row per HTTP header, one INSERT at a time, which
+    # came to 38,139 rows for that run.
+    #
+    # It is worth its own span because nothing else can see it. It is not an HTTP call, so
+    # no instrumentation covers it, and it is inside `run_test`, so it is already counted
+    # in the test span and in `results.duration_ms` without being distinguishable there.
+    # As a child of the test span it also inherits that test's identity for free.
+    def persist_result(params)
+      tracer.in_span(PERSIST_SPAN_NAME, attributes: persist_span_attributes(params)) { super }
     end
 
     # A whole run executes inside one Sidekiq job, and the Sidekiq instrumentation already
@@ -63,6 +77,19 @@ if ENV['OTEL_EXPORTER_OTLP_ENDPOINT']
     end
 
     private
+
+    def tracer
+      OpenTelemetry.tracer_provider.tracer('inferno-worker')
+    end
+
+    # The row counts are what make a slow write explicable rather than merely visible: the
+    # cost tracks the number of requests being written almost exactly.
+    def persist_span_attributes(params)
+      {
+        'inferno.messages_persisted' => (params[:messages] || []).size,
+        'inferno.requests_persisted' => (params[:requests] || []).size
+      }
+    end
 
     def run_span_attributes
       {

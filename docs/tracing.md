@@ -51,6 +51,37 @@ errors would pollute every error-rate panel and alert.
 The Sidekiq job span carries `inferno.test_run_id`, `inferno.test_session_id` and
 `inferno.suite_id`.
 
+### `inferno.persist_result`
+
+A child of the test span, covering `Repositories::Results#create`: the result row plus a row
+per message, a row per request and a row per HTTP header, one INSERT at a time.
+
+| Attribute | Why |
+|---|---|
+| `inferno.messages_persisted` | rows written for this result's messages |
+| `inferno.requests_persisted` | rows written for this result's requests; the count the cost tracks |
+
+It has a span because nothing else can see it. It is not an HTTP call, so no instrumentation
+covers it, and it sits inside `run_test`, so it is already counted in the test span and in
+`results.duration_ms` without being separable from test execution there.
+
+It is not a minor cost. On a 498-test AU Core run on dev (session `bcT7dNjmwrt`, 414.8 s):
+
+| | | |
+|---|---|---|
+| Executing tests | 226.0 s | 54% |
+| Writing their results | 186.6 s | 45% |
+| Everything else in the run | 2.2 s | 1% |
+
+That run wrote 38,139 rows, 29,889 of them headers. Persistence time correlates with request
+count at r = 0.906, roughly 100 ms per persisted request, and it is not database latency: a
+round trip to Postgres from the worker measures 0.25 ms.
+
+```
+{ span.inferno.test_session_id = "<session>" && name = "inferno.persist_result" }
+  | select(span.inferno.requests_persisted)
+```
+
 ## Why the span name is a constant
 
 Test spans are all named `inferno.test`. The identity lives in attributes, deliberately.
