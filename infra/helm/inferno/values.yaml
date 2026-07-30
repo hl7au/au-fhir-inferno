@@ -63,6 +63,11 @@ inferno:
   # Always overridden per-environment in values-{dev,prod}.yaml (dev by CI, prod by the
   # promotion PR). This placeholder just avoids carrying a stale, real-looking SHA here.
   imageUrl: "ghcr.io/hl7au/au-fhir-inferno:overridden-per-environment"
+  # Carries the Australian SNOMED CT edition ONLY, and the test kits select that edition
+  # via cliContext.snomedCT to match. Read docs/issues/snomed-edition-selection.md before
+  # loading SNOMED CT International here or pointing this at a server that carries a
+  # different edition: the mismatch does not surface as a configuration error, it
+  # surfaces as spurious content warnings against the resource under test.
   terminologyServer: "https://tx.dev.hl7.org.au/fhir"
   externalValidatorUrl: null  # This can be overridden during chart deployment
   # Base default, inherited by preview environments (values-dev tracks :latest,
