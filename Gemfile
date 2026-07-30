@@ -23,6 +23,6 @@ eval_gemfile 'Gemfile.common'
 gem 'au_core_test_kit', git: 'https://github.com/hl7au/au-fhir-core-inferno',
                         ref: 'b0bae19fdcd84427e1164009fdb4297ad9935f4f'
 
-# Released AU PS test kit (published on RubyGems by hl7au). '~> 0.2.1' means
-# >= 0.2.1, < 0.3.0; Gemfile.lock pins the exact version.
-gem 'au_ps_inferno', '~> 0.2.1'
+# Released AU PS test kit (published on RubyGems by hl7au). '~> 1.0.0' means
+# >= 1.0.0, < 1.1.0; Gemfile.lock pins the exact version.
+gem 'au_ps_inferno', '~> 1.0.0'
