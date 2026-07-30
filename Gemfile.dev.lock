@@ -531,7 +531,7 @@ PLATFORMS
 
 DEPENDENCIES
   au_core_test_kit!
-  au_ps_inferno (>= 0.2.1)
+  au_ps_inferno (>= 1.0.0)
   connection_pool (~> 2.5)
   database_cleaner-sequel (~> 1.8)
   factory_bot (~> 6.1)
