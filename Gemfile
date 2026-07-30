@@ -25,4 +25,4 @@ gem 'au_core_test_kit', '~> 1.4.4'
 # Released AU PS test kit (published on RubyGems by hl7au). '~> 1.0.0' means
 # >= 1.0.0, < 1.1.0; Gemfile.lock pins the exact version.
 # gem 'au_ps_inferno', '~> 1.0.0'
-gem 'au_ps_inferno', github: 'hl7au/au-ps-inferno', ref: 'a24fc2f4a6ae4f036d287c10484171f9c803388f'
+gem 'au_ps_inferno', github: 'hl7au/au-ps-inferno', ref: '5239fb7df0d1259b3c2eacd30feb3c65541cf541'
