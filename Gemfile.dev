@@ -17,4 +17,10 @@ gem 'au_core_test_kit', '>= 1.4.4'
 
 
 # Bleeding-edge AU PS test kit — unreleased commit ahead of the RubyGems release.
-gem 'au_ps_inferno', '>= 1.0.0'
+#
+# Pinned to the SNOMED CT edition fix (hl7au/au-ps-inferno#108) so dev and previews can
+# exercise it before it reaches RubyGems. The suite left cliContext.snomedCT at the
+# validator's International default, which the AU terminology server does not carry.
+# Move back to a version constraint once that lands in an au_ps_inferno release.
+gem 'au_ps_inferno', git: 'https://github.com/hl7au/au-ps-inferno',
+                     ref: '531aefd5485e3977c506d953ee0652c67ee22d74'
