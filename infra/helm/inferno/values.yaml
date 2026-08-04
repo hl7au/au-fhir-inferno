@@ -299,7 +299,7 @@ warmer:
   # run. Keep this list <= validator.sessionCacheSize, or the warmer builds engines that
   # immediately LRU-evict each other, wasting a ~50s build per restart and leaving a suite
   # cold regardless.
-  auCoreSuites: "au_core_v200,au_core_v210_draft"
+  auCoreSuites: "au_core_v200,au_core_v300_ballot1"
   auPsSuiteId: "au_ps_v100"
   auPsProfile: "http://hl7.org.au/fhir/ps/StructureDefinition/au-ps-bundle"
   pollTimeout: 300      # max seconds to wait for a warm run to finish

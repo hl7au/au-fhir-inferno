@@ -12,8 +12,6 @@ preview_text: The AU Core Test Kit validates the conformance of a server impleme
 suites:
   - title: AU Core v3.0.0-ballot1
     id: au_core_v300_ballot1
-  - title: AU Core v2.1.0-draft
-    id: au_core_v210_draft
   - title: AU Core v2.0.0
     id: au_core_v200
   - title: AU Core v1.0.0
