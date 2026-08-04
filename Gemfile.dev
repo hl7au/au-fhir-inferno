@@ -13,7 +13,7 @@
 eval_gemfile 'Gemfile.common'
 
 # Bleeding-edge AU Core test kit — unreleased commit ahead of the RubyGems release.
-gem 'au_core_test_kit', '>= 1.4.4'
+gem 'au_core_test_kit', github: 'hl7au/au-fhir-core-inferno', ref: '03b655828fdab8f455c56909b7d12fc4e6614bf4'
 
 
 # Bleeding-edge AU PS test kit — unreleased commit ahead of the RubyGems release.
