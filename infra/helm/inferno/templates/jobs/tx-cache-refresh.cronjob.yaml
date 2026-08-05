@@ -1,0 +1,127 @@
+{{- if .Values.txCacheRefresh.enabled }}
+# Scheduled refresh of the validator's terminology cache.
+#
+# WHY THIS EXISTS. The validator writes $validate-code responses to the shared on-disk
+# cache at /tmp/default-tx-cache (the validator-terminology-cache PVC) and those entries
+# have NO TTL. Failures are cached verbatim alongside successes, so a single bad answer is
+# replayed for the life of the volume. Only the TerminologyCapabilities snapshot
+# self-expires (CAPABILITY_CACHE_EXPIRATION_HOURS = 24 in org.hl7.fhir.core); nothing
+# expires the validate-code entries.
+#
+# The cache key embeds the expansion Parameters, including
+# "system-version=http://snomed.info/sct|http://snomed.info/sct/<edition>". Because the
+# test kits select an EDITION rather than a dated version, that key is stable across
+# monthly SNOMED AU releases, so cached answers never roll over on their own. Hence a
+# schedule.
+#
+# HOW IT WORKS. Two steps, both required:
+#
+#   1. POST a throwaway validation with cliContext.clearTxCache=true. This wipes the whole
+#      cache DIRECTORY (verified: an unrelated marker file placed in the folder is gone
+#      afterwards), which no pod restart would do on its own since the PVC survives
+#      restarts.
+#   2. Restart the validator Deployment. Step 1 only clears the engine that served it;
+#      other live engines keep their in-memory copies, and prod pins
+#      SESSION_CACHE_DURATION=-1 so those engines never expire on their own.
+#
+# The warmer sidecar re-warms on start (see configs/validator-warmer-configmap.yaml), so
+# the cache repopulates with fresh answers without further help.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tx-cache-refresh
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tx-cache-refresh
+  namespace: {{ .Release.Namespace }}
+rules:
+  # get/list/watch back `kubectl rollout status`; patch is what `rollout restart` issues.
+  # Scoped to this namespace, and to Deployments only.
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tx-cache-refresh
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: tx-cache-refresh
+subjects:
+  - kind: ServiceAccount
+    name: tx-cache-refresh
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: tx-cache-refresh
+  namespace: {{ .Release.Namespace }}
+spec:
+  schedule: {{ .Values.txCacheRefresh.schedule | quote }}
+  timeZone: {{ .Values.txCacheRefresh.timeZone | quote }}
+  # A wipe plus a validator restart must never overlap another one, and a missed run is
+  # not worth catching up on: the next month's run subsumes it.
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          serviceAccountName: tx-cache-refresh
+          restartPolicy: Never
+          # Step 1. Wipe the shared on-disk cache. The engine this builds is thrown away
+          # by the restart in step 2, so it deliberately loads no IGs.
+          initContainers:
+            - name: clear-tx-cache
+              image: {{ .Values.txCacheRefresh.curlImage | quote }}
+              command: ["sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  cat >/tmp/payload.json <<'PAYLOAD'
+                  {
+                    "cliContext": {
+                      "clearTxCache": true,
+                      "txServer": "{{ .Values.inferno.terminologyServer }}",
+                      "noEcosystem": true,
+                      "profiles": ["http://hl7.org/fhir/StructureDefinition/Patient"]
+                    },
+                    "filesToValidate": [
+                      {
+                        "fileName": "Patient/tx-cache-refresh.json",
+                        "fileContent": "{\"resourceType\":\"Patient\"}",
+                        "fileType": "json"
+                      }
+                    ],
+                    "sessionId": null
+                  }
+                  PAYLOAD
+                  echo "Clearing terminology cache via validator-api..."
+                  curl --fail --silent --show-error --max-time 900 \
+                    -X POST http://validator-api:3500/validate \
+                    -H 'Content-Type: application/json' \
+                    --data-binary @/tmp/payload.json \
+                    -o /dev/null
+                  echo "Terminology cache cleared."
+          # Step 2. Drop every in-memory engine cache. Recreate strategy means the old pod
+          # releases the RWO PVCs before the new one mounts them.
+          containers:
+            - name: restart-validator
+              image: {{ .Values.txCacheRefresh.kubectlImage | quote }}
+              command: ["sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  kubectl rollout restart deployment/validator-api
+                  kubectl rollout status deployment/validator-api --timeout=15m
+{{- end }}

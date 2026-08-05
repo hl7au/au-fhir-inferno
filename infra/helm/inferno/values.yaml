@@ -305,6 +305,26 @@ warmer:
   pollTimeout: 300      # max seconds to wait for a warm run to finish
   recheckInterval: 30   # seconds between (cheap, local) validator-restart checks
 
+# Scheduled wipe of the validator's terminology cache
+# (templates/jobs/tx-cache-refresh.cronjob.yaml). The validator caches $validate-code
+# responses on the terminology PVC with NO TTL, failures included, so without this a bad
+# or superseded answer is replayed for the life of the volume. Only the
+# TerminologyCapabilities snapshot self-expires, after 24h.
+txCacheRefresh:
+  enabled: true
+  # SNOMED CT AU releases on the last day of each month. This runs on the 3rd, a couple of
+  # days later, at a quiet local hour. The cost of a run is one validator restart plus the
+  # warmer's re-warm, so monthly is the right granularity: matching the release cadence
+  # bounds staleness at ~1 release without paying a cold rebuild any more often.
+  #
+  # Because the test kits select a SNOMED EDITION rather than a dated version, the cache
+  # key is identical across releases and nothing rotates on its own. If that ever changes
+  # to a pinned dated version, keys rotate naturally and this can be relaxed.
+  schedule: "0 2 3 * *"
+  timeZone: "Australia/Sydney"
+  curlImage: "curlimages/curl:8.11.1"
+  kubectlImage: "bitnami/kubectl:1.31.4"
+
 postgresql:
   enabled: false # enable if not using rds from aws-impl
   externaldbhost: null # This can be overridden during chart deployment
