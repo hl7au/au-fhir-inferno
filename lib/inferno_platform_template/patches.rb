@@ -86,12 +86,15 @@ Inferno::Application.singleton_class.prepend(FixValidatorSessionKeyCollision)
 # local is a pure win. Verified byte-identical serializer output across all four AU suites,
 # 22-25x faster (au_core_v210_draft 4.93s -> 0.225s).
 #
-# Belongs upstream in inferno-core; `dsl/runnable.rb` already lists
-# `@children_available_inputs` in VARIABLES_NOT_TO_COPY as "Needs to be recalculated",
-# so the memoisation this restores appears to have been intended and lost. Remove this
-# patch once inferno-core hoists or memoises the call itself.
-# See https://github.com/inferno-framework/inferno-core
+# FIXED UPSTREAM. inferno-core adopted the same hoist, so `input_output_handling.rb` at
+# 1.4.2 is line-for-line what this patch installs, down to reusing one `child_inputs`
+# local for both the merge loop and the final merge. The guard below therefore skips the
+# prepend from 1.1.0 onwards and this whole block can be deleted once the base Gemfile
+# leaves the 1.0.x line. Until then it must stay: prod still runs 1.0.8, where dropping it
+# takes au_core_v210_draft session creation back from 0.225s to 4.93s and reopens the
+# concurrent-session 504s.
 require 'inferno/dsl/input_output_handling'
+require 'inferno/version'
 
 module HoistChildrenAvailableInputs
   def available_inputs(selected_suite_options = nil)
@@ -113,4 +116,8 @@ module HoistChildrenAvailableInputs
   end
 end
 
-Inferno::DSL::InputOutputHandling.prepend(HoistChildrenAvailableInputs)
+# Version-gated rather than unconditional, because prepending an override that merely
+# duplicates upstream would shadow any later upstream change to `available_inputs`.
+if Gem::Version.new(Inferno::VERSION) < Gem::Version.new('1.1.0')
+  Inferno::DSL::InputOutputHandling.prepend(HoistChildrenAvailableInputs)
+end

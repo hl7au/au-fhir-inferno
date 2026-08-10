@@ -12,9 +12,25 @@
 
 eval_gemfile 'Gemfile.common'
 
-# Bleeding-edge AU Core test kit — unreleased commit ahead of the RubyGems release.
-gem 'au_core_test_kit', '>= 1.4.5'
+# inferno_core 1.4.x, staged here first. Prod stays on 1.0.x until the two test-kit fixes
+# below are released (see Gemfile). '~> 1.4.2' means >= 1.4.2, < 1.5.0; Gemfile.dev.lock
+# pins the exact version.
+gem 'inferno_core', '~> 1.4.2'
 
+# Bleeding-edge AU Core test kit. Pinned to the inferno_core 1.4.x compatibility branch,
+# which is master (1.4.5, the first version carrying the AU Core v3.0.0-ballot1 suite)
+# plus one commit: ReferenceResolutionTest validates through Validator#resource_is_valid?
+# instead of the Validator internals inferno_core removed in v1.1.0. That module backs the
+# v1.0.0 suite only; v2.0.0, v2.1.0-draft and v3.0.0-ballot1 use the generator's copy,
+# already fixed at the ref pinned in Gemfile.common. Move back to a released version once
+# this lands and 1.4.6 ships. See hl7au/au-fhir-core-inferno#302.
+gem 'au_core_test_kit', github: 'hl7au/au-fhir-core-inferno',
+                        ref: '7b14fa2fb21e5aa47b80f227b4f979d6954bd8bc'
 
-# Bleeding-edge AU PS test kit — unreleased commit ahead of the RubyGems release.
-gem 'au_ps_inferno', '>= 1.0.0'
+# Bleeding-edge AU PS test kit. Pinned to the inferno_core 1.4.x compatibility branch,
+# which is the released 1.0.0 tag plus the gemspec relaxation from 'inferno_core ~> 1.0.6'
+# to '>= 1.0.6'. That cap was the only one on inferno_core in the whole tree and is what
+# blocked this upgrade. Move back to a released version once 1.0.1 ships.
+# See hl7au/au-ps-inferno#113.
+gem 'au_ps_inferno', github: 'hl7au/au-ps-inferno',
+                     ref: '908f2d968298001bd086d257c90e77641cfe30d2'
