@@ -17,6 +17,17 @@ eval_gemfile 'Gemfile.common'
 # pins the exact version.
 gem 'inferno_core', '~> 1.4.2'
 
+# da378cb is the generator's main at the point au_core_test_kit 1.4.5 was cut, and 1.4.5's
+# own Gemfile tracks this gem at branch: main, so it is the pairing the AU Core
+# v3.0.0-ballot1 suite was generated against. Pinned by SHA because main moves.
+#
+# It is also what unblocks inferno_core 1.4.x here: ReferenceResolutionTest at the ref the
+# base Gemfile still uses validates reference targets out of Validator internals that
+# inferno_core removed in v1.1.0, across 68 tests in the generated v2.0.0, v2.1.0-draft and
+# v3.0.0-ballot1 suites. That block is wrapped in `rescue StandardError`, so those tests
+# would fail rather than error, reading as a conformance problem with the server under test.
+gem 'inferno_suite_generator', github: 'hl7au/inferno_suite_generator', ref: 'da378cb0db730c83be414b66650f2ae29bcc8f83'
+
 # Bleeding-edge AU Core test kit. Pinned to the inferno_core 1.4.x compatibility branch,
 # which is master (1.4.5, the first version carrying the AU Core v3.0.0-ballot1 suite)
 # plus one commit: ReferenceResolutionTest validates through Validator#resource_is_valid?

@@ -17,22 +17,10 @@ gem 'pg'
 # floated to the beda-software default branch, including in prod).
 gem 'validation_test_kit', git: 'https://github.com/beda-software/validation-test-kit', ref: '3438159ae5860216d37c559725fbfdc316ad745c'
 
-# inferno_suite_generator is a runtime dependency of the generated AU Core suites (they
-# require 'inferno_suite_generator/utils/helpers' and subclass its test classes). Its ref
-# must match the version the pinned au_core_test_kit was built against.
-#
-# da378cb is the generator's main at the time au_core_test_kit 1.4.5 was cut, and 1.4.5's
-# own Gemfile tracks this gem at branch: main, so this is the pairing the AU Core v3.0.0
-# -ballot1 suite was generated and tested against. Pinned by SHA rather than by branch
-# because main is a moving target and this repo builds reproducibly.
-#
-# Moving off the previous ref (9b0d17e) is also what unblocks inferno_core 1.4.x:
-# ReferenceResolutionTest at 9b0d17e validated reference targets out of Validator
-# internals that inferno_core removed in v1.1.0, and the generated AU Core v2.0.0,
-# v2.1.0-draft and v3.0.0-ballot1 suites include that module across 68 tests. The old
-# block was wrapped in `rescue StandardError`, so those tests would fail rather than
-# error, reading as a conformance problem with the server under test.
-gem 'inferno_suite_generator', github: 'hl7au/inferno_suite_generator', ref: 'da378cb0db730c83be414b66650f2ae29bcc8f83'
+# NOTE: inferno_suite_generator is pinned in the INCLUDING Gemfiles, not here, for the
+# duration of the inferno_core 1.4.x upgrade. Prod and dev need different refs: dev takes
+# the ref carrying the reference-resolution fix, prod stays on the ref it runs today.
+# Folds back here once prod moves.
 
 gem 'sinatra'
 gem 'sidekiq-cron'

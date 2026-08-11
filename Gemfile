@@ -27,6 +27,13 @@ eval_gemfile 'Gemfile.common'
 # below, move this line to '~> 1.4.2', and fold it back into Gemfile.common.
 gem 'inferno_core', '~> 1.0.6'
 
+# Unchanged from what prod runs today. Deliberately NOT moved to the ref Gemfile.dev uses:
+# that ref carries generator behaviour changes (foreign reference-target versioning, a
+# configurable SNOMED CT edition, dropped PATCH versionId checking) which have nothing to
+# do with this upgrade and are not covered by its before/after evidence, since both legs
+# of that comparison ran the newer ref. Bump this in its own change, with its own run.
+gem 'inferno_suite_generator', github: 'hl7au/inferno_suite_generator', ref: '9b0d17ef2ade2027cce33cca5539f84ab5bf5f85'
+
 # Released AU Core test kit (published on RubyGems by hl7au). '~> 1.4.5' means
 # >= 1.4.5, < 1.5.0; Gemfile.lock pins the exact version. 1.4.5 is the first release that
 # includes the AU Core 3.0.0-ballot1 suite. Bump the lock (bundle update au_core_test_kit)
