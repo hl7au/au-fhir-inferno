@@ -96,6 +96,10 @@
       "additionalProperties": false,
       "required": ["platformImageUri"],
       "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Render the nginx layer (nginx-app Deployment/Service, the sidecar in the inferno-app pod, nginx-config ConfigMap). False routes / straight to the inferno Service; used by bare test kit previews."
+        },
         "platformImageUri": { "type": "string" }
       }
     },

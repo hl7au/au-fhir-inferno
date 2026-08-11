@@ -24,5 +24,13 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
+        {{- if .Values.nginx.enabled }}
         - name: nginx
           port: 80
+        {{- else }}
+        # No nginx layer: inferno-core serves its own UI, assets, and API at /
+        # (config.ru mounts Rack::Static for the assets), so the app Service is
+        # the direct backend.
+        - name: inferno
+          port: 4567
+        {{- end }}

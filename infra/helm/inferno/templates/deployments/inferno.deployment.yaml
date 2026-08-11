@@ -26,6 +26,7 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.nginx.enabled }}
       volumes:
         - name: examplenginx-config
           configMap:
@@ -33,6 +34,7 @@ spec:
             items:
               - key: nginx.conf
                 path: nginx.conf
+      {{- end }}
       initContainers:
       - name: run-migrations
         image: {{ .Values.inferno.imageUrl }}
@@ -120,6 +122,7 @@ spec:
 # CPU (not memory) gates session-build latency, so it is left unchanged:
 # at 512Mi and 100m CPU takes 30sec to create new session
 # at 2Gi and 1000m CPU takes 9sec to create new session
+      {{- if .Values.nginx.enabled }}
       - name: nginx
         image: {{ .Values.nginx.platformImageUri }}
         imagePullPolicy: Always
@@ -136,3 +139,4 @@ spec:
           limits:
             memory: "64Mi"    # Nginx is very lightweight
             cpu: "50m"        # Minimal CPU needed for reverse proxy
+      {{- end }}
