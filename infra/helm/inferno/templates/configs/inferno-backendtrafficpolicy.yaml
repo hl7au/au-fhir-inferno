@@ -1,0 +1,25 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: inferno-route-resilience
+  namespace: {{ .Release.Namespace }}
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: inferno-route
+  timeout:
+    http:
+      # Must stay below the nginx keepalive_timeout (600s) so Envoy closes
+      # idle upstream connections before nginx does. Otherwise nginx can
+      # close a pooled connection just as Envoy reuses it, which surfaces
+      # as a 503 UC (upstream_reset_before_response_started).
+      connectionIdleTimeout: 300s
+  retry:
+    numRetries: 2
+    retryOn:
+      triggers:
+        # reset-before-request only retries when the connection died before
+        # the request was written, so it is safe for non-idempotent requests.
+        - reset-before-request
+        - connect-failure
