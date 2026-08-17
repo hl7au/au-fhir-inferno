@@ -8,8 +8,8 @@ GIT
 
 GIT
   remote: https://github.com/hl7au/au-ps-inferno.git
-  revision: d758b8b17ad7a1858ef916f7cecde41357a08de5
-  ref: d758b8b17ad7a1858ef916f7cecde41357a08de5
+  revision: c16a2a72bd68e5ed6fa9af9b9eecda8c9843619e
+  ref: c16a2a72bd68e5ed6fa9af9b9eecda8c9843619e
   specs:
     au_ps_inferno (1.0.0)
       inferno_core (~> 1.4.0)
