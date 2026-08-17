@@ -10,7 +10,7 @@ source "https://rubygems.org"
 
 ruby '3.3.6'
 
-gem 'inferno_core', '~> 1.0.6'
+gem 'inferno_core', '~> 1.4.0'
 gem 'pg'
 
 # Test-kit support gems. Currently the same commit in every environment, so they live
