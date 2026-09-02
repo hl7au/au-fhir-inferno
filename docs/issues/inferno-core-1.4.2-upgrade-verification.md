@@ -116,3 +116,101 @@ Three things cost hours and are worth not rediscovering:
 Any run whose failures carry DNS, connection or validator-timeout signatures is discarded
 rather than reported. Those signatures are enumerated in the harness so a degraded
 environment cannot quietly become evidence.
+
+## Second pass: released gems, inferno_core 1.4.3, generator bump
+
+The run above compared inferno_core 1.0.8 against 1.4.2 with the test kits pinned to
+branches. What prod actually adopts differs from that in four ways, so the preview was
+re-verified after the gems were released.
+
+| variable | first pass | what prod adopts |
+|---|---|---|
+| `inferno_core` | 1.4.2 | **1.4.3** |
+| `au_core_test_kit` | commit `7b14fa2f` | **1.4.6** |
+| `au_ps_inferno` | commit `908f2d96` | **1.0.1** |
+| `inferno_suite_generator` | `da378cb` on both legs | **`9b0d17e` to `da378cb`** |
+
+`au_core_test_kit` 1.4.6 needed no re-run: unpacking the released gem and diffing it
+against `7b14fa2f` shows the only differences are `version.rb` and files the gemspec never
+packages (`summary.md`, generator templates and assets). It is the verified commit.
+
+### The generator bump is forced, not optional
+
+Earlier notes recorded moving prod from `9b0d17e` to `da378cb` as a separate change. It is
+not separable. At `9b0d17e`, `test_modules/reference_resolution_test.rb` still calls
+`operation_outcome_from_hl7_wrapped_response`, `message_hash_from_issue` and
+`filter_messages`, all removed in inferno_core v1.1.0. Prod cannot run 1.4.x on that ref.
+
+### Method
+
+Prod is the correct baseline, not dev. Prod and the preview both run
+`validator-wrapper 1.0.78` / validator core 6.9.7, so the pairing is controlled on the
+validator. Dev tracks the newest wrapper (1.0.84 / core 6.10.3) by design, which makes it
+useless as a baseline here: on dev the AU PS bundle-validation tests fail where prod passes,
+and that difference is the validator version, not the kit.
+
+### Results, preview against prod
+
+| check | prod | preview | changed |
+|---|---|---|---|
+| AU Core v1.0.0 Encounter group (20 tests) | 16 pass, 4 fail | 16 pass, 4 fail | none |
+| AU Core v2.0.0 Encounter group (20 tests) | 16 pass, 4 fail | 16 pass, 4 fail | none |
+| AU PS mandatory bundle (29 shared tests) | 25 pass, 4 skip | 25 pass, 4 skip | none |
+| AU PS, new test in 1.0.1 | n/a | `nilknown_warning` passes | +1 test |
+
+The Encounter groups were chosen because they cover **both** reference-resolution modules:
+v1.0.0 uses `AUCoreTestKit::ReferenceResolutionTest` (the au_core_test_kit copy), v2.0.0
+uses `InfernoSuiteGenerator::ReferenceResolutionTest` (the generator copy, the one the
+forced ref bump replaces). Both `reference_resolution_test` cases pass on the preview.
+
+The four Encounter failures are `patient_chain`, `patient_ihi_chain`, `patient_dva_chain`
+and `patient_medicare_chain`, all "There is no reference to the target resource in the
+returned result". They are identical on prod, dev and the preview: server-side findings on
+the reference server, not a kit regression.
+
+### Session creation, after deleting HoistChildrenAvailableInputs
+
+The local patch is gone and the upstream hoist carries it. Measured on the preview:
+
+| suite | tests | session creation |
+|---|---|---|
+| au_ps_v100 | 87 | 0.38s |
+| au_core_v100 | 394 | 0.78s |
+| au_core_v200 | 425 | 0.87s |
+| au_core_v210_draft | 498 | 0.87s |
+| au_core_v300_ballot1 | 498 | 0.72s |
+
+Comfortably inside the 15s Envoy route timeout, against the 4.93s that
+`au_core_v210_draft` cost on 1.0.8 with the patch removed. The 504 risk #159 addressed does
+not reopen.
+
+### AU PS message improvement is real
+
+Same validator, same bundle, `au_ps_inferno` 1.0.0 against 1.0.1:
+
+| | prod (1.0.0) | preview (1.0.1) |
+|---|---|---|
+| warnings | 67 | 18 |
+| information | 47 | 32 |
+| "CodeSystem 'http://snomed.info/sct' version 'null' could not be found" | 37 | 0 |
+
+That is #108 (`snomedCT 'au'`) working end to end, with no result changes.
+
+## Follow-up found by this pass: AU Core still asks for the International edition
+
+The generator's configurable SNOMED edition (`3edfd8f`) ships in `da378cb`, and its default
+is the International edition. On the preview the AU Core SNOMED warnings change from
+
+    version 'null' could not be found
+
+to
+
+    version 'http://snomed.info/sct/900000000000207008' could not be found
+
+`900000000000207008` is the SNOMED CT core (International) module. The AU terminology server
+carries the Australian edition, `32506021000036107`, so the codes still go unvalidated: 56 of
+them in the v2.0.0 Encounter group alone. Results are unchanged and prod has the same
+unvalidated codes today under the older wording, so this does not block the upgrade.
+
+The fix is the one AU PS already took in hl7au/au-ps-inferno#108: set the generator's
+`snomed_edition` to `au` for the AU Core suites. Worth raising separately.
