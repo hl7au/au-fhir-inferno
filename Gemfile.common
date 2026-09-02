@@ -1,39 +1,54 @@
 # frozen_string_literal: true
 
 # Shared dependency set, eval'd by BOTH Gemfile (prod / released) and Gemfile.dev
-# (bleeding-edge test-kit commits). The test-kit gems that intentionally DIFFER
-# between environments — au_core_test_kit and au_ps_inferno — are declared in the
-# including Gemfile, NOT here. Everything in this file is identical across envs and
-# flows to prod normally.
+# (bleeding-edge test-kit commits). The gems that intentionally DIFFER between
+# environments are declared in the including Gemfile, NOT here: au_core_test_kit and
+# au_ps_inferno. Everything in this file is identical across envs and flows to prod
+# normally.
 
 source "https://rubygems.org"
 
 ruby '3.3.6'
 
-gem 'inferno_core', '~> 1.0.6'
 gem 'pg'
+
+# '~> 1.4.3' means >= 1.4.3, < 1.5.0; each lockfile pins the exact version. 1.4.3 is the
+# current release of the 1.4.x line, which the platform moved to from 1.0.8. See
+# docs/issues/inferno-core-1.4.2-upgrade-verification.md for the before/after evidence
+# behind that move.
+gem 'inferno_core', '~> 1.4.3'
 
 # Test-kit support gems. Currently the same commit in every environment, so they live
 # here. Pinned to explicit refs for reproducibility (validation_test_kit previously
 # floated to the beda-software default branch, including in prod).
 gem 'validation_test_kit', git: 'https://github.com/beda-software/validation-test-kit', ref: '3438159ae5860216d37c559725fbfdc316ad745c'
 
-# inferno_suite_generator is a runtime dependency of the generated AU Core suites (they
-# require 'inferno_suite_generator/utils/helpers' and subclass its test classes). Its ref
-# must match the version the pinned au_core_test_kit was built against. Both envs now track
-# the released 1.4.3 gem (built against 9b0d17e), so it lives here again; split it back into
-# the including Gemfiles only if dev and prod ever pin au_core versions needing different
-# generators.
-gem 'inferno_suite_generator', github: 'hl7au/inferno_suite_generator', ref: '9b0d17ef2ade2027cce33cca5539f84ab5bf5f85'
+# da378cb is the generator's main at the point au_core_test_kit 1.4.5 was cut, and 1.4.5's
+# own Gemfile tracks this gem at branch: main, so it is the pairing the AU Core
+# v3.0.0-ballot1 suite was generated against. Pinned by SHA because main moves.
+#
+# This ref is REQUIRED by inferno_core 1.4.x, not merely preferred. At the previous ref
+# (9b0d17e) ReferenceResolutionTest validates reference targets out of
+# operation_outcome_from_hl7_wrapped_response, message_hash_from_issue and
+# filter_messages, all removed in inferno_core v1.1.0, across 68 tests in the generated
+# v2.0.0, v2.1.0-draft and v3.0.0-ballot1 suites. That block sits inside a
+# `rescue StandardError`, so those tests would fail rather than error, reading as a
+# conformance problem with the server under test rather than a broken kit.
+gem 'inferno_suite_generator', github: 'hl7au/inferno_suite_generator', ref: 'da378cb0db730c83be414b66650f2ae29bcc8f83'
 
 gem 'sinatra'
 gem 'sidekiq-cron'
 
-# Pin connection_pool to the 2.x line. Sidekiq 7.2.4 calls TimedStack#pop with a
+# Pin connection_pool to the 2.x line. Sidekiq 7.x calls TimedStack#pop with a
 # positional timeout, but connection_pool 3.0 made that keyword-only, so 3.x raises
 # "wrong number of arguments (given 1, expected 0)" and kills Sidekiq's scheduler/cron
-# poller thread (e.g. the Old Session Deletion cron silently stops). Remove this pin once
-# Sidekiq is on >= 7.3, which adopted the connection_pool 3.0 API.
+# poller thread (e.g. the Old Session Deletion cron silently stops).
+#
+# The pin is redundant while inferno_core requires 'sidekiq ~> 7.3.10', because sidekiq
+# 7.3.10 itself declares 'connection_pool >= 2.3.0, < 3'. It is kept as a belt-and-braces
+# guard and because the failure mode is silent. connection_pool 3.0 was adopted in sidekiq
+# 8.x, not 7.3 as an earlier version of this comment claimed, so drop this only once
+# inferno_core moves to sidekiq 8.
 gem 'connection_pool', '~> 2.5'
 
 # OpenTelemetry. The worker and the web process both emit spans to Alloy, which forwards

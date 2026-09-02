@@ -6,15 +6,17 @@
 #
 #   BUNDLE_GEMFILE=Gemfile.dev bundle install
 #
-# Do NOT move these unreleased SHAs into the base Gemfile — keeping them quarantined
-# here is what stops a development -> master merge from dragging unreleased test-kit
-# versions into prod. Bump the refs below when dev should track newer commits.
+# Do NOT move unreleased SHAs into the base Gemfile: keeping them quarantined here is
+# what stops a development -> master merge from dragging unreleased test-kit versions
+# into prod. Swap a floor below for a `github:`/`ref:` pin when dev should track an
+# unreleased commit, and move it back once that commit ships.
 
 eval_gemfile 'Gemfile.common'
 
-# Bleeding-edge AU Core test kit — unreleased commit ahead of the RubyGems release.
-gem 'au_core_test_kit', '>= 1.4.5'
+# Bleeding-edge AU Core test kit. Floored at the release carrying the inferno_core 1.4.x
+# reference-resolution fix; Gemfile.dev.lock pins the exact version.
+gem 'au_core_test_kit', '>= 1.4.6'
 
-
-# Bleeding-edge AU PS test kit — unreleased commit ahead of the RubyGems release.
-gem 'au_ps_inferno', '>= 1.0.0'
+# Bleeding-edge AU PS test kit. Floored at the release that drops the
+# 'inferno_core ~> 1.0.6' cap; Gemfile.dev.lock pins the exact version.
+gem 'au_ps_inferno', '>= 1.0.1'
