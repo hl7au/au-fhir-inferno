@@ -6,42 +6,17 @@
 #
 #   BUNDLE_GEMFILE=Gemfile.dev bundle install
 #
-# Do NOT move these unreleased SHAs into the base Gemfile — keeping them quarantined
-# here is what stops a development -> master merge from dragging unreleased test-kit
-# versions into prod. Bump the refs below when dev should track newer commits.
+# Do NOT move unreleased SHAs into the base Gemfile: keeping them quarantined here is
+# what stops a development -> master merge from dragging unreleased test-kit versions
+# into prod. Swap a floor below for a `github:`/`ref:` pin when dev should track an
+# unreleased commit, and move it back once that commit ships.
 
 eval_gemfile 'Gemfile.common'
 
-# inferno_core 1.4.x, staged here first. Prod stays on 1.0.x until the two test-kit fixes
-# below are released (see Gemfile). '~> 1.4.2' means >= 1.4.2, < 1.5.0; Gemfile.dev.lock
-# pins the exact version.
-gem 'inferno_core', '~> 1.4.2'
+# Bleeding-edge AU Core test kit. Floored at the release carrying the inferno_core 1.4.x
+# reference-resolution fix; Gemfile.dev.lock pins the exact version.
+gem 'au_core_test_kit', '>= 1.4.6'
 
-# da378cb is the generator's main at the point au_core_test_kit 1.4.5 was cut, and 1.4.5's
-# own Gemfile tracks this gem at branch: main, so it is the pairing the AU Core
-# v3.0.0-ballot1 suite was generated against. Pinned by SHA because main moves.
-#
-# It is also what unblocks inferno_core 1.4.x here: ReferenceResolutionTest at the ref the
-# base Gemfile still uses validates reference targets out of Validator internals that
-# inferno_core removed in v1.1.0, across 68 tests in the generated v2.0.0, v2.1.0-draft and
-# v3.0.0-ballot1 suites. That block is wrapped in `rescue StandardError`, so those tests
-# would fail rather than error, reading as a conformance problem with the server under test.
-gem 'inferno_suite_generator', github: 'hl7au/inferno_suite_generator', ref: 'da378cb0db730c83be414b66650f2ae29bcc8f83'
-
-# Bleeding-edge AU Core test kit. Pinned to the inferno_core 1.4.x compatibility branch,
-# which is master (1.4.5, the first version carrying the AU Core v3.0.0-ballot1 suite)
-# plus one commit: ReferenceResolutionTest validates through Validator#resource_is_valid?
-# instead of the Validator internals inferno_core removed in v1.1.0. That module backs the
-# v1.0.0 suite only; v2.0.0, v2.1.0-draft and v3.0.0-ballot1 use the generator's copy,
-# already fixed at the ref pinned in Gemfile.common. Move back to a released version once
-# this lands and 1.4.6 ships. See hl7au/au-fhir-core-inferno#302.
-gem 'au_core_test_kit', github: 'hl7au/au-fhir-core-inferno',
-                        ref: '7b14fa2fb21e5aa47b80f227b4f979d6954bd8bc'
-
-# Bleeding-edge AU PS test kit. Pinned to the inferno_core 1.4.x compatibility branch,
-# which is the released 1.0.0 tag plus the gemspec relaxation from 'inferno_core ~> 1.0.6'
-# to '>= 1.0.6'. That cap was the only one on inferno_core in the whole tree and is what
-# blocked this upgrade. Move back to a released version once 1.0.1 ships.
-# See hl7au/au-ps-inferno#113.
-gem 'au_ps_inferno', github: 'hl7au/au-ps-inferno',
-                     ref: '908f2d968298001bd086d257c90e77641cfe30d2'
+# Bleeding-edge AU PS test kit. Floored at the release that drops the
+# 'inferno_core ~> 1.0.6' cap; Gemfile.dev.lock pins the exact version.
+gem 'au_ps_inferno', '>= 1.0.1'
