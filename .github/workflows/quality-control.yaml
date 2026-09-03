@@ -86,6 +86,16 @@ jobs:
             --set validator.resources.limits.cpu=2000m \
             --set 'ingress.hostnames[0]=pr-0.preview.inferno.sparked-fhir.com' > /dev/null
           echo "::endgroup::"
+          echo "::group::retired-hostname redirect"
+          # The old-hostname 301 is a Gateway API RequestRedirect filter rather than a
+          # redirect-nginx Deployment, so a mistake here loses the redirect silently:
+          # every template still renders, there is just no filter and no backend. Assert
+          # the filter is present, and that the pod it replaced is not.
+          prod_render=$(helm template inferno . -n inferno -f values-prod.yaml)
+          echo "$prod_render" | grep -q 'type: RequestRedirect'
+          echo "$prod_render" | grep -q 'hostname: "inferno.hl7.org.au"'
+          ! echo "$prod_render" | grep -q 'name: redirect-nginx'
+          echo "::endgroup::"
 
       # Boots the full Inferno app (spec_helper → migrations on sqlite :memory:), so it's
       # the heaviest check — run last so the deterministic checks above always report.
