@@ -2,6 +2,7 @@ require 'inferno'
 require_relative 'lib/inferno_platform_template/patches'
 require_relative 'lib/inferno_platform_template/health_check'
 require_relative 'lib/inferno_platform_template/static_site'
+require_relative 'lib/inferno_platform_template/suite_redirects'
 require_relative 'lib/inferno_platform_template/database_pool'
 
 # Per-runnable duration tracking (results.duration_ms) is dev-only while it is a
@@ -57,10 +58,15 @@ use Rack::Deflater,
       'application/xml'
     ]
 
-# The Jekyll landing site, previously served by a separate nginx image. Above the
-# OpenTelemetry handler and the request logger for the same reason HealthCheck is: a page
-# view or an asset fetch is answered here and never forwarded, so it costs neither a span
-# nor an access-log line. Falls through to Inferno for anything it does not own.
+# The two middlewares that replace the nginx layer: the /suites -> /test-kits landing
+# page redirects, then the Jekyll site itself. Both are above the OpenTelemetry handler
+# and the request logger for the same reason HealthCheck is: a page view, an asset fetch
+# or a redirect is answered here and never forwarded, so it costs neither a span nor an
+# access-log line. Both fall through to Inferno for anything they do not own.
+#
+# SuiteRedirects sits above StaticSite because its paths are under /suites, which the
+# site never contains; the ordering is about intent rather than necessity.
+use InfernoPlatformTemplate::SuiteRedirects
 use InfernoPlatformTemplate::StaticSite
 
 use Rack::Static,
