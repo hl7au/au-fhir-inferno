@@ -101,10 +101,26 @@ inferno:
   resultDuration: false
 
 nginx:
+  # The whole nginx layer: the nginx-app Deployment and Service the HTTPRoute
+  # sends "/" to, the sidecar in the inferno-app pod, and the nginx-config
+  # ConfigMap. ON by default because the aggregator environments need it: the
+  # static landing site lives in the nginx image, and the /suites -> /test-kits
+  # rewrites live in its config.
+  #
+  # OFF for environments that run a bare test kit with no static site (the
+  # aucore-previews / aups-previews ApplicationSets in aehrc/sparked-argo,
+  # au-fhir-inferno#187). inferno-core serves its own UI, assets, and API at /
+  # (its config.ru mounts Rack::Static), and the gateway already routes
+  # /hl7validatorapi straight to the validator Service, so for those
+  # environments the proxy adds nothing: the HTTPRoute sends / directly to the
+  # inferno Service on 4567 instead. nginx's client_max_body_size stops
+  # mattering too; that directive only exists because nginx itself defaults to
+  # a 1MB body cap, and Envoy streams request bodies without one.
+  enabled: true
   # Reverse proxy in front of inferno-app (templates/deployments/nginx.deployment.yaml,
   # the backend the HTTPRoute sends "/" to). Same placeholder treatment as
   # inferno.imageUrl above: always overridden per environment, so this default only
-  # exists to keep the chart renderable on its own.
+  # exists to keep the chart renderable on its own. Ignored when enabled: false.
   platformImageUri: "ghcr.io/hl7au/au-fhir-inferno:overridden-per-environment-nginx"
 
 # HPA for inferno-app (templates/deployments/inferno.hpa.yaml). OFF by default: only

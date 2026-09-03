@@ -10,9 +10,13 @@ spec:
       port: 4567
       targetPort: 4567
       protocol: TCP
+    {{- if .Values.nginx.enabled }}
+    # Port 80 targets the nginx sidecar in the inferno-app pod, which only
+    # exists while the nginx layer is enabled.
     - name: nginx
       port: 80
       targetPort: 80
       protocol: TCP
+    {{- end }}
   selector:
     app: inferno-app
