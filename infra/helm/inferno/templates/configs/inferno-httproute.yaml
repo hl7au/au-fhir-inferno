@@ -25,12 +25,15 @@ spec:
             value: /
       backendRefs:
         {{- if .Values.nginx.enabled }}
+        # Deprecated branch, kept only for prod until it is promoted to an image
+        # containing the static site. See the nginx block in values.yaml.
         - name: nginx
           port: 80
         {{- else }}
-        # No nginx layer: inferno-core serves its own UI, assets, and API at /
-        # (config.ru mounts Rack::Static for the assets), so the app Service is
-        # the direct backend.
+        # The default. The application image serves everything at /: the Jekyll landing
+        # site and the /suites -> /test-kits redirects via the middlewares in config.ru,
+        # Inferno's own UI, assets and API under /suites. So the app Service is the direct
+        # backend, and /hl7validatorapi above is the only thing the gateway splits off.
         - name: inferno
           port: 4567
         {{- end }}

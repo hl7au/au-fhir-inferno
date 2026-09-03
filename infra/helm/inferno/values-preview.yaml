@@ -11,9 +11,14 @@
 #
 # ONLY SHARED, ENVIRONMENT-INDEPENDENT POLICY BELONGS HERE. Anything a single preview
 # decides for itself stays inline in the ApplicationSet: the per-PR hostname, the per-PR
-# image, and the nginx / health-probe switches, which differ between an aggregator
-# preview (full stack, nginx layer, probes on) and a bare test-kit preview (no nginx, no
-# probes, because the kit images carry neither the static site nor the /healthz code).
+# image, and the health-probe switch, which differs between an aggregator preview (full
+# stack, probes on) and a bare test-kit preview (no probes, because the kit images do not
+# carry the /healthz code).
+#
+# No preview deploys nginx any more, aggregator ones included: the static site and the
+# /suites -> /test-kits redirects ship in the application image, and the chart default is
+# now nginx.enabled: false. The ApplicationSets still pass nginx.platformImageUri, which
+# the schema accepts and no template reads; that goes when the nginx layer does.
 #
 # Not for dev or prod. values-dev.yaml and values-prod.yaml are unaffected by this file.
 
