@@ -73,7 +73,7 @@
         "imageUrl": { "type": "string" },
         "host": {
           "type": "string",
-          "description": "Public origin written to INFERNO_HOST, which inferno_core uses to build absolute redirects (session creation 302s to <host>/suites/<suite>/<id>). Empty derives https://<first ingress hostname>; set it only where the canonical origin is not the first ingress hostname."
+          "description": "CANONICAL public origin written to INFERNO_HOST. It is what inferno stamps into request-independent absolute URLs (the canonical link, og:/twitter: metadata). It does not pin users to one hostname: the app rewrites its own /suites redirects onto the hostname the client used. Empty derives https://<first ingress hostname>; set it only where the canonical origin is not the first ingress hostname."
         },
         "validatorImageUri": { "type": "string" },
         "terminologyServer": { "type": "string" },

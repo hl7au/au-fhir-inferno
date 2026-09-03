@@ -19,11 +19,16 @@ data:
   #
   # Derived from the first ingress hostname so a new environment gets this for free, and
   # https because TLS terminates at the gateway and every hostname is served over it.
-  # inferno.host overrides it for an environment whose canonical origin is not its first
-  # ingress hostname, which is worth setting wherever an environment serves SEVERAL
-  # hostnames: this is one baked value, so a session created on a non-canonical hostname
-  # moves the user to the canonical one. Same backend and same database, so the session is
-  # unaffected, but the address bar changes.
+  # inferno.host overrides it where the canonical origin is not the first ingress
+  # hostname.
+  #
+  # This is the CANONICAL origin, not a constraint on where users may be. It is what
+  # inferno stamps into absolute URLs that are not tied to a request: the page's canonical
+  # link and its og:/twitter: metadata. Session redirects are no longer bound to it,
+  # because InfernoPlatformTemplate::RequestHostRedirects rewrites a Location on this
+  # origin under /suites back onto the hostname the client actually used. So on an
+  # environment serving several hostnames, a session created on a non-canonical one STAYS
+  # on that hostname, exactly as it did behind nginx's proxy_redirect.
   INFERNO_HOST: {{ .Values.inferno.host | default (printf "https://%s" (first .Values.ingress.hostnames)) | quote }}
   # validator-api is a single-pod Deployment, so this plain Service has one endpoint
   # (no cross-pod session-cache thrash, auto-fails-over when the pod is replaced).

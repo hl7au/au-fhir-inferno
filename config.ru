@@ -3,6 +3,7 @@ require_relative 'lib/inferno_platform_template/patches'
 require_relative 'lib/inferno_platform_template/health_check'
 require_relative 'lib/inferno_platform_template/static_site'
 require_relative 'lib/inferno_platform_template/suite_redirects'
+require_relative 'lib/inferno_platform_template/request_host_redirects'
 require_relative 'lib/inferno_platform_template/database_pool'
 
 # Per-runnable duration tracking (results.duration_ms) is dev-only while it is a
@@ -87,6 +88,13 @@ use(*OpenTelemetry::Instrumentation::Rack::Instrumentation.instance.middleware_a
 Inferno::Application.finalize!
 
 InfernoPlatformTemplate::DatabasePool.configure!
+
+# Innermost platform middleware, wrapping Inferno itself so it sees the absolute 302 the
+# session form POST and the session show route emit. It rewrites those Location headers
+# back onto the hostname the client used, which is what nginx's proxy_redirect did on its
+# /suites location. Only redirects to our own configured origin and inside /suites are
+# touched, so a test kit's OAuth redirect is left alone.
+use InfernoPlatformTemplate::RequestHostRedirects
 
 use Inferno::Utils::Middleware::RequestLogger
 
