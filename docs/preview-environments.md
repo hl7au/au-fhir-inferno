@@ -37,6 +37,12 @@ add `preview` label
            ephemeral in-namespace Postgres (no RDS).
 ```
 
+> **The `-nginx-pr` image is still built but no longer deployed.** The static landing
+> site and the `/suites` -> `/test-kits` redirects now ship inside the application image
+> and are served by Rack middleware, so `nginx.enabled` defaults to false and no preview
+> runs an nginx pod. The image build (and the tag above) goes away with the rest of the
+> nginx layer once prod is promoted to an image containing the site.
+
 - **Hostname:** `pr-<n>.preview.inferno.sparked-fhir.com`, covered by the
   `*.preview.inferno.sparked-fhir.com` wildcard TLS cert + gateway listener.
 - **Database:** an ephemeral in-namespace Postgres (Bitnami subchart), created and
