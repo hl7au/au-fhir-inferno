@@ -1,4 +1,22 @@
 {{- if .Values.redirectIngress.enabled }}
+{{- if not .Values.redirectIngress.targetUrl }}
+{{- fail "redirectIngress.enabled is true but redirectIngress.targetUrl is empty: there is nothing to redirect to" }}
+{{- end }}
+{{- $target := urlParse .Values.redirectIngress.targetUrl }}
+{{- if not $target.hostname }}
+{{- fail (printf "redirectIngress.targetUrl %q has no host; expected an absolute URL such as https://inferno.hl7.org.au" .Values.redirectIngress.targetUrl) }}
+{{- end }}
+# Permanent redirect from this environment's retired hostnames to its current one.
+#
+# This used to be a two-replica nginx Deployment whose entire config was
+# `return 301 <targetUrl>$request_uri`, plus the Service and ConfigMap to support it, and
+# this route pointed at that Service. Envoy Gateway (v1.8.2 here) implements the Gateway
+# API RequestRedirect filter fully, so the gateway answers the 301 itself and the pods,
+# the Service, the ConfigMap and their PodDisruptionBudget are all gone.
+#
+# No path modifier is set, which is exactly the behaviour the nginx config had: the
+# request path is preserved and only scheme, host and status change, so a bookmarked deep
+# link on an old hostname lands on the same page on the new one.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -17,7 +35,14 @@ spec:
         - path:
             type: PathPrefix
             value: /
-      backendRefs:
-        - name: redirect-nginx
-          port: 80
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            # Taken from targetUrl, defaulting to https: TLS terminates at the gateway
+            # and every hostname on it is served over https, so a redirect to http would
+            # only earn a second hop. hostname (not host) so a targetUrl carrying a port
+            # does not produce "host:port" in a field that must be a bare hostname.
+            scheme: {{ $target.scheme | default "https" | quote }}
+            hostname: {{ $target.hostname | quote }}
+            statusCode: 301
 {{- end }}

@@ -57,16 +57,18 @@ postgresql:
         database: inferno
 
 # Cap voluntary disruption (Karpenter consolidation, node drain) to one pod at a time
-# for each replicated workload: worker and nginx run 2 replicas, redirect-nginx runs 2,
-# and inferno-app autoscales 1 to 6. maxUnavailable of 1 is permissive at 1 replica and
-# protective above it, and never blocks consolidation. inferno-redis and validator-api
-# are deliberately omitted: they are singletons whose protection is on-demand pinning,
-# not a no-op PDB.
+# for each replicated workload: worker and nginx run 2 replicas and inferno-app
+# autoscales 1 to 6. maxUnavailable of 1 is permissive at 1 replica and protective above
+# it, and never blocks consolidation. inferno-redis and validator-api are deliberately
+# omitted: they are singletons whose protection is on-demand pinning, not a no-op PDB.
+#
+# redirect-nginx is gone: the old-hostname 301 is now a Gateway API RequestRedirect
+# filter on the HTTPRoute, so there is no pod left to protect. nginx-app follows it in
+# the change that removes the nginx layer from prod.
 podDisruptionBudgets:
   - app: inferno-app
   - app: inferno-worker
   - app: nginx-app
-  - app: redirect-nginx
 
 healthProbes:
   # Prod pins inferno.imageUrl to a promoted SHA that predates the /healthz endpoints and
