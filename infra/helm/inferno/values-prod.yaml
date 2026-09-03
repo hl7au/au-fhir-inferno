@@ -11,7 +11,7 @@ redirectIngress:
   targetUrl: "https://inferno.hl7.org.au"
 
 inferno:
-  imageUrl: ghcr.io/hl7au/au-fhir-inferno:c4d9207ca10e1b1660fc28e72476cf5ff6968b2d
+  imageUrl: ghcr.io/hl7au/au-fhir-inferno:e2a65dcf6e9088ed5685a1e19f5f53cb0dd566f2
   usesWrapper: true
   # HELD AT 1.0.78. Prod stays pinned (never :latest) so promotions are explicit, but
   # this pin is now a deliberate hold rather than a lag: do not advance it without
@@ -39,7 +39,7 @@ autoscaling:
   targetCPUUtilizationPercentage: 70
 
 nginx:
-  platformImageUri: ghcr.io/hl7au/au-fhir-inferno:c4d9207ca10e1b1660fc28e72476cf5ff6968b2d-nginx
+  platformImageUri: ghcr.io/hl7au/au-fhir-inferno:e2a65dcf6e9088ed5685a1e19f5f53cb0dd566f2-nginx
 
 
 externalSecrets:
