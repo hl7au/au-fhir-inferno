@@ -62,6 +62,11 @@ jobs:
           # with it, not just the values: values.schema.json rejects unknown keys, so a
           # key the ApplicationSet passes but this render omits would break every
           # preview environment while CI still reported green.
+          #
+          # nginx.platformImageUri is one of those: previews no longer deploy nginx (the
+          # chart default is enabled: false now that the app image serves the static
+          # site) but the ApplicationSet still passes the key, so this render must too.
+          # It goes when the nginx layer does.
           helm template inferno-pr-0 . -n inferno-pr-0 \
             --set createNamespace=true \
             --set capacityType=spot \

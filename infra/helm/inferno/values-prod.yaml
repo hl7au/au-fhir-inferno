@@ -12,6 +12,13 @@ redirectIngress:
 
 inferno:
   imageUrl: ghcr.io/hl7au/au-fhir-inferno:e2a65dcf6e9088ed5685a1e19f5f53cb0dd566f2
+  # Set explicitly because prod serves TWO hostnames and the derived default would take
+  # the first one, inferno.sparked-fhir.com. INFERNO_HOST is a single baked value that
+  # inferno_core builds absolute session redirects from, so it has to name the canonical
+  # public origin: hl7.org.au is what the site, the retired-hostname redirect above and
+  # the image's own .env all point at. A session created on inferno.sparked-fhir.com
+  # therefore continues on inferno.hl7.org.au, against the same backend and database.
+  host: "https://inferno.hl7.org.au"
   usesWrapper: true
   # HELD AT 1.0.78. Prod stays pinned (never :latest) so promotions are explicit, but
   # this pin is now a deliberate hold rather than a lag: do not advance it without
@@ -38,7 +45,17 @@ autoscaling:
   maxReplicas: 6
   targetCPUUtilizationPercentage: 70
 
+# PROD ONLY, and temporary. The chart default is now enabled: false, because the static
+# site and the /suites -> /test-kits redirects ship in the application image. Prod cannot
+# take that default yet: this chart renders from master on merge while inferno.imageUrl
+# above is pinned and only advances on a promotion PR, so between the two prod would run
+# an image with no static site behind a chart with nothing serving one, and the landing
+# page would 404.
+#
+# Remove this block, along with the nginx templates, sidecar and image build, in the
+# follow-up change once the promotion above lands an image containing _site.
 nginx:
+  enabled: true
   platformImageUri: ghcr.io/hl7au/au-fhir-inferno:e2a65dcf6e9088ed5685a1e19f5f53cb0dd566f2-nginx
 
 
