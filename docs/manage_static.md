@@ -13,6 +13,7 @@ used to:
 | --- | --- |
 | Serving `_site` at `/`, mime types, `Last-Modified`, `Cache-Control` | `lib/inferno_platform_template/static_site.rb` |
 | `/suites` and `/suites/<suite_id>` to the kit page under `/test-kits/` | `lib/inferno_platform_template/suite_redirects.rb` |
+| Keeping Inferno's own absolute redirects on the hostname the client used | `lib/inferno_platform_template/request_host_redirects.rb` |
 | gzip for text responses | `Rack::Deflater` in `config.ru` |
 
 Consequences worth knowing:

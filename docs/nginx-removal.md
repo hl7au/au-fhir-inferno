@@ -1,9 +1,7 @@
-# Platform workstreams in flight
+# Removing the nginx layer
 
-Work that spans more than one PR, with the sequencing that makes each step safe. One
-section per workstream; delete a section once nothing is left in it.
-
-## 1. Remove the nginx layer
+This change spans two PRs. Here is the sequencing that makes each step safe, and what is
+left to do. Delete this file once nothing is.
 
 The platform used to ship two images per release: the application image, and an nginx
 image (`nginx.Dockerfile`) that baked the generated Jekyll site in and proxied `/suites`
@@ -19,7 +17,7 @@ Everything nginx.conf did now has a home in the application image:
 | `rewrite ^/suites/...` to `/test-kits/...` | `lib/inferno_platform_template/suite_redirects.rb` |
 | `gzip on` | `Rack::Deflater` in `config.ru` |
 | `Cache-Control` / `expires` maps | `static_site.rb` (same extensions, same values) |
-| `proxy_redirect` patching absolute `Location` headers | `INFERNO_HOST` set properly, from the first ingress hostname (`templates/configs/inferno-configmap.yaml`) |
+| `proxy_redirect` patching absolute `Location` headers | `lib/inferno_platform_template/request_host_redirects.rb`, plus `INFERNO_HOST` set per environment from the first ingress hostname (`templates/configs/inferno-configmap.yaml`) |
 | `proxy_pass /hl7validatorapi` | already the gateway's job (`inferno-httproute.yaml`) |
 | `client_max_body_size 4G` | not needed; Envoy streams request bodies with no cap, the 1MB default was nginx's own |
 
@@ -37,10 +35,18 @@ Image Updater tracks master builds there and their image is minutes behind the c
 * `_site` copied into the application image; `StaticSite` and `SuiteRedirects`
   middlewares plus `Rack::Deflater` mounted in `config.ru`, above the OpenTelemetry
   handler and the request logger so pages and assets cost neither a span nor a log line.
+* `RequestHostRedirects` mounted around the Inferno app, rewriting an absolute `Location`
+  on our own origin under `/suites` back onto the hostname the client used. This is
+  nginx's `proxy_redirect` rule, scoped to our own origin so a test kit's OAuth redirect
+  is never touched. Without it, removing nginx would regress every environment serving
+  more than one hostname.
 * `INFERNO_HOST` written from the first ingress hostname, overridable with
-  `inferno.host`. This was never set, so inferno_core defaulted to
-  `http://localhost:4567` for the absolute redirect it issues on session creation, and
-  nginx's `proxy_redirect` was quietly repairing it.
+  `inferno.host`. Nothing set it here before, so the value came from the `.env` baked
+  into the image: the dev-flavoured image, which every preview also runs, carries the dev
+  host, and prod's image carries `hl7.org.au`. inferno_core builds an absolute redirect
+  from it on session creation, so a preview would have sent its user to dev. It is now
+  the environment's canonical origin, and with the middleware above it no longer decides
+  which hostname a user ends up on.
 * Kit pages fetch `/suites/api/test_suites` and hide suites the running app does not
   have, because the site is generated once and shipped to environments whose test kit
   gems differ.

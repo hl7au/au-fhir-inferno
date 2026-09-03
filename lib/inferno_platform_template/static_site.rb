@@ -28,7 +28,7 @@
 # page at all. So nginx.enabled defaults to false (dev and previews, which track master
 # builds, pick this up immediately) and values-prod.yaml keeps it true until prod is
 # promoted to an image containing _site. The nginx image, templates and sidecar are
-# deleted in the follow-up change; see docs/platform-next-workstreams.md.
+# deleted in the follow-up change; see docs/nginx-removal.md.
 #
 # Implemented as middleware rather than a mounted app so it can sit above Inferno's
 # RequestLogger and the OpenTelemetry handler: a page view or an asset fetch is answered
