@@ -214,3 +214,61 @@ unvalidated codes today under the older wording, so this does not block the upgr
 
 The fix is the one AU PS already took in hl7au/au-ps-inferno#108: set the generator's
 `snomed_edition` to `au` for the AU Core suites. Worth raising separately.
+
+## Post-deploy: cliContext changes are inert until validator-api restarts
+
+v1.2.0 is live on prod and the app tier upgraded cleanly. Session creation is 0.28s to
+0.64s across all five suites, all 11 suites register, and re-running the same two groups on
+prod before and after the promotion gives zero result changes. But the validation
+**messages** on prod are byte-for-byte the pre-upgrade ones:
+
+| | prod before | prod after | preview (fresh validator) |
+|---|---|---|---|
+| AU Core v2.0.0 Encounter, `version 'null'` messages | 56 | **56** | 0 |
+| AU PS mandatory bundle, `version 'null'` messages | 37 | **37** | 0 |
+| AU PS warnings | 67 | **67** | 18 |
+
+The AU PS SNOMED improvement from hl7au/au-ps-inferno#108 is therefore **not live on prod**,
+even though the code that produces it is deployed.
+
+### Why
+
+Validator sessions are keyed by `(test_suite_id, validator_name, suite_options)`. The
+**cliContext is not part of the key**, and `SESSION_CACHE_DURATION=-1` means sessions never
+expire. A promotion bumps the Inferno app image but not `validator-api`, whose pod keeps
+running with sessions built under the *old* cliContext. Changing `snomedCT`, `txServer`,
+`igs` or any other cliContext value in a test kit therefore has no effect on a host whose
+validator has already warmed that suite, and no error is raised: the new context is simply
+never sent to a new session.
+
+The preview showed the improvement precisely because its validator pod was new.
+
+### Why this matters beyond one release
+
+The change is not cancelled, only deferred. It lands whenever `validator-api` next
+restarts, which is not tied to any deploy: a node drain, an eviction, or the wrapper's own
+heap-pressure guard discarding the ValidationService will all do it. So prod's validation
+output will shift at an unpredictable moment, with no correlated change in the repo.
+
+Both pending shifts arrive together, and they pull in opposite directions:
+
+- **improvement**: AU PS drops from 67 warnings to 18 and loses all 37 unresolved-SNOMED
+  messages.
+- **regression in wording only**: the AU Core suites start asking for
+  `http://snomed.info/sct/900000000000207008` (SNOMED CT core, International) instead of
+  `null`. The AU terminology server carries `32506021000036107`, so those codes stay
+  unvalidated either way, but the request becomes explicitly wrong rather than merely unset.
+
+### Recommended order
+
+Fix the AU Core SNOMED edition before restarting the validator, so the sessions rebuild
+once, into a strictly better state:
+
+1. Set the generator's `snomed_edition` to `au` for the AU Core suites, the way
+   hl7au/au-ps-inferno#108 did for AU PS.
+2. Release and promote that.
+3. Only then restart `validator-api`, letting the warmer sidecar rebuild sessions under the
+   new context.
+
+Restarting first works too, but it books the AU Core wording regression for however long
+step 1 takes, and it changes prod's output twice instead of once.
