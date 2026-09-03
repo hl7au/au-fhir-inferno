@@ -1,0 +1,110 @@
+# Shared policy for EPHEMERAL PREVIEW ENVIRONMENTS, layered over values.yaml.
+#
+# Consumed by the two preview ApplicationSets in aehrc/sparked-argo
+# (apps/inferno-previews.yaml for aggregator PR previews, apps/kit-previews.yaml for
+# standalone test-kit PR previews). Both used to carry this policy inline, twice, under
+# a "keep in sync" comment. It now lives with the chart it configures, so tuning a
+# preview is one edit in one place.
+#
+# Both ApplicationSets read this file from au-fhir-inferno MASTER, so a change here
+# reaches every open preview on the next reconcile, with no rebase of the PR branches.
+#
+# ONLY SHARED, ENVIRONMENT-INDEPENDENT POLICY BELONGS HERE. Anything a single preview
+# decides for itself stays inline in the ApplicationSet: the per-PR hostname, the per-PR
+# image, and the nginx / health-probe switches, which differ between an aggregator
+# preview (full stack, nginx layer, probes on) and a bare test-kit preview (no nginx, no
+# probes, because the kit images carry neither the static site nor the /healthz code).
+#
+# Not for dev or prod. values-dev.yaml and values-prod.yaml are unaffected by this file.
+
+# Render the destination Namespace as a managed resource so ArgoCD prunes it on
+# teardown (CreateNamespace=true alone leaves an empty namespace behind).
+createNamespace: true
+
+# Previews run on spot. They are ephemeral by definition, so a reclamation costs a
+# rebuild rather than an incident, and on-demand was measured at roughly twice the price
+# per vCPU on this cluster (spot/on-demand $ per vCPU sat at 0.52 through late July).
+#
+# The chart default stays on-demand deliberately, and this opts previews out rather than
+# flipping that default. Getting it the other way round would mean a new environment
+# created without its own values file silently lands on reclaimable nodes, which turns a
+# forgotten override from a small cost into a failed test run. The default should fail
+# safe, not cheap.
+capacityType: spot
+
+inferno:
+  # Single replicas: previews are low-traffic and disposable.
+  replicas: 1
+  workerReplicas: 1
+
+# Skip the validator-warmer. It adds load (and, with warming, eager engine builds) and
+# its synthetic check fails, and so fires "Job Failed / BackoffLimitExceeded" alerts,
+# whenever a preview is unhealthy or mid-teardown. Sessions warm lazily on first use.
+warmer:
+  enabled: false
+
+# No HPA on inferno-app: fixed single replicas above.
+autoscaling:
+  enabled: false
+
+# Inert on the current chart: no template reads it since the validator HPA was removed
+# (a validator session is per-pod in-memory state, so scaling out thrashes the cache).
+# Kept because previews render the chart from a PR's own head commit, which may predate
+# that removal. Drop it once no live preview branch is old enough to need it.
+validatorAutoscaling:
+  enabled: false
+
+validator:
+  replicas: 1
+  storageClassName: gp3-encrypted
+  # ONE resident validation engine. A preview exercises the one suite its PR touches,
+  # whereas the chart default of 4 is sized for prod, where every registered suite must
+  # stay hot. An AU Core engine costs ~1Gi of live heap (forced-GC measurement under
+  # load, au-fhir-inferno#156: 3 contexts 3305Mi, 4 contexts ~4350Mi), so leaving it at 4
+  # would let a multi-suite run pin ~4Gi in a namespace that never needs it.
+  #
+  # Trade-off: a preview run touching a SECOND suite pays a ~50s cold engine build per
+  # switch. If you are stress-testing several suites on one preview, raise this for that
+  # preview rather than leaving it at 1.
+  sessionCacheSize: 1
+  # Heap sized to that ONE resident engine, measured rather than inherited. Forced-GC
+  # live heap at 1 context is 947Mi (au-fhir-inferno#156 section 10a), so -Xmx2g sits at
+  # 46% occupancy with ~1.1Gi free above the live set. The chart default is sized for the
+  # four contexts prod keeps resident, which would over-provision every preview by ~4Gi.
+  #
+  # This is a SMALLER heap than prod, derived from measured live heap, because a preview
+  # holds one context where prod holds four. An earlier 6g/7Gi pin, derived from RSS, held
+  # previews at a LARGER heap than prod and made a preview an invalid rehearsal; that is
+  # the mistake this replaces, not repeats.
+  #
+  # COUPLED TO validator.engineReloadThreshold in values.yaml. The wrapper wipes its whole
+  # session cache when free heap drops below that threshold, so a small heap against a
+  # large threshold evicts warm sessions on every ordinary GC. See
+  # VALIDATOR_OPTIMIZATION.md section 10 before changing either.
+  javaOpts: "-Xmx2g"
+  resources:
+    requests:
+      # heap + metaspace + native, NOT kubectl top: working set includes reclaimable page
+      # cache from the terminology-cache PVC and read 3.7Gi against a 947Mi live heap at
+      # 1 context.
+      #
+      # The request must still cover the real resident footprint. Do not cut it below the
+      # heap ceiling plus overhead: an undersized request once let the scheduler stack two
+      # preview validators on one m6a.xlarge and OOM-wedge the node (kubelet and SSM
+      # froze, 2026-06-23). podAntiAffinity in this chart is the other half of that fix.
+      memory: "3Gi"
+      # Previews are low-concurrency and do not need the chart's prod CPU sizing.
+      cpu: "250m"
+    limits:
+      memory: "4Gi"
+      cpu: "2000m"
+
+# No AWS Secrets Manager sync: previews have no RDS credential to fetch.
+externalSecrets:
+  enabled: false
+
+# In-namespace Postgres instead of RDS. Ephemeral with the namespace, so a preview
+# teardown takes its database and PVC with it.
+postgresql:
+  enabled: true
+  externaldbhost: ""
