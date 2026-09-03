@@ -122,7 +122,8 @@ customize it to include the relevant Test Kits and content for your platform.
 * Add your IG package to lib/inferno_platform_template/igs directory.  This will preload your IG into the validator service
 * Note that all IGs will be loaded into single instance of the validator currently.
 * Also note that we have an improved version of the validator service that will allow you to avoid this step. This will be incorporated into the template soon.
-* Update nginx.conf to override the 'suite' landing page with the 'test kit landing page'.  While not technically needed, this will ensure
+* Add the new suite id prefix to `KIT_PAGES` in `lib/inferno_platform_template/suite_redirects.rb` to override the
+  'suite' landing page with the 'test kit landing page'.  While not technically needed, this will ensure
   that users that navigate out of a test session will be put on a test kit page.
 
 ## Updating non-test Kit content (e.g. news, etc)

@@ -62,6 +62,11 @@ jobs:
           # with it, not just the values: values.schema.json rejects unknown keys, so a
           # key the ApplicationSet passes but this render omits would break every
           # preview environment while CI still reported green.
+          #
+          # nginx.platformImageUri is one of those: previews no longer deploy nginx (the
+          # chart default is enabled: false now that the app image serves the static
+          # site) but the ApplicationSet still passes the key, so this render must too.
+          # It goes when the nginx layer does.
           helm template inferno-pr-0 . -n inferno-pr-0 \
             --set createNamespace=true \
             --set capacityType=spot \
@@ -85,6 +90,23 @@ jobs:
             --set validator.resources.limits.memory=4Gi \
             --set validator.resources.limits.cpu=2000m \
             --set 'ingress.hostnames[0]=pr-0.preview.inferno.sparked-fhir.com' > /dev/null
+          echo "::endgroup::"
+          echo "::group::retired-hostname redirect"
+          # The old-hostname 301 is a Gateway API RequestRedirect filter rather than a
+          # redirect-nginx Deployment, so a mistake here loses the redirect silently:
+          # every template still renders, there is just no filter and no backend. Assert
+          # the filter is present, and that the pod it replaced is not.
+          prod_render=$(helm template inferno . -n inferno -f values-prod.yaml)
+          echo "$prod_render" | grep -q 'type: RequestRedirect'
+          echo "$prod_render" | grep -q 'hostname: "inferno.hl7.org.au"'
+          # Written as an explicit if/exit, not "! grep -q". Under set -e bash does not
+          # exit when a failing command's status is inverted with !, so the negated form
+          # passes whether or not the pod is still rendered, which is the opposite of an
+          # assertion.
+          if echo "$prod_render" | grep -q 'name: redirect-nginx'; then
+            echo "redirect-nginx still rendered" >&2
+            exit 1
+          fi
           echo "::endgroup::"
 
       # Boots the full Inferno app (spec_helper → migrations on sqlite :memory:), so it's
