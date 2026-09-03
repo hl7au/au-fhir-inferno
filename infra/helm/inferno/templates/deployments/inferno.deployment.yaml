@@ -17,6 +17,13 @@ spec:
       labels:
         app: inferno-app
     spec:
+      # Kubernetes injects Docker-link style env vars for every Service in the
+      # namespace, so the `inferno` Service yields INFERNO_PORT=tcp://<clusterIP>:4567.
+      # The AU PS test kit's config/puma.rb reads INFERNO_PORT as its listen port and
+      # crashes at boot on that value. Nothing in these images consumes the injected
+      # variables and every address the app needs is passed explicitly, so they are
+      # disabled on the two pods that run test kit code.
+      enableServiceLinks: false
       nodeSelector:
         kubernetes.io/arch: amd64
         {{- with .Values.capacityType }}
