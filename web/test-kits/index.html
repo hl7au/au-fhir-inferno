@@ -68,7 +68,7 @@ current_page: Test Kits
                         <div class="tk-meta-data">
                             <div class="list">
                                 <div class="list-item">
-                                    <b>Updated:</b> {{ test_kit.date | date: "%m/%d/%Y" }}
+                                    <b>Updated:</b> {{ test_kit.date | date: "%-d %b %Y" }}
                                 </div>
                                 <div class="list-item">
                                     <b>Version:</b> {{ test_kit.version }}
