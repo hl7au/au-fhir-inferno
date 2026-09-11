@@ -89,7 +89,8 @@ podDisruptionBudgets:
   - app: nginx-app
 
 healthProbes:
-  # Prod pins inferno.imageUrl to a promoted SHA that predates the /healthz endpoints and
-  # scripts/sidekiq_health.rb, so probing them here fails every new pod. Flip this to true
-  # in the same PR that promotes prod to an image containing them.
-  enabled: false
+  # The promoted image now contains the app's /healthz endpoints and the worker's
+  # scripts/sidekiq_health.rb. Keep the startup and readiness gates on so a rollout does
+  # not send traffic to Puma before it has finished loading the test kits, and so a
+  # worker that exits or wedges no longer remains Ready indefinitely.
+  enabled: true
