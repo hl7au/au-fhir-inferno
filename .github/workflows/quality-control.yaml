@@ -91,7 +91,7 @@ jobs:
             --set validator.resources.limits.cpu=2000m \
             --set 'ingress.hostnames[0]=pr-0.preview.inferno.sparked-fhir.com' > /dev/null
           echo "::endgroup::"
-          echo "::group::retired-hostname redirect"
+          echo "::group::production rollout invariants"
           # The old-hostname 301 is a Gateway API RequestRedirect filter rather than a
           # redirect-nginx Deployment, so a mistake here loses the redirect silently:
           # every template still renders, there is just no filter and no backend. Assert
@@ -106,6 +106,10 @@ jobs:
           prod_worker_render=$(helm template inferno . -n inferno -f values-prod.yaml \
             --show-only templates/deployments/inferno-worker.deployment.yaml)
           echo "$prod_worker_render" | grep -q 'scripts/sidekiq_health.rb'
+          prod_hpa_render=$(helm template inferno . -n inferno -f values-prod.yaml \
+            --show-only templates/deployments/inferno.hpa.yaml)
+          echo "$prod_hpa_render" | grep -q 'minReplicas: 2'
+          echo "$prod_hpa_render" | grep -q 'maxReplicas: 6'
           # Written as an explicit if/exit, not "! grep -q". Under set -e bash does not
           # exit when a failing command's status is inverted with !, so the negated form
           # passes whether or not the pod is still rendered, which is the opposite of an

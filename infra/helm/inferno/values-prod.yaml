@@ -42,7 +42,10 @@ inferno:
 
 autoscaling:
   enabled: true
-  minReplicas: 1
+  # Keep a second app replica warm so a burst does not wait for the HPA's 60-second
+  # scale-up window and five Puma threads on one process. This also leaves one serving
+  # replica during a readiness-gated rollout or voluntary disruption.
+  minReplicas: 2
   maxReplicas: 6
   targetCPUUtilizationPercentage: 70
 
