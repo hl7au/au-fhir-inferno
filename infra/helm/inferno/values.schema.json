@@ -6,7 +6,6 @@
   "additionalProperties": false,
   "required": [
     "inferno",
-    "nginx",
     "validator",
     "warmer",
     "ingress",
@@ -72,6 +71,10 @@
       "required": ["imageUrl", "validatorImageUri"],
       "properties": {
         "imageUrl": { "type": "string" },
+        "host": {
+          "type": "string",
+          "description": "CANONICAL public origin written to INFERNO_HOST. It is what inferno stamps into request-independent absolute URLs (the canonical link, og:/twitter: metadata). It does not pin users to one hostname: the app rewrites its own /suites redirects onto the hostname the client used. Empty derives https://<first ingress hostname>; set it only where the canonical origin is not the first ingress hostname."
+        },
         "validatorImageUri": { "type": "string" },
         "terminologyServer": { "type": "string" },
         "externalValidatorUrl": { "type": ["string", "null"] },
@@ -94,13 +97,16 @@
     "nginx": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["platformImageUri"],
+      "description": "DEPRECATED. The nginx layer no longer does anything the application image cannot: the static site, the /suites -> /test-kits redirects, gzip and a correct INFERNO_HOST all moved into it. Default is now enabled: false, prod sets enabled: true until it is promoted to an image containing the static site, and the whole block (with the templates and the image build) is removed after that. Nothing is required here any more, and the block itself is optional, because consumers in aehrc/sparked-argo still pass platformImageUri and must keep rendering while it is dropped on their side.",
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Render the nginx layer (nginx-app Deployment/Service, the sidecar in the inferno-app pod, nginx-config ConfigMap). False routes / straight to the inferno Service; used by bare test kit previews."
+          "description": "Render the nginx layer (nginx-app Deployment/Service, the sidecar in the inferno-app pod, nginx-config ConfigMap). False, the default, routes / straight to the inferno Service."
         },
-        "platformImageUri": { "type": "string" }
+        "platformImageUri": {
+          "type": "string",
+          "description": "Read only when enabled. Retained so environments that still pass it keep rendering; drop it from the consumer and then from this schema."
+        }
       }
     },
     "validator": {

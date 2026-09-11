@@ -42,11 +42,12 @@ capacityType: "on-demand"
 #       value: on-demand
 #       effect: NoSchedule
 #
-# Deliberately NOT applied to nginx-app or redirect-nginx. Neither pins a capacity type,
-# so neither needs to tolerate one, and handing them the toleration would make them
-# eligible for on-demand nodes without holding them there, which is the exact drift the
-# taint exists to prevent. If either ever needs on-demand, give it capacityType pinning
-# in the same change, so the pin and the toleration stay paired.
+# Deliberately NOT applied to nginx-app (the last workload outside the four, and itself
+# on its way out). It does not pin a capacity type, so it does not need to tolerate one,
+# and handing it the toleration would make it eligible for on-demand nodes without
+# holding it there, which is the exact drift the taint exists to prevent. If it ever
+# needs on-demand, give it capacityType pinning in the same change, so the pin and the
+# toleration stay paired.
 tolerations: []
 
 ingress:
@@ -63,6 +64,18 @@ inferno:
   # Always overridden per-environment in values-{dev,prod}.yaml (dev by CI, prod by the
   # promotion PR). This placeholder just avoids carrying a stale, real-looking SHA here.
   imageUrl: "ghcr.io/hl7au/au-fhir-inferno:overridden-per-environment"
+  # CANONICAL public origin, written to INFERNO_HOST
+  # (templates/configs/inferno-configmap.yaml). Empty means "derive
+  # https://<first ingress hostname>", which is correct for every environment this chart
+  # currently serves. Set it only where the canonical origin is not the first ingress
+  # hostname.
+  #
+  # It does not pin users to one hostname on a multi-hostname environment: the app
+  # rewrites session redirects back onto the hostname the client used
+  # (lib/inferno_platform_template/request_host_redirects.rb). This value is what inferno
+  # stamps into request-independent absolute URLs, chiefly the canonical link and the
+  # og:/twitter: metadata.
+  host: ""
   terminologyServer: "https://tx.dev.hl7.org.au/fhir"
   externalValidatorUrl: null  # This can be overridden during chart deployment
   # Base default, inherited by preview environments (values-dev tracks :latest,
@@ -100,27 +113,34 @@ inferno:
   # one is not.
   resultDuration: false
 
+# DEPRECATED, and on its way out. The whole nginx layer: the nginx-app Deployment and
+# Service the HTTPRoute sends "/" to, the sidecar in the inferno-app pod, and the
+# nginx-config ConfigMap.
+#
+# Everything it did now lives in the application image. The Jekyll landing site is baked
+# into it and served by lib/inferno_platform_template/static_site.rb, the
+# /suites -> /test-kits redirects by suite_redirects.rb, gzip by Rack::Deflater, and
+# INFERNO_HOST is set properly instead of being patched over by proxy_redirect. The
+# gateway already routes /hl7validatorapi straight to the validator Service, so with
+# those moved the proxy adds nothing: the HTTPRoute sends / directly to the inferno
+# Service on 4567. nginx's client_max_body_size stops mattering too; that directive only
+# exists because nginx itself defaults to a 1MB body cap, and Envoy streams request
+# bodies without one.
+#
+# OFF by default, which is what makes that switch. Dev and preview environments track
+# master builds, so their image already carries the static site. PROD is the exception
+# and sets enabled: true explicitly in values-prod.yaml: the chart renders from master
+# the moment a PR merges, but prod's image is pinned and only advances on a promotion PR,
+# so prod would otherwise serve no landing page until that promotion landed.
+#
+# This block, the templates behind it and the nginx image build are all deleted in the
+# follow-up change, once prod runs an image containing the static site. Until then the
+# key is still accepted (see values.schema.json) because aehrc/sparked-argo passes it.
 nginx:
-  # The whole nginx layer: the nginx-app Deployment and Service the HTTPRoute
-  # sends "/" to, the sidecar in the inferno-app pod, and the nginx-config
-  # ConfigMap. ON by default because the aggregator environments need it: the
-  # static landing site lives in the nginx image, and the /suites -> /test-kits
-  # rewrites live in its config.
-  #
-  # OFF for environments that run a bare test kit with no static site (the
-  # aucore-previews / aups-previews ApplicationSets in aehrc/sparked-argo,
-  # au-fhir-inferno#187). inferno-core serves its own UI, assets, and API at /
-  # (its config.ru mounts Rack::Static), and the gateway already routes
-  # /hl7validatorapi straight to the validator Service, so for those
-  # environments the proxy adds nothing: the HTTPRoute sends / directly to the
-  # inferno Service on 4567 instead. nginx's client_max_body_size stops
-  # mattering too; that directive only exists because nginx itself defaults to
-  # a 1MB body cap, and Envoy streams request bodies without one.
-  enabled: true
-  # Reverse proxy in front of inferno-app (templates/deployments/nginx.deployment.yaml,
-  # the backend the HTTPRoute sends "/" to). Same placeholder treatment as
-  # inferno.imageUrl above: always overridden per environment, so this default only
-  # exists to keep the chart renderable on its own. Ignored when enabled: false.
+  enabled: false
+  # Ignored unless enabled. Same placeholder treatment as inferno.imageUrl above: always
+  # overridden per environment, so this default only exists to keep the chart renderable
+  # on its own.
   platformImageUri: "ghcr.io/hl7au/au-fhir-inferno:overridden-per-environment-nginx"
 
 # HPA for inferno-app (templates/deployments/inferno.hpa.yaml). OFF by default: only

@@ -57,9 +57,12 @@ autoscaling:
   maxReplicas: 5
   targetCPUUtilizationPercentage: 70
 
-nginx:
-  platformImageUri: ghcr.io/hl7au/au-fhir-inferno:94bb601d413cb3a4b6e5640ff0944e9255a51295-nginx
-
+# No nginx block: dev takes the chart default (enabled: false) now that the static site
+# and the /suites -> /test-kits redirects ship in the application image. Dev is safe to
+# switch immediately because ArgoCD Image Updater tracks master builds here, so its image
+# is minutes behind the chart rather than a promotion behind it. sparked-argo's
+# apps/inferno-dev/image-values.yaml still writes nginx.platformImageUri; the schema
+# still accepts it, and it is dropped there in the follow-up change.
 
 externalSecrets:
   enabled: true
