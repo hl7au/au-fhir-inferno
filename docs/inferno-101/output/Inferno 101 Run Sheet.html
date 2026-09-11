@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inferno Test Kit 101 Run Sheet</title>
+<style>
+:root { --ink:#14212b; --muted:#5c6670; --cream:#fff9ec; --orange:#ff6a21; --navy:#10283b; --line:#d9dde0; --paper:#fff; --green:#277a55; }
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { margin:0; color:var(--ink); background:#f4f2eb; font:16px/1.5 Arial, Helvetica, sans-serif; }
+a { color:#005f86; }
+.hero { background:var(--cream); border-top:10px solid var(--orange); padding:34px max(24px, calc((100vw - 1080px)/2)); }
+.brand { width:220px; height:auto; display:block; margin-bottom:28px; }
+.eyebrow { color:#a54116; font-size:.82rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+h1 { margin:.25rem 0 .4rem; font-size:clamp(2.3rem, 6vw, 4.6rem); line-height:1; letter-spacing:-.035em; }
+.lede { margin:0; max-width:760px; color:var(--muted); font-size:1.2rem; }
+.meta { display:flex; flex-wrap:wrap; gap:18px 34px; margin-top:24px; font-size:.92rem; }
+.meta strong { display:block; color:var(--orange); font-size:.72rem; letter-spacing:.07em; text-transform:uppercase; }
+.timerbar { position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:12px; padding:10px max(18px, calc((100vw - 1080px)/2)); color:#fff; background:var(--navy); box-shadow:0 2px 12px #0002; }
+.timer { min-width:86px; font:700 1.35rem/1 monospace; }
+button { border:1px solid #ffffff66; border-radius:5px; padding:7px 12px; color:#fff; background:transparent; font-weight:700; cursor:pointer; }
+button.primary { border-color:var(--orange); background:var(--orange); }
+.timer-note { margin-left:auto; color:#dbe6ed; font-size:.85rem; }
+main { width:min(1080px, calc(100% - 32px)); margin:28px auto 80px; }
+.overview, .preflight, .sessions, .segment { margin:0 0 24px; border:1px solid var(--line); border-radius:9px; background:var(--paper); box-shadow:0 5px 18px #10283b0c; overflow:hidden; }
+.overview, .preflight, .sessions { padding:24px; }
+h2 { margin:0; font-size:1.55rem; line-height:1.15; }
+h3 { margin:0 0 8px; color:#9d3e13; font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; }
+table { width:100%; border-collapse:collapse; font-size:.93rem; }
+th { color:#fff; background:var(--navy); text-align:left; }
+th, td { border:1px solid var(--line); padding:10px 12px; vertical-align:top; }
+th:last-child, td:last-child { width:112px; white-space:nowrap; }
+.checklist { margin:0; padding:0; list-style:none; columns:2; column-gap:36px; }
+.checklist li { break-inside:avoid; margin:0 0 9px; }
+input[type=checkbox] { width:17px; height:17px; vertical-align:-3px; accent-color:var(--orange); }
+.segment-head { display:flex; justify-content:space-between; align-items:center; padding:18px 22px; color:#fff; background:var(--navy); }
+.segment-head > div { display:flex; align-items:center; gap:13px; }
+.segment-number { display:grid; place-items:center; width:34px; height:34px; border-radius:50%; color:var(--navy); background:var(--orange); font-weight:800; }
+.duration { font:700 1rem monospace; }
+.screen, .cue, .say, .fallback { padding:18px 22px; border-bottom:1px solid var(--line); }
+.screen { display:grid; grid-template-columns:90px 1fr; gap:12px; background:var(--cream); }
+.screen strong { color:#a54116; font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; }
+.screen p, .fallback p { margin:0; }
+.cue ul { margin:0; padding-left:20px; }
+.cue li { margin:.25rem 0; }
+.say { border-left:7px solid var(--orange); }
+.say p { max-width:790px; margin:.5rem 0 1rem; font-size:1.05rem; }
+.fallback { background:#f4f6f7; }
+.fallback strong { color:#7a350f; }
+.done { display:block; padding:13px 22px; color:var(--green); font-weight:700; background:#f5fbf7; }
+.sessions td:first-child { width:220px; font-weight:700; }
+.sessions a { overflow-wrap:anywhere; }
+.footer { width:min(1080px, calc(100% - 32px)); margin:0 auto 50px; color:var(--muted); font-size:.86rem; }
+@media (max-width:760px) { .checklist { columns:1; } .timer-note { display:none; } .screen { grid-template-columns:1fr; } th:nth-child(2), td:nth-child(2) { display:none; } }
+@media print { body { background:#fff; font-size:10pt; } .hero { padding:18px 0; } .brand { width:150px; margin-bottom:12px; } .timerbar, .done { display:none; } main { width:100%; margin:12px 0; } .overview, .preflight, .sessions, .segment { box-shadow:none; break-inside:avoid; } .segment { break-before:page; } a { color:#000; text-decoration:none; } }
+</style>
+</head>
+<body>
+<header class="hero">
+  <img class="brand" src="../assets/sparked-logo.png" alt="Sparked HL7 FHIR">
+  <div class="eyebrow">Sparked FHIR AU recording draft</div>
+  <h1>Inferno Test Kit 101</h1>
+  <p class="lede">Run a test, read the result, keep the evidence. A complete cue sheet for a draft recording and team review.</p>
+  <div class="meta">
+    <span><strong>Presenter</strong>Kyle</span>
+    <span><strong>Audience</strong>FHIR implementers preparing for an AU test event</span>
+    <span><strong>Target</strong>14 minutes recorded</span>
+    <span><strong>Environment</strong><a href="https://inferno.hl7.org.au">inferno.hl7.org.au</a></span>
+  </div>
+</header>
+<div class="timerbar">
+  <span class="timer" id="timer">00:00</span>
+  <button class="primary" id="start">Start</button>
+  <button id="reset">Reset</button>
+  <span class="timer-note">Space starts or pauses. R resets.</span>
+</div>
+<main>
+  <section class="overview">
+    <h2>Run order</h2>
+    <p>Slides establish the context. The browser demonstration carries the middle of the recording.</p>
+    <table><thead><tr><th>Segment</th><th>Screen</th><th>Time</th></tr></thead><tbody><tr><td><a href="#segment-1">1. Welcome</a></td><td>Slide 1, Inferno Test Kit 101</td><td>0:00 to 0:25</td></tr><tr><td><a href="#segment-2">2. Acknowledgement of Country</a></td><td>Slide 2, Acknowledgement of Country</td><td>0:25 to 0:55</td></tr><tr><td><a href="#segment-3">3. What Inferno tests</a></td><td>Slide 3, What Inferno tests</td><td>0:55 to 1:45</td></tr><tr><td><a href="#segment-4">4. Four useful words</a></td><td>Slide 4, How Inferno organises a run</td><td>1:45 to 2:30</td></tr><tr><td><a href="#segment-5">5. AU Patient Summary Bundle</a></td><td>Browser at https://inferno.hl7.org.au/test-kits/au-ps. Keep good.json and broken-a.json open in a text editor.</td><td>2:30 to 7:30</td></tr><tr><td><a href="#segment-6">6. AU Core server</a></td><td>Browser at https://inferno.hl7.org.au/test-kits/au-core. Use the public synthetic test server supplied by the kit.</td><td>7:30 to 11:10</td></tr><tr><td><a href="#segment-7">7. Reading results</a></td><td>Slide 5, Reading a result</td><td>11:10 to 12:20</td></tr><tr><td><a href="#segment-8">8. Keep the evidence</a></td><td>Browser on the session URL, then the guidance page. Finish on Slide 6.</td><td>12:20 to 13:30</td></tr><tr><td><a href="#segment-9">9. Close</a></td><td>Slide 6, guidance URL and QR code</td><td>13:30 to 14:00</td></tr></tbody></table>
+  </section>
+  <section class="preflight">
+    <h2>Recording day preflight</h2>
+    <p>Complete this immediately before recording. These checks contain the details most likely to change.</p>
+    <ul class="checklist"><li><label><input type="checkbox"> Record against https://inferno.hl7.org.au, not a preview environment.</label></li><li><label><input type="checkbox"> For this draft, use the PR 203 preview for guidance only.</label></li><li><label><input type="checkbox"> Confirm the selected suite versions still match the narration.</label></li><li><label><input type="checkbox"> Open good.json and broken-a.json and confirm they contain synthetic data only.</label></li><li><label><input type="checkbox"> Run both live groups once on the recording day and note current timing and result counts.</label></li><li><label><input type="checkbox"> Do not quote a test count unless it is visible in the run being recorded.</label></li><li><label><input type="checkbox"> Check every prepared session URL. Public sessions may be purged.</label></li><li><label><input type="checkbox"> Close notifications and unrelated browser tabs before recording.</label></li><li><label><input type="checkbox"> Set browser zoom so test titles, Messages, and Requests are legible in the recording.</label></li><li><label><input type="checkbox"> Keep the slide deck, run sheet, demo files, and fallback sessions open before starting.</label></li></ul>
+  </section>
+
+        <section class="segment" id="segment-1" data-start="0:00">
+          <header class="segment-head">
+            <div><span class="segment-number">1</span><h2>Welcome</h2></div>
+            <span class="duration">0:25</span>
+          </header>
+          <div class="screen"><strong>Screen</strong><p>Slide 1, Inferno Test Kit 101</p></div>
+
+
+          <div class="say"><h3>Say</h3><p>Welcome. This is a practical introduction to the HL7 Australia Inferno Test Kits.</p><p>In the next fourteen minutes I will validate an AU Patient Summary Bundle, test an AU Core server, and show you how to turn a red result into something you can fix or report.</p></div>
+
+          <label class="done"><input type="checkbox"> Segment rehearsed</label>
+        </section>
+        <section class="segment" id="segment-2" data-start="0:25">
+          <header class="segment-head">
+            <div><span class="segment-number">2</span><h2>Acknowledgement of Country</h2></div>
+            <span class="duration">0:30</span>
+          </header>
+          <div class="screen"><strong>Screen</strong><p>Slide 2, Acknowledgement of Country</p></div>
+
+
+          <div class="say"><h3>Say</h3><p>We acknowledge the Traditional Custodians of the land on which we meet and work. We pay our respects to Elders past and present, and extend that respect to all Aboriginal and Torres Strait Islander people.</p></div>
+
+          <label class="done"><input type="checkbox"> Segment rehearsed</label>
+        </section>
+        <section class="segment" id="segment-3" data-start="0:55">
+          <header class="segment-head">
+            <div><span class="segment-number">3</span><h2>What Inferno tests</h2></div>
+            <span class="duration">0:50</span>
+          </header>
+          <div class="screen"><strong>Screen</strong><p>Slide 3, What Inferno tests</p></div>
+
+
+          <div class="say"><h3>Say</h3><p>Inferno turns requirements from a FHIR implementation guide into automated checks.</p><p>Use the AU Patient Summary kit when you have a patient summary Bundle, or a server that serves or generates one. Use the AU Core kit when you operate a FHIR server that other systems query.</p><p>These are community reference tests. They help you find implementation problems, but they do not provide certification or confer conformance status.</p></div>
+
+          <label class="done"><input type="checkbox"> Segment rehearsed</label>
+        </section>
+        <section class="segment" id="segment-4" data-start="1:45">
+          <header class="segment-head">
+            <div><span class="segment-number">4</span><h2>Four useful words</h2></div>
+            <span class="duration">0:45</span>
+          </header>
+          <div class="screen"><strong>Screen</strong><p>Slide 4, How Inferno organises a run</p></div>
+
+
+          <div class="say"><h3>Say</h3><p>Four words make the interface much easier to read.</p><p>A test kit covers a use case or implementation guide. A suite represents one version of that guide. A suite contains groups, usually one profile or one way of obtaining a document. Each group contains the individual tests that pass, fail, skip, omit, or error.</p><p>While fixing an implementation, run one group at a time. A whole suite is useful for a baseline, but it is slower and produces more information than you need for one change.</p></div>
+
+          <label class="done"><input type="checkbox"> Segment rehearsed</label>
+        </section>
+        <section class="segment" id="segment-5" data-start="2:30">
+          <header class="segment-head">
+            <div><span class="segment-number">5</span><h2>AU Patient Summary Bundle</h2></div>
+            <span class="duration">5:00</span>
+          </header>
+          <div class="screen"><strong>Screen</strong><p>Browser at https://inferno.hl7.org.au/test-kits/au-ps. Keep good.json and broken-a.json open in a text editor.</p></div>
+          <div class="cue"><h3>Prep</h3><ul><li>Use AU PS 1.0.0.</li><li>Files: /Users/pet260/Downloads/inferno-101-demo/good.json and broken-a.json.</li><li>Confirm both files contain synthetic data only.</li><li>Have the clean and broken rehearsal sessions available as a fallback.</li></ul></div>
+          <div class="cue"><h3>Actions</h3><ul><li>Create a test session and point to the unique session URL.</li><li>Select AU PS Bundle Instance and choose Run Tests.</li><li>Paste good.json into the Bundle input and run.</li><li>Open a passing Bundle Validation test and its Messages tab.</li><li>Open a Must Support test and show its populated and missing element checklist.</li><li>Point out any skips and read the reason before interpreting them.</li><li>Run the same group again with broken-a.json.</li><li>Open the failures that report the missing Allergies and Intolerances section.</li></ul></div>
+          <div class="say"><h3>Say</h3><p>Before I paste anything, one important rule: use synthetic data only. This is a public reference service and it is not designed to protect personal or health information.</p><p>I am choosing the AU Patient Summary suite and creating a session. The URL identifies this run. Keep it, because another person can open the same URL and see the results you are looking at.</p><p>This group accepts a Bundle directly, so no server is required. The other AU Patient Summary paths can fetch a Bundle from a server or ask a server to generate one.</p><p>I will start with an example Bundle from the implementation guide. While the validator runs, Inferno checks the Bundle, its Composition sections, referenced resources, Must Support elements, and terminology bindings.</p><p>The exact counts can change as the kit evolves, so I read the individual results rather than relying only on the total. A passing test can still contain warnings or useful information. The Messages tab tells me what the validator checked and which validator produced the message.</p><p>Must Support does not mean every element must always have a value. The checklist shows what this example populated and what it did not. Missing values may be warnings when the producer did not know the information.</p><p>A skipped test means Inferno could not run that check because a precondition was missing. I read the skip reason before deciding whether anything needs fixing.</p><p>Now I will rerun the same group with one mandatory section removed. Re-running replaces the previous result for this group inside the same session.</p><p>The validator message uses profile language, while the kit also gives a plainer description of the missing section. Both point to the same fix. Put the required section back, rerun the group, and confirm the failure has gone.</p></div>
+          <div class="fallback"><strong>Fallback</strong><p>If the live validator is slow, open the prepared clean and broken session URLs from the rehearsal checklist and continue from the Messages tabs.</p></div>
+          <label class="done"><input type="checkbox"> Segment rehearsed</label>
+        </section>
+        <section class="segment" id="segment-6" data-start="7:30">
+          <header class="segment-head">
+            <div><span class="segment-number">6</span><h2>AU Core server</h2></div>
+            <span class="duration">3:40</span>
+          </header>
+          <div class="screen"><strong>Screen</strong><p>Browser at https://inferno.hl7.org.au/test-kits/au-core. Use the public synthetic test server supplied by the kit.</p></div>
+          <div class="cue"><h3>Prep</h3><ul><li>Use AU Core v2.0.0 for this draft recording.</li><li>Endpoint: https://fhir.hl7.org.au/aucore/fhir/DEFAULT.</li><li>Keep a prepared Patient group session available in case the live server is slow.</li></ul></div>
+          <div class="cue"><h3>Actions</h3><ul><li>Create a test session and select Patient Tests.</li><li>Keep the default public endpoint and synthetic patient identifiers.</li><li>Run the Patient group.</li><li>Point out SHALL, SHOULD, and MAY in test titles.</li><li>Open one search test and show the Requests tab.</li><li>Open the request URL, response status, and response body.</li><li>If a prepared Capability Statement failure is available, show it as an optional real-world example.</li></ul></div>
+          <div class="say"><h3>Say</h3><p>AU Core tests the other direction. Inferno acts as a client and queries a FHIR server.</p><p>I am using the public AU Core test server and its synthetic patient data. When you test your own implementation, replace the endpoint and identifiers with test data from your server.</p><p>For this Patient group, Inferno runs the searches required by the guide, confirms that returned resources match the search, validates each resource against its profile, and checks Must Support coverage across the results.</p><p>The test titles preserve the guide&#x27;s conformance language. A failed SHALL requirement is a clear conformance problem. A failed SHOULD or MAY result needs interpretation in the context of your implementation.</p><p>The Requests tab is the evidence trail. It shows the HTTP method, URL, response status, and body for the interaction. When a search result surprises you, start here before assuming the server or the test kit is wrong.</p><p>A wrong endpoint often causes one early failure followed by many skips. Fix the first failure, rerun the group, and then reassess the downstream results.</p></div>
+          <div class="fallback"><strong>Fallback</strong><p>If the public server is slow, use the prepared Patient group session. If the prepared Capability Statement result has changed, skip that optional example rather than explaining an outdated failure.</p></div>
+          <label class="done"><input type="checkbox"> Segment rehearsed</label>
+        </section>
+        <section class="segment" id="segment-7" data-start="11:10">
+          <header class="segment-head">
+            <div><span class="segment-number">7</span><h2>Reading results</h2></div>
+            <span class="duration">1:10</span>
+          </header>
+          <div class="screen"><strong>Screen</strong><p>Slide 5, Reading a result</p></div>
+
+
+          <div class="say"><h3>Say</h3><p>Here is the short version of the result states.</p><p>Pass means the assertion held. Fail means it did not hold, so open the test and read the message. Skip means the test could not run because something it needed was missing. Omit means the test did not apply. Error means something unexpected happened, such as a connection problem, malformed response, or test-kit defect.</p><p>Warnings and information messages can appear on passing tests. They are worth reading before a test event even when they do not make the test fail.</p></div>
+
+          <label class="done"><input type="checkbox"> Segment rehearsed</label>
+        </section>
+        <section class="segment" id="segment-8" data-start="12:20">
+          <header class="segment-head">
+            <div><span class="segment-number">8</span><h2>Keep the evidence</h2></div>
+            <span class="duration">1:10</span>
+          </header>
+          <div class="screen"><strong>Screen</strong><p>Browser on the session URL, then the guidance page. Finish on Slide 6.</p></div>
+
+          <div class="cue"><h3>Actions</h3><ul><li>Point to the session URL and the Report button.</li><li>For this internal draft, open https://pr-203.preview.inferno.sparked-fhir.com/guidance/.</li><li>Show the Reading results and Get help sections if they are available.</li><li>Return to Slide 6.</li></ul></div>
+          <div class="say"><h3>Say</h3><p>Keep the session URL when you ask for help. It lets another tester or reviewer inspect the same results and request evidence.</p><p>Public sessions are periodically removed, so download the report or capture the important evidence if you need a lasting record.</p><p>For this internal draft I am using the PR 203 preview. The stable address shown on the closing slide will contain this material after PR 203 lands.</p><p>The guidance page links the feedback topic and kit repositories. Include the session URL and one sentence describing what you expected.</p><p>If your server is private, run the same open-source kit locally with Docker. The Inferno API also lets a team automate these runs in a build pipeline.</p></div>
+
+          <label class="done"><input type="checkbox"> Segment rehearsed</label>
+        </section>
+        <section class="segment" id="segment-9" data-start="13:30">
+          <header class="segment-head">
+            <div><span class="segment-number">9</span><h2>Close</h2></div>
+            <span class="duration">0:30</span>
+          </header>
+          <div class="screen"><strong>Screen</strong><p>Slide 6, guidance URL and QR code</p></div>
+
+
+          <div class="say"><h3>Say</h3><p>Start with one group and synthetic data. Keep the session URL, read the first failure, fix it, and rerun.</p><p>The guidance page has the links from this demonstration. Bring a known baseline to the test event, and use the community feedback channel when a result does not make sense. Thank you.</p></div>
+
+          <label class="done"><input type="checkbox"> Segment rehearsed</label>
+        </section>
+  <section class="sessions">
+    <h2>Prepared rehearsal sessions</h2>
+    <p>Use these only as fallbacks. Public sessions can be purged, and live results can change.</p>
+    <table><thead><tr><th>Run</th><th>Session URL</th></tr></thead><tbody><tr><td>AU PS clean</td><td><a href="https://inferno.hl7.org.au/suites/au_ps_v100/b8IKfRs4qI1">https://inferno.hl7.org.au/suites/au_ps_v100/b8IKfRs4qI1</a></td></tr><tr><td>AU PS missing section</td><td><a href="https://inferno.hl7.org.au/suites/au_ps_v100/aiV7MfgTUB1">https://inferno.hl7.org.au/suites/au_ps_v100/aiV7MfgTUB1</a></td></tr><tr><td>AU Core Patient</td><td><a href="https://inferno.hl7.org.au/suites/au_core_v200/e0DBzhZW8sm">https://inferno.hl7.org.au/suites/au_core_v200/e0DBzhZW8sm</a></td></tr><tr><td>AU Core Capability Statement</td><td><a href="https://inferno.hl7.org.au/suites/au_core_v200/4npmTjUB4hB">https://inferno.hl7.org.au/suites/au_core_v200/4npmTjUB4hB</a></td></tr></tbody></table>
+  </section>
+</main>
+<p class="footer">Draft for team review. Source content verified against the planned Inferno guidance copy on 11 September 2026.</p>
+<script>
+let elapsed = 0;
+let startedAt = null;
+let timerId = null;
+const timer = document.getElementById('timer');
+const start = document.getElementById('start');
+function paint() {
+  const total = elapsed + (startedAt ? Date.now() - startedAt : 0);
+  const seconds = Math.floor(total / 1000);
+  timer.textContent = String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
+}
+function toggle() {
+  if (startedAt) {
+    elapsed += Date.now() - startedAt;
+    startedAt = null;
+    clearInterval(timerId);
+    timerId = null;
+    start.textContent = 'Resume';
+  } else {
+    startedAt = Date.now();
+    timerId = setInterval(paint, 250);
+    start.textContent = 'Pause';
+  }
+  paint();
+}
+function resetTimer() {
+  elapsed = 0;
+  startedAt = null;
+  clearInterval(timerId);
+  timerId = null;
+  start.textContent = 'Start';
+  paint();
+}
+start.addEventListener('click', toggle);
+document.getElementById('reset').addEventListener('click', resetTimer);
+document.addEventListener('keydown', event => {
+  if (event.target.matches('input, button, a')) return;
+  if (event.code === 'Space') { event.preventDefault(); toggle(); }
+  if (event.key.toLowerCase() === 'r') resetTimer();
+});
+</script>
+</body>
+</html>

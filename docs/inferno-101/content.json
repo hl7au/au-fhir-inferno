@@ -1,0 +1,183 @@
+{
+  "title": "Inferno Test Kit 101",
+  "subtitle": "Run a test, read the result, keep the evidence",
+  "presenter": "Kyle",
+  "audience": "FHIR implementers preparing for an AU test event",
+  "target_length": "14 minutes recorded",
+  "environment": "https://inferno.hl7.org.au",
+  "guidance_url": "https://inferno.hl7.org.au/guidance/",
+  "guidance_preview_url": "https://pr-203.preview.inferno.sparked-fhir.com/guidance/",
+  "segments": [
+    {
+      "number": 1,
+      "title": "Welcome",
+      "time": "0:00 to 0:25",
+      "duration": "0:25",
+      "screen": "Slide 1, Inferno Test Kit 101",
+      "say": [
+        "Welcome. This is a practical introduction to the HL7 Australia Inferno Test Kits.",
+        "In the next fourteen minutes I will validate an AU Patient Summary Bundle, test an AU Core server, and show you how to turn a red result into something you can fix or report."
+      ]
+    },
+    {
+      "number": 2,
+      "title": "Acknowledgement of Country",
+      "time": "0:25 to 0:55",
+      "duration": "0:30",
+      "screen": "Slide 2, Acknowledgement of Country",
+      "say": [
+        "We acknowledge the Traditional Custodians of the land on which we meet and work. We pay our respects to Elders past and present, and extend that respect to all Aboriginal and Torres Strait Islander people."
+      ]
+    },
+    {
+      "number": 3,
+      "title": "What Inferno tests",
+      "time": "0:55 to 1:45",
+      "duration": "0:50",
+      "screen": "Slide 3, What Inferno tests",
+      "say": [
+        "Inferno turns requirements from a FHIR implementation guide into automated checks.",
+        "Use the AU Patient Summary kit when you have a patient summary Bundle, or a server that serves or generates one. Use the AU Core kit when you operate a FHIR server that other systems query.",
+        "These are community reference tests. They help you find implementation problems, but they do not provide certification or confer conformance status."
+      ]
+    },
+    {
+      "number": 4,
+      "title": "Four useful words",
+      "time": "1:45 to 2:30",
+      "duration": "0:45",
+      "screen": "Slide 4, How Inferno organises a run",
+      "say": [
+        "Four words make the interface much easier to read.",
+        "A test kit covers a use case or implementation guide. A suite represents one version of that guide. A suite contains groups, usually one profile or one way of obtaining a document. Each group contains the individual tests that pass, fail, skip, omit, or error.",
+        "While fixing an implementation, run one group at a time. A whole suite is useful for a baseline, but it is slower and produces more information than you need for one change."
+      ]
+    },
+    {
+      "number": 5,
+      "title": "AU Patient Summary Bundle",
+      "time": "2:30 to 7:30",
+      "duration": "5:00",
+      "screen": "Browser at https://inferno.hl7.org.au/test-kits/au-ps. Keep good.json and broken-a.json open in a text editor.",
+      "prep": [
+        "Use AU PS 1.0.0.",
+        "Files: /Users/pet260/Downloads/inferno-101-demo/good.json and broken-a.json.",
+        "Confirm both files contain synthetic data only.",
+        "Have the clean and broken rehearsal sessions available as a fallback."
+      ],
+      "actions": [
+        "Create a test session and point to the unique session URL.",
+        "Select AU PS Bundle Instance and choose Run Tests.",
+        "Paste good.json into the Bundle input and run.",
+        "Open a passing Bundle Validation test and its Messages tab.",
+        "Open a Must Support test and show its populated and missing element checklist.",
+        "Point out any skips and read the reason before interpreting them.",
+        "Run the same group again with broken-a.json.",
+        "Open the failures that report the missing Allergies and Intolerances section."
+      ],
+      "say": [
+        "Before I paste anything, one important rule: use synthetic data only. This is a public reference service and it is not designed to protect personal or health information.",
+        "I am choosing the AU Patient Summary suite and creating a session. The URL identifies this run. Keep it, because another person can open the same URL and see the results you are looking at.",
+        "This group accepts a Bundle directly, so no server is required. The other AU Patient Summary paths can fetch a Bundle from a server or ask a server to generate one.",
+        "I will start with an example Bundle from the implementation guide. While the validator runs, Inferno checks the Bundle, its Composition sections, referenced resources, Must Support elements, and terminology bindings.",
+        "The exact counts can change as the kit evolves, so I read the individual results rather than relying only on the total. A passing test can still contain warnings or useful information. The Messages tab tells me what the validator checked and which validator produced the message.",
+        "Must Support does not mean every element must always have a value. The checklist shows what this example populated and what it did not. Missing values may be warnings when the producer did not know the information.",
+        "A skipped test means Inferno could not run that check because a precondition was missing. I read the skip reason before deciding whether anything needs fixing.",
+        "Now I will rerun the same group with one mandatory section removed. Re-running replaces the previous result for this group inside the same session.",
+        "The validator message uses profile language, while the kit also gives a plainer description of the missing section. Both point to the same fix. Put the required section back, rerun the group, and confirm the failure has gone."
+      ],
+      "fallback": "If the live validator is slow, open the prepared clean and broken session URLs from the rehearsal checklist and continue from the Messages tabs."
+    },
+    {
+      "number": 6,
+      "title": "AU Core server",
+      "time": "7:30 to 11:10",
+      "duration": "3:40",
+      "screen": "Browser at https://inferno.hl7.org.au/test-kits/au-core. Use the public synthetic test server supplied by the kit.",
+      "prep": [
+        "Use AU Core v2.0.0 for this draft recording.",
+        "Endpoint: https://fhir.hl7.org.au/aucore/fhir/DEFAULT.",
+        "Keep a prepared Patient group session available in case the live server is slow."
+      ],
+      "actions": [
+        "Create a test session and select Patient Tests.",
+        "Keep the default public endpoint and synthetic patient identifiers.",
+        "Run the Patient group.",
+        "Point out SHALL, SHOULD, and MAY in test titles.",
+        "Open one search test and show the Requests tab.",
+        "Open the request URL, response status, and response body.",
+        "If a prepared Capability Statement failure is available, show it as an optional real-world example."
+      ],
+      "say": [
+        "AU Core tests the other direction. Inferno acts as a client and queries a FHIR server.",
+        "I am using the public AU Core test server and its synthetic patient data. When you test your own implementation, replace the endpoint and identifiers with test data from your server.",
+        "For this Patient group, Inferno runs the searches required by the guide, confirms that returned resources match the search, validates each resource against its profile, and checks Must Support coverage across the results.",
+        "The test titles preserve the guide's conformance language. A failed SHALL requirement is a clear conformance problem. A failed SHOULD or MAY result needs interpretation in the context of your implementation.",
+        "The Requests tab is the evidence trail. It shows the HTTP method, URL, response status, and body for the interaction. When a search result surprises you, start here before assuming the server or the test kit is wrong.",
+        "A wrong endpoint often causes one early failure followed by many skips. Fix the first failure, rerun the group, and then reassess the downstream results."
+      ],
+      "fallback": "If the public server is slow, use the prepared Patient group session. If the prepared Capability Statement result has changed, skip that optional example rather than explaining an outdated failure."
+    },
+    {
+      "number": 7,
+      "title": "Reading results",
+      "time": "11:10 to 12:20",
+      "duration": "1:10",
+      "screen": "Slide 5, Reading a result",
+      "say": [
+        "Here is the short version of the result states.",
+        "Pass means the assertion held. Fail means it did not hold, so open the test and read the message. Skip means the test could not run because something it needed was missing. Omit means the test did not apply. Error means something unexpected happened, such as a connection problem, malformed response, or test-kit defect.",
+        "Warnings and information messages can appear on passing tests. They are worth reading before a test event even when they do not make the test fail."
+      ]
+    },
+    {
+      "number": 8,
+      "title": "Keep the evidence",
+      "time": "12:20 to 13:30",
+      "duration": "1:10",
+      "screen": "Browser on the session URL, then the guidance page. Finish on Slide 6.",
+      "actions": [
+        "Point to the session URL and the Report button.",
+        "For this internal draft, open https://pr-203.preview.inferno.sparked-fhir.com/guidance/.",
+        "Show the Reading results and Get help sections if they are available.",
+        "Return to Slide 6."
+      ],
+      "say": [
+        "Keep the session URL when you ask for help. It lets another tester or reviewer inspect the same results and request evidence.",
+        "Public sessions are periodically removed, so download the report or capture the important evidence if you need a lasting record.",
+        "For this internal draft I am using the PR 203 preview. The stable address shown on the closing slide will contain this material after PR 203 lands.",
+        "The guidance page links the feedback topic and kit repositories. Include the session URL and one sentence describing what you expected.",
+        "If your server is private, run the same open-source kit locally with Docker. The Inferno API also lets a team automate these runs in a build pipeline."
+      ]
+    },
+    {
+      "number": 9,
+      "title": "Close",
+      "time": "13:30 to 14:00",
+      "duration": "0:30",
+      "screen": "Slide 6, guidance URL and QR code",
+      "say": [
+        "Start with one group and synthetic data. Keep the session URL, read the first failure, fix it, and rerun.",
+        "The guidance page has the links from this demonstration. Bring a known baseline to the test event, and use the community feedback channel when a result does not make sense. Thank you."
+      ]
+    }
+  ],
+  "preflight": [
+    "Record against https://inferno.hl7.org.au, not a preview environment.",
+    "For this draft, use the PR 203 preview for guidance only.",
+    "Confirm the selected suite versions still match the narration.",
+    "Open good.json and broken-a.json and confirm they contain synthetic data only.",
+    "Run both live groups once on the recording day and note current timing and result counts.",
+    "Do not quote a test count unless it is visible in the run being recorded.",
+    "Check every prepared session URL. Public sessions may be purged.",
+    "Close notifications and unrelated browser tabs before recording.",
+    "Set browser zoom so test titles, Messages, and Requests are legible in the recording.",
+    "Keep the slide deck, run sheet, demo files, and fallback sessions open before starting."
+  ],
+  "rehearsal_sessions": [
+    ["AU PS clean", "https://inferno.hl7.org.au/suites/au_ps_v100/b8IKfRs4qI1"],
+    ["AU PS missing section", "https://inferno.hl7.org.au/suites/au_ps_v100/aiV7MfgTUB1"],
+    ["AU Core Patient", "https://inferno.hl7.org.au/suites/au_core_v200/e0DBzhZW8sm"],
+    ["AU Core Capability Statement", "https://inferno.hl7.org.au/suites/au_core_v200/4npmTjUB4hB"]
+  ]
+}

@@ -1,0 +1,5 @@
+node_modules
+build/
+qa/
+.codex-finalizer/
+__pycache__/
