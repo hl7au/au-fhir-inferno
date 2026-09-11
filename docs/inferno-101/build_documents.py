@@ -157,8 +157,8 @@ def build_docx():
     intro = doc.add_paragraph()
     intro.paragraph_format.space_after = Pt(12)
     r = intro.add_run(
-        "A screen-led draft for team review. Follow the screen directions while reading the spoken copy naturally. "
-        "The target runtime is fourteen minutes, with extra detail available if questions are recorded separately."
+        "This script supports a four minute introduction to Inferno. Follow the screen directions while reading "
+        "the spoken copy naturally. Separate videos cover the AU Patient Summary and AU Core test kits."
     )
     style_run(r, size=11)
 
@@ -233,10 +233,12 @@ def build_docx():
             f'{segment["number"]}  {segment["title"]}  {segment["duration"]}',
             style="Heading 1"
         )
-        heading.paragraph_format.page_break_before = segment["number"] in (5, 6, 7)
+        heading.paragraph_format.page_break_before = segment["number"] == 4
+        heading.paragraph_format.keep_with_next = segment["number"] == 6
         heading.paragraph_format.space_before = Pt(10)
         heading.paragraph_format.space_after = Pt(7)
-        add_labelled_paragraph(doc, "SCREEN", segment["screen"])
+        screen_paragraph = add_labelled_paragraph(doc, "SCREEN", segment["screen"])
+        screen_paragraph.paragraph_format.keep_with_next = segment["number"] == 6
         if segment.get("prep"):
             add_bullets(doc, segment["prep"], "PREP")
         if segment.get("actions"):
@@ -246,7 +248,8 @@ def build_docx():
         p.paragraph_format.space_after = Pt(4)
         r = p.add_run("SAY")
         style_run(r, size=9, bold=True, color=ORANGE)
-        for paragraph_text in segment["say"]:
+        p.paragraph_format.keep_with_next = segment["number"] == 6
+        for paragraph_index, paragraph_text in enumerate(segment["say"]):
             p = doc.add_paragraph()
             p.paragraph_format.left_indent = Inches(0.2)
             p.paragraph_format.right_indent = Inches(0.1)
@@ -254,10 +257,22 @@ def build_docx():
             p.paragraph_format.line_spacing = 1.15
             r = p.add_run(paragraph_text)
             style_run(r, size=10.6, color="111111")
+            p.paragraph_format.keep_with_next = segment["number"] == 6 and paragraph_index < len(segment["say"]) - 1
         if segment.get("fallback"):
             add_labelled_paragraph(doc, "FALLBACK", segment["fallback"])
 
-    doc.add_page_break()
+    doc.add_paragraph("Series plan", style="Heading 1")
+    intro = doc.add_paragraph(
+        "Keep the general introduction independent of any single test kit. Follow it with one short walkthrough for each distinct testing workflow."
+    )
+    intro.paragraph_format.space_after = Pt(8)
+    for video in CONTENT["follow_up_videos"]:
+        doc.add_paragraph(video["title"], style="Heading 2")
+        add_labelled_paragraph(doc, "LENGTH", video["length"])
+        add_labelled_paragraph(doc, "PURPOSE", video["purpose"])
+        add_labelled_paragraph(doc, "DEMO", video["demo"])
+        add_labelled_paragraph(doc, "OUTCOME", video["viewer_outcome"])
+
     doc.add_paragraph("Recording day preflight", style="Heading 1")
     add_bullets(doc, CONTENT["preflight"])
     doc.add_paragraph("Prepared rehearsal sessions", style="Heading 2")
@@ -265,9 +280,9 @@ def build_docx():
         add_labelled_paragraph(doc, label.upper(), url)
 
     doc.core_properties.title = CONTENT["title"] + " Recording Script"
-    doc.core_properties.subject = "Draft Sparked FHIR AU Inferno Test Kit 101 recording"
+    doc.core_properties.subject = "Sparked FHIR AU Inferno 101 recording"
     doc.core_properties.author = "Sparked AU FHIR Accelerator"
-    out = OUTPUT / "Inferno 101 Draft Script.docx"
+    out = OUTPUT / "Inferno 101 General Script.docx"
     doc.save(out)
     return out
 
@@ -312,6 +327,14 @@ def build_html():
     preflight = "".join(
         f'<li><label><input type="checkbox"> {html.escape(item)}</label></li>' for item in CONTENT["preflight"]
     )
+    follow_up = "".join(
+        f'<article><h3>{html.escape(video["title"])}</h3>'
+        f'<p><strong>{html.escape(video["length"])}</strong></p>'
+        f'<p>{html.escape(video["purpose"])}</p>'
+        f'<p><strong>Demo</strong> {html.escape(video["demo"])}</p>'
+        f'<p><strong>Viewer outcome</strong> {html.escape(video["viewer_outcome"])}</p></article>'
+        for video in CONTENT["follow_up_videos"]
+    )
     template = '''<!doctype html>
 <html lang="en">
 <head>
@@ -337,8 +360,8 @@ button { border:1px solid #ffffff66; border-radius:5px; padding:7px 12px; color:
 button.primary { border-color:var(--orange); background:var(--orange); }
 .timer-note { margin-left:auto; color:#dbe6ed; font-size:.85rem; }
 main { width:min(1080px, calc(100% - 32px)); margin:28px auto 80px; }
-.overview, .preflight, .sessions, .segment { margin:0 0 24px; border:1px solid var(--line); border-radius:9px; background:var(--paper); box-shadow:0 5px 18px #10283b0c; overflow:hidden; }
-.overview, .preflight, .sessions { padding:24px; }
+.overview, .preflight, .sessions, .series, .segment { margin:0 0 24px; border:1px solid var(--line); border-radius:9px; background:var(--paper); box-shadow:0 5px 18px #10283b0c; overflow:hidden; }
+.overview, .preflight, .sessions, .series { padding:24px; }
 h2 { margin:0; font-size:1.55rem; line-height:1.15; }
 h3 { margin:0 0 8px; color:#9d3e13; font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; }
 table { width:100%; border-collapse:collapse; font-size:.93rem; }
@@ -365,17 +388,20 @@ input[type=checkbox] { width:17px; height:17px; vertical-align:-3px; accent-colo
 .done { display:block; padding:13px 22px; color:var(--green); font-weight:700; background:#f5fbf7; }
 .sessions td:first-child { width:220px; font-weight:700; }
 .sessions a { overflow-wrap:anywhere; }
+.series-grid { display:grid; grid-template-columns:1fr 1fr; gap:28px; }
+.series article + article { border-left:1px solid var(--line); padding-left:28px; }
+.series article h3 { color:var(--navy); font-size:1.1rem; letter-spacing:0; text-transform:none; }
 .footer { width:min(1080px, calc(100% - 32px)); margin:0 auto 50px; color:var(--muted); font-size:.86rem; }
-@media (max-width:760px) { .checklist { columns:1; } .timer-note { display:none; } .screen { grid-template-columns:1fr; } th:nth-child(2), td:nth-child(2) { display:none; } }
-@media print { body { background:#fff; font-size:10pt; } .hero { padding:18px 0; } .brand { width:150px; margin-bottom:12px; } .timerbar, .done { display:none; } main { width:100%; margin:12px 0; } .overview, .preflight, .sessions, .segment { box-shadow:none; break-inside:avoid; } .segment { break-before:page; } a { color:#000; text-decoration:none; } }
+@media (max-width:760px) { .checklist { columns:1; } .series-grid { grid-template-columns:1fr; } .series article + article { border-left:0; border-top:1px solid var(--line); padding:20px 0 0; } .timer-note { display:none; } .screen { grid-template-columns:1fr; } th:nth-child(2), td:nth-child(2) { display:none; } }
+@media print { body { background:#fff; font-size:10pt; } .hero { padding:18px 0; } .brand { width:150px; margin-bottom:12px; } .timerbar, .done { display:none; } main { width:100%; margin:12px 0; } .overview, .preflight, .sessions, .series, .segment { box-shadow:none; break-inside:avoid; } .segment { break-before:page; } a { color:#000; text-decoration:none; } }
 </style>
 </head>
 <body>
 <header class="hero">
   <img class="brand" src="../assets/sparked-logo.png" alt="Sparked HL7 FHIR">
-  <div class="eyebrow">Sparked FHIR AU recording draft</div>
+  <div class="eyebrow">Sparked FHIR AU recording</div>
   <h1>__TITLE__</h1>
-  <p class="lede">__SUBTITLE__. A complete cue sheet for a draft recording and team review.</p>
+  <p class="lede">__SUBTITLE__. A complete cue sheet for the general introduction.</p>
   <div class="meta">
     <span><strong>Presenter</strong>__PRESENTER__</span>
     <span><strong>Audience</strong>__AUDIENCE__</span>
@@ -392,7 +418,7 @@ input[type=checkbox] { width:17px; height:17px; vertical-align:-3px; accent-colo
 <main>
   <section class="overview">
     <h2>Run order</h2>
-    <p>Slides establish the context. The browser demonstration carries the middle of the recording.</p>
+    <p>The overview stays short. A quick browser tour shows the interface without turning this video into a test kit walkthrough.</p>
     <table><thead><tr><th>Segment</th><th>Screen</th><th>Time</th></tr></thead><tbody>__ROWS__</tbody></table>
   </section>
   <section class="preflight">
@@ -401,13 +427,18 @@ input[type=checkbox] { width:17px; height:17px; vertical-align:-3px; accent-colo
     <ul class="checklist">__PREFLIGHT__</ul>
   </section>
   __SECTIONS__
+  <section class="series">
+    <h2>Follow-up videos</h2>
+    <p>Each testing workflow gets its own short demonstration.</p>
+    <div class="series-grid">__FOLLOW_UP__</div>
+  </section>
   <section class="sessions">
     <h2>Prepared rehearsal sessions</h2>
     <p>Use these only as fallbacks. Public sessions can be purged, and live results can change.</p>
     <table><thead><tr><th>Run</th><th>Session URL</th></tr></thead><tbody>__SESSION_ROWS__</tbody></table>
   </section>
 </main>
-<p class="footer">Draft for team review. Source content verified against the planned Inferno guidance copy on 11 September 2026.</p>
+<p class="footer">Source content verified against the planned Inferno guidance copy on 11 September 2026.</p>
 <script>
 let elapsed = 0;
 let startedAt = null;
@@ -461,6 +492,7 @@ document.addEventListener('keydown', event => {
         "__ROWS__": rows,
         "__PREFLIGHT__": preflight,
         "__SECTIONS__": "".join(sections),
+        "__FOLLOW_UP__": follow_up,
         "__SESSION_ROWS__": session_rows
     }
     for key, value in replacements.items():

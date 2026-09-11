@@ -1,31 +1,30 @@
-# Inferno Test Kit 101 draft recording pack
+# Inferno 101 short video series
 
-This pack supports a full draft recording for team review. The recording is designed around the live Inferno interface, with slides used only to establish the purpose, vocabulary, result meanings, and next steps.
+This pack supports a four minute general introduction to Inferno and defines two separate follow-up walkthroughs. The first video explains what Inferno checks, when to use it, and how to approach a first run. It does not teach either test kit in detail.
 
 ## Files
 
-- `output/Inferno 101 Draft Slides.pptx`: presentation used before and after the live browser demonstration
-- `output/Inferno 101 Draft Script.docx`: full spoken script with screen directions and fallbacks
-- `output/Inferno 101 Run Sheet.html`: self-contained rehearsal and recording run sheet
-- `content.json`: canonical timing, directions, and narration
+- `output/Inferno 101 General Slides.pptx`: five-slide presentation for the general introduction
+- `output/Inferno 101 General Script.docx`: spoken script, browser cues, preflight checks, and series plan
+- `output/Inferno 101 Run Sheet.html`: standalone rehearsal run sheet with timer and checkboxes
+- `content.json`: canonical timing, directions, narration, and follow-up video briefs
 - `build_documents.py`: generates the HTML and Word outputs
 - `build_deck.mjs`: generates the PowerPoint output
 
-## Recording path
+## Series structure
 
-1. Slides 1 to 4 establish the purpose and vocabulary.
-2. The AU Patient Summary demo validates a clean Bundle, inspects messages, then reruns with one mandatory section removed.
-3. The AU Core demo tests the Patient group against the public synthetic server and inspects the HTTP request evidence.
-4. Slides 5 and 6 explain result states and direct viewers to guidance and support.
+1. `Inferno 101`, four minutes. Explain what Inferno does, how to select a kit, how sessions and results are organised, and how to use the evidence.
+2. `AU Patient Summary Test Kit 101`, four to five minutes. Run a clean Bundle, inspect Messages, then rerun with one required section removed.
+3. `AU Core Test Kit 101`, four to five minutes. Run one Patient group against the public synthetic server and inspect Requests and dependent skips.
 
-For the internal draft recording, the run sheet opens the PR 203 preview for the new guidance copy. The closing slide and QR code retain the stable production URL so the final recording does not preserve a temporary address.
+The split keeps the general introduction useful for every viewer. Each follow-up video can then move quickly because it only needs to explain one testing workflow.
 
-The target duration is 14 minutes. Use the HTML run sheet during rehearsal because it includes a timer, checkboxes, exact URLs, and fallback sessions.
+For the internal review recording, the run sheet uses the PR 203 preview for the new guidance copy. The closing slide and QR code retain the stable production URL.
 
 ## Rebuild
 
-Use the bundled document and presentation runtimes. Run `build_documents.py`, then set `PRESENTATIONS_SKILL_DIR`, `RUNTIME_PYTHON`, `RUNTIME_NODE`, and `RUNTIME_NODE_MODULES` for the installed artifact runtime before running `build_deck.mjs`. The generated DOCX and PPTX must be rendered and visually checked before delivery.
+Use the bundled document and presentation runtimes. Run `build_documents.py`, then set `PRESENTATIONS_SKILL_DIR`, `RUNTIME_PYTHON`, `RUNTIME_NODE`, and `RUNTIME_NODE_MODULES` for the installed artifact runtime before running `build_deck.mjs`. Render and visually inspect the generated DOCX and PPTX before delivery.
 
-## Recording-day checks
+## Recording day checks
 
-Test counts, timings, suite versions, server behaviour, validator versions, and saved session availability can change. The run sheet keeps these items in its preflight section instead of baking them into reusable narration.
+Test counts, versions, server behaviour, and saved session availability can change. The run sheet keeps these items in its preflight section instead of baking them into reusable narration.
