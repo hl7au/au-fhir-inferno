@@ -95,6 +95,16 @@ RSpec.describe InfernoPlatformTemplate::StaticSite do
       expect(response['Location']).to eq('/about/')
     end
 
+    it 'builds the redirect from the normalised path so it cannot become scheme-relative' do
+      env = Rack::MockRequest.env_for('/about')
+      env['PATH_INFO'] = '//evil.example/../about'
+
+      status, headers, _body = middleware.call(env)
+
+      expect(status).to eq(301)
+      expect(headers['Location']).to eq('/about/')
+    end
+
     it 'serves index.html once the path has its trailing slash' do
       response = request.get('/about/')
 

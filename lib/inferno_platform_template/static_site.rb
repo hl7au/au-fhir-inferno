@@ -83,7 +83,7 @@ module InfernoPlatformTemplate
         # resolve. nginx did this with its own 301; keep the same status so any cached
         # redirect stays valid. The trailing slash is tested on the request's own
         # PATH_INFO because clean_path_info strips it.
-        return directory_redirect(env) unless env['PATH_INFO'].to_s.end_with?('/')
+        return directory_redirect(path) unless env['PATH_INFO'].to_s.end_with?('/')
 
         serve(env, ::File.join(path, INDEX))
       else
@@ -129,10 +129,12 @@ module InfernoPlatformTemplate
       [status, headers, body]
     end
 
-    # Note the request's own PATH_INFO is used, not the normalised one: the client should
-    # land on the URL it asked for with a slash appended, not on a rewritten path.
-    def directory_redirect(env)
-      location = "#{env['PATH_INFO']}/"
+    # Build Location from the normalised path used for the file lookup. A raw path may
+    # begin with two slashes, which turns Location into a network-path reference and lets
+    # the first segment become an attacker-selected host. Envoy currently normalises
+    # those paths before they reach Puma, but this boundary must remain safe on its own.
+    def directory_redirect(path)
+      location = "#{path}/"
 
       [301, { 'Location' => location, 'Content-Type' => 'text/plain', 'Cache-Control' => REVALIDATE_CONTROL },
        ["Moved Permanently: #{location}"]]
