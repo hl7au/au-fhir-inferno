@@ -10,11 +10,11 @@ spec:
       name: inferno-route
   timeout:
     http:
-      # Must stay below the nginx keepalive_timeout (600s) so Envoy closes
-      # idle upstream connections before nginx does. Otherwise nginx can
-      # close a pooled connection just as Envoy reuses it, which surfaces
-      # as a 503 UC (upstream_reset_before_response_started).
-      connectionIdleTimeout: 300s
+      # Puma 8 defaults its persistent connection timeout to 65s. Keep Envoy's
+      # upstream idle timeout just below that so Envoy closes idle connections
+      # first and never reuses one while Puma is closing it. The same race with
+      # the retired nginx backend surfaced as intermittent 503 UC responses.
+      connectionIdleTimeout: 60s
   retry:
     numRetries: 2
     retryOn:
