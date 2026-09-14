@@ -1,0 +1,25 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: inferno-route-resilience
+  namespace: {{ .Release.Namespace }}
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: inferno-route
+  timeout:
+    http:
+      # Puma 8 defaults its persistent connection timeout to 65s. Keep Envoy's
+      # upstream idle timeout just below that so Envoy closes idle connections
+      # first and never reuses one while Puma is closing it. The same race with
+      # the retired nginx backend surfaced as intermittent 503 UC responses.
+      connectionIdleTimeout: 60s
+  retry:
+    numRetries: 2
+    retryOn:
+      triggers:
+        # reset-before-request only retries when the connection died before
+        # the request was written, so it is safe for non-idempotent requests.
+        - reset-before-request
+        - connect-failure
