@@ -19,4 +19,4 @@ gem 'au_core_test_kit', '>= 1.4.6'
 
 
 # Bleeding-edge AU PS test kit — unreleased commit ahead of the RubyGems release.
-gem 'au_ps_inferno', github: 'hl7au/au-ps-inferno', ref: '5a21bc85e534334b1e1c18e0c7be1a5f65b90d60'
+gem 'au_ps_inferno', github: 'hl7au/au-ps-inferno', ref: '65654bfcffe8ec48ebf3b8105fbdd6a53184789f'
