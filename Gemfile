@@ -22,7 +22,7 @@ eval_gemfile 'Gemfile.common'
 # internals inferno_core removed in v1.1.0, so it is the floor for the 1.4.x line.
 gem 'au_core_test_kit', '~> 1.4.6'
 
-# Released AU PS test kit (published on RubyGems by hl7au). '~> 1.0.1' means
-# >= 1.0.1, < 1.1.0; Gemfile.lock pins the exact version. 1.0.1 is the first release
-# without the 'inferno_core ~> 1.0.6' cap, so it is the floor for the 1.4.x line.
-gem 'au_ps_inferno', '~> 1.0.1'
+# Released AU PS test kit (published on RubyGems by hl7au). '~> 1.0.0' means
+# >= 1.0.0, < 1.1.0; Gemfile.lock pins the exact version.
+# gem 'au_ps_inferno', '~> 1.0.0'
+gem 'au_ps_inferno', github: 'hl7au/au-ps-inferno', ref: '5a21bc85e534334b1e1c18e0c7be1a5f65b90d60'
