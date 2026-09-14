@@ -17,6 +17,6 @@ eval_gemfile 'Gemfile.common'
 # reference-resolution fix; Gemfile.dev.lock pins the exact version.
 gem 'au_core_test_kit', '>= 1.4.6'
 
-# Bleeding-edge AU PS test kit. Floored at the release that drops the
-# 'inferno_core ~> 1.0.6' cap; Gemfile.dev.lock pins the exact version.
-gem 'au_ps_inferno', '>= 1.0.1'
+
+# Bleeding-edge AU PS test kit — unreleased commit ahead of the RubyGems release.
+gem 'au_ps_inferno', github: 'hl7au/au-ps-inferno', ref: '65654bfcffe8ec48ebf3b8105fbdd6a53184789f'
