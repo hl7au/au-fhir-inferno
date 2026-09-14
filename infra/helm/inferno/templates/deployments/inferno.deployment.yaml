@@ -17,6 +17,13 @@ spec:
       labels:
         app: inferno-app
     spec:
+      # Kubernetes injects Docker-link style env vars for every Service in the
+      # namespace, so the `inferno` Service yields INFERNO_PORT=tcp://<clusterIP>:4567.
+      # The AU PS test kit's config/puma.rb reads INFERNO_PORT as its listen port and
+      # crashes at boot on that value. Nothing in these images consumes the injected
+      # variables and every address the app needs is passed explicitly, so they are
+      # disabled on the two pods that run test kit code.
+      enableServiceLinks: false
       nodeSelector:
         kubernetes.io/arch: amd64
         {{- with .Values.capacityType }}
@@ -26,6 +33,7 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.nginx.enabled }}
       volumes:
         - name: examplenginx-config
           configMap:
@@ -33,6 +41,7 @@ spec:
             items:
               - key: nginx.conf
                 path: nginx.conf
+      {{- end }}
       initContainers:
       - name: run-migrations
         image: {{ .Values.inferno.imageUrl }}
@@ -120,6 +129,7 @@ spec:
 # CPU (not memory) gates session-build latency, so it is left unchanged:
 # at 512Mi and 100m CPU takes 30sec to create new session
 # at 2Gi and 1000m CPU takes 9sec to create new session
+      {{- if .Values.nginx.enabled }}
       - name: nginx
         image: {{ .Values.nginx.platformImageUri }}
         imagePullPolicy: Always
@@ -136,3 +146,4 @@ spec:
           limits:
             memory: "64Mi"    # Nginx is very lightweight
             cpu: "50m"        # Minimal CPU needed for reverse proxy
+      {{- end }}

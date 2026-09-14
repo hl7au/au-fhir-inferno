@@ -1,6 +1,9 @@
 require 'inferno'
 require_relative 'lib/inferno_platform_template/patches'
 require_relative 'lib/inferno_platform_template/health_check'
+require_relative 'lib/inferno_platform_template/static_site'
+require_relative 'lib/inferno_platform_template/suite_redirects'
+require_relative 'lib/inferno_platform_template/request_host_redirects'
 require_relative 'lib/inferno_platform_template/database_pool'
 
 # Per-runnable duration tracking (results.duration_ms) is dev-only while it is a
@@ -35,18 +38,45 @@ if OTEL_ENABLED
   end
 end
 
-# Outermost middleware: /healthz answers before static assets, the request logger and
-# routing, so probes stay cheap and out of the access log. It also sits above the
-# OpenTelemetry middleware below, so probe traffic never reaches the tracer.
+# Outermost middleware: /healthz answers before the static site, static assets, the
+# request logger and routing, so probes stay cheap and out of the access log. It also
+# sits above the OpenTelemetry middleware below, so probe traffic never reaches the
+# tracer.
 use InfernoPlatformTemplate::HealthCheck
+
+# Compression, previously nginx's `gzip on`. Above everything that produces a body so it
+# covers the static site, Inferno's own assets and the JSON API alike. Restricted to
+# compressible types by content type: gzipping a PNG or a font costs CPU for nothing.
+use Rack::Deflater,
+    include: [
+      'text/html',
+      'text/css',
+      'application/javascript',
+      'application/json',
+      'image/svg+xml',
+      'text/plain',
+      'text/xml',
+      'application/xml'
+    ]
+
+# The two middlewares that replace the nginx layer: the /suites -> /test-kits landing
+# page redirects, then the Jekyll site itself. Both are above the OpenTelemetry handler
+# and the request logger for the same reason HealthCheck is: a page view, an asset fetch
+# or a redirect is answered here and never forwarded, so it costs neither a span nor an
+# access-log line. Both fall through to Inferno for anything they do not own.
+#
+# SuiteRedirects sits above StaticSite because its paths are under /suites, which the
+# site never contains; the ordering is about intent rather than necessity.
+use InfernoPlatformTemplate::SuiteRedirects
+use InfernoPlatformTemplate::StaticSite
 
 use Rack::Static,
     urls: Inferno::Utils::StaticAssets.static_assets_map,
     root: Inferno::Utils::StaticAssets.inferno_path
 
-# Below Rack::Static so asset requests, which the static middleware answers and never
-# forwards, do not each cost a span. What remains is the dynamic traffic, the same scope
-# the request logger covers.
+# Below Rack::Static and the static site so asset and page requests, which those
+# middlewares answer and never forward, do not each cost a span. What remains is the
+# dynamic traffic, the same scope the request logger covers.
 #
 # middleware_args is the instrumentation's own entry point rather than a hardcoded
 # middleware constant: 0.31 splits the handler three ways by HTTP semantic-convention
@@ -58,6 +88,13 @@ use(*OpenTelemetry::Instrumentation::Rack::Instrumentation.instance.middleware_a
 Inferno::Application.finalize!
 
 InfernoPlatformTemplate::DatabasePool.configure!
+
+# Innermost platform middleware, wrapping Inferno itself so it sees the absolute 302 the
+# session form POST and the session show route emit. It rewrites those Location headers
+# back onto the hostname the client used, which is what nginx's proxy_redirect did on its
+# /suites location. Only redirects to our own configured origin and inside /suites are
+# touched, so a test kit's OAuth redirect is left alone.
+use InfernoPlatformTemplate::RequestHostRedirects
 
 use Inferno::Utils::Middleware::RequestLogger
 

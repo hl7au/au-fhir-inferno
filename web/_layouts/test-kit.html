@@ -118,6 +118,42 @@ layout: page
   // Also force triggering this on load so if initial suite select has
   // options, those get opened
 
+  // Hide suites this deployment does not actually run.
+  //
+  // The static site is generated once and shipped in every image, so this page lists
+  // every suite the CONTENT knows about, while the suites REGISTERED in the running app
+  // come from the test kit gems that image happened to bundle. A bare test kit preview,
+  // or an environment on an older image, therefore renders options that 404 on session
+  // creation. Ask the app which suites it has and drop the rest.
+  //
+  // Same origin by construction (siteConfig.infernoHost is window.location.origin), so
+  // no CORS involved. Fails OPEN: if the API is unreachable the list stays exactly as
+  // rendered, because hiding every option would be a worse page than an optimistic one.
+  $.getJSON(`${siteConfig.infernoHost}/suites/api/test_suites`)
+    .done((suites) => {
+      const available = new Set((suites || []).map((suite) => suite.id));
+      if (available.size === 0) return;
+
+      const radios = $('#start-testing-form input[type=radio][name=suite]');
+      let checkedWasHidden = false;
+
+      radios.each((index, el) => {
+        if (available.has(el.value)) return;
+
+        $(el).closest('.form-check').hide();
+        if (el.checked) {
+          el.checked = false;
+          checkedWasHidden = true;
+        }
+      });
+
+      if (checkedWasHidden) {
+        // The option groups below are driven by the checked suite, so re-select and
+        // re-fire rather than just ticking a box.
+        radios.filter(':visible').first().prop('checked', true).trigger('change');
+      }
+    });
+
   $('#start-testing-form input[type=radio][name=suite]').change(function () {
     const newSuite = this.value;
 
