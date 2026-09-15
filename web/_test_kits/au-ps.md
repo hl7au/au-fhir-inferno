@@ -4,41 +4,65 @@ title: AU PS Test Kit
 test_kit_id: au_ps_suite
 maturity: 0
 tags: [ AU ]
-date: 2026-07-21
-version: 1.0.0
+date: 2026-09-10
+version: 1.0.1
 canonical_url: "http://hl7.org.au/fhir/ps"
 logo: /assets/images/au-core-logo.png
-preview_text: The AU PS Test Kit validates the conformance of a server implementation to a specific version of the AU PS IG
+preview_text: Check that a patient summary document conforms to the AU Patient Summary (AU PS) implementation guide. Paste a Bundle, fetch one from a server, or have Inferno call $summary on your server.
 suites:
-  - title: AU PS 1.0.0 
-    id: au_ps_v100 
+  - title: AU PS 1.0.0
+    id: au_ps_v100
 sections:
-  - title: "Status"
+  - title: "What this test kit checks"
     icon: /assets/images/checklist.svg
     content: >
-      <p>The AU PS Test Kit is actively developed and regularly updated. The test kit currently tests the following requirements:</p>
+      <p>Every path runs the same validation over the patient summary Bundle it obtains:</p>
       <ul>
-        <li>Validity of the AU Patient Summary document bundle profile</li>
+        <li>The Bundle is a valid AU PS Bundle (and optionally a valid IPS Bundle as well).</li>
+        <li>Must Support elements on the Bundle and the Composition are populated when a value is known.</li>
+        <li>Mandatory sections (Problems, Allergies and Intolerances, Medication Summary) are present and populated with the right profiles. Recommended and optional sections are checked the same way when present.</li>
+        <li>Mandatory sections use an explicit "no known ..." entry rather than <code>emptyReason = nilknown</code>. This is a warning, not a failure.</li>
+        <li>The Composition subject, author, custodian and attester resolve to correctly populated AU PS Patient, Practitioner, PractitionerRole, Organization, RelatedPerson or Device resources, including identifier slices such as IHI, Medicare and DVA numbers.</li>
       </ul>
-      <p>See the test descriptions within the test kit for detail on the specific validations performed as part of testing these requirements.</p>
-  - title: "Repository"
-    icon: /assets/images/code.svg
+      <p>The server path also checks that your CapabilityStatement declares the AU PS profiles and the IPS operations (<code>$summary</code>, <code>$docref</code>).</p>
+      <p>Open any test in the session to read exactly what it asserts and which part of the IG it comes from.</p>
+  - title: "How to run a test"
+    icon: /assets/images/rocket_launch.svg
     content: >
-      The AU PS Inferno Test Kit GitHub repository can be found <a href="https://github.com/hl7au/au-ps-inferno">here</a>.
-  - title: "Providing Feedback and Reporting Issues"
+      <ol>
+        <li>Click <b>Create Test Session</b>. Inferno opens a new session with a shareable URL; keep it, it is your record of the run.</li>
+        <li>In the left panel choose the group that matches how you want to test (see the three ways above). You do not need to run the whole suite.</li>
+        <li>Click <b>Run Tests</b> and fill in the inputs. Only the fields for the path you chose are needed; leave the rest empty.</li>
+        <li>Wait for the run to finish, then open any failed test and read the <b>Messages</b> tab. Validator messages point at the exact element in your Bundle.</li>
+      </ol>
+      <p>Fix, re-run the same group, repeat. See <a href="/guidance/#reading-results">Reading results</a> for what pass, fail, skip and omit mean.</p>
+  - title: "Before you start"
+    icon: /assets/images/science.svg
+    content: >
+      <ul>
+        <li><b>Use synthetic data only.</b> This is a public service. Do not paste or expose real patient data.</li>
+        <li><b>Server paths need a reachable endpoint.</b> Inferno on hl7.org.au calls your server from the internet, so it cannot reach localhost or anything behind a VPN. Use the paste-a-Bundle path for local work, or <a href="/guidance/#run-locally">run the kit locally</a>.</li>
+        <li><b>Authentication</b> is optional. Supply a bearer token via OAuth credentials, or a custom header name and value, when the session asks.</li>
+        <li><b>Need a sample?</b> The <a href="https://hl7.org.au/fhir/ps/1.0.0/examples.html">AU PS IG examples</a> and the <a href="https://github.com/hl7au/au-fhir-test-data">HL7 AU FHIR test data</a> repository have Bundles you can paste to see what a passing run looks like.</li>
+      </ul>
+  - title: "Feedback and issues"
     icon: /assets/images/feedback.svg
     content: >
-      <p>We welcome feedback on the tests, including but not limited to the following areas:</p>
-      <ul>
-      <li>Validation logic, such as potential bugs, lax checks, and unexpected failures.</li>
-      <li>Requirements coverage, such as requirements that have been missed, tests that necessitate features that the IG does not require, or other issues with the interpretation of the IG’s requirements.</li>
-      <li>User experience, such as confusing or missing information in the test UI.</li>
-      </ul>
-      <p>Please report any issues with this set of tests in the <a href="https://github.com/hl7au/au-ps-inferno/issues">issues section</a> of the repository.</p>
-      <p>Please read this <a href="https://github.com/hl7au/au-ps-inferno/issues">README</a> section before providing feedback and reporting issues.</p>
+      <p>If a test fails and you believe your Bundle is right, or a check is missing, tell us. The fastest route is the <a href="https://chat.fhir.org/#narrow/channel/179173-australia/topic/Inferno.20Test.20Kit.20feedback.20and.20queries">Inferno Test Kit feedback and queries</a> topic on chat.fhir.org. Include the session URL.</p>
+      <p>For bugs and requests open an issue in <a href="https://github.com/hl7au/au-ps-inferno/issues">hl7au/au-ps-inferno</a>. The <a href="https://github.com/hl7au/au-ps-inferno#contributing-to-inferno-and-reporting-issues">README</a> explains what to include.</p>
+  - title: "Source, versions and licence"
+    icon: /assets/images/code.svg
+    content: >
+      <p>Tests <a href="https://hl7.org.au/fhir/ps/1.0.0/">AU PS 1.0.0</a>. See the <a href="https://hl7.org.au/fhir/ps/history.html">IG history</a> for other publications.</p>
+      <p>Source: <a href="https://github.com/hl7au/au-ps-inferno">github.com/hl7au/au-ps-inferno</a>, built on the <a href="https://inferno-framework.github.io">Inferno Framework</a> and released under the <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache License 2.0</a>. Free to run locally or adopt in your own test programme.</p>
+      <p>This is a reference test kit, not a certification. Passing here does not confer conformance status; see <a href="/about/#available-test-kits">About</a>.</p>
 ---
 
-<p>The AU PS Test Kit validates the content of patient summary documents with respect to the AU Patient Summary FHIR Implementation Guide specification.</p>
-<p>This test kit is open source and freely available for use or adoption by the health IT community, including EHR vendors, health app developers, and testing labs. It is built using the <a href="https://inferno-framework.github.io">Inferno Framework</a>. The Inferno Framework is designed for reuse and aims to make it easier to build test kits for any FHIR-based data exchange.</p>
-<p>This test kit is based on the <a href="https://build.fhir.org/ig/hl7au/au-fhir-ps/index.html">AU PS Implementation Guide</a>, which defines the base set of profiles and requirements for Australian FHIR implementations. For detailed information on IG versions, change history, and publication status, see the <a href="https://hl7.org.au/fhir/ps/history.html">AU PS IG History Page</a>.</p>
-<p>This project is licensed under the <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+<p><b>Use this kit if your system produces or serves an AU Patient Summary document.</b> It validates a patient summary Bundle against the <a href="https://hl7.org.au/fhir/ps/1.0.0/">AU PS 1.0.0</a> implementation guide and tells you exactly which element or section is wrong.</p>
+<p>There are three ways to test, pick the one that matches what you have:</p>
+<ul>
+  <li><b>Paste a Bundle.</b> You have a patient summary document as JSON or XML. No server needed. Choose <i>AU PS Bundle Instance</i>.</li>
+  <li><b>Fetch a Bundle from your server.</b> Give Inferno a Bundle URL, or your FHIR base URL and a Bundle id. Choose <i>Retrieve AU PS Bundle</i>.</li>
+  <li><b>Generate one with <code>$summary</code>.</b> Your server implements the IPS <code>$summary</code> operation. Give Inferno the base URL and a patient id or identifier. Choose <i>Generate AU PS using IPS $summary</i>.</li>
+</ul>
+<p>A separate <i>Retrieve Capability Statement</i> group checks that a server advertises AU PS support. Run it alongside either server path.</p>

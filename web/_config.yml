@@ -25,12 +25,12 @@ navigation_links:
 quick_links:
   - title: AU Core Test Kit
     description: >
-      Evaluate a publicly accessible FHIR server against the AU Core Responder Capability Statement using this public reference testing instance of Inferno.
+      Test a FHIR server's API against AU Core. Inferno runs the required searches against your endpoint and validates every resource returned.
     link_text: Start Testing
     link_href: '/test-kits/au-core'
   - title: AU PS Test Kit
     description: >
-      Evaluate patient summary documents with respect to AU Patient Summary profiles using this public reference testing instance of Inferno.
+      Validate a patient summary document against AU PS 1.0.0. Paste a Bundle, fetch one from your server, or have Inferno call $summary.
     link_text: Start Testing
     link_href: '/test-kits/au-ps'
 
@@ -70,7 +70,7 @@ features_block:
         </p>
     - name: "Start Testing Today"
       description: <p>
-          Inferno on hl7.org.au is a public host for the <a href="/test-kits/au-core">AU Core Test Kit</a>. Browse the <a href="/test-kits">Test Kit</a> page for a list of tests that are currently available.
+          Inferno on hl7.org.au hosts the <a href="/test-kits/au-core">AU Core</a> and <a href="/test-kits/au-ps">AU Patient Summary</a> test kits. Not sure which you need? See <a href="/guidance/#which-test-kit">Which test kit do I need?</a>
         </p>
     - name: "Create your own tests"
       description: <p>
@@ -101,82 +101,113 @@ custom_pages:
     breadcrumb: Resources / Guidance
     hide_toc: false
     blocks:
-      - title: Getting Started
-        anchor: getting-started
+      - title: Which test kit do I need?
+        anchor: which-test-kit
+        logo_path: /assets/images/search.svg
+        content: >
+          <p>Each test kit targets one HL7 AU implementation guide. Pick the one that matches what your system does.</p>
+          <table class="table">
+            <thead><tr><th>You have ...</th><th>Use</th><th>Inferno will ...</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>A FHIR server that other systems query for patient, clinical or provider data</td>
+                <td><a href="/test-kits/au-core">AU Core Test Kit</a></td>
+                <td>Act as an AU Core client: run the required searches against your endpoint and validate every resource returned.</td>
+              </tr>
+              <tr>
+                <td>A patient summary document (a Bundle), or a server that serves or generates one</td>
+                <td><a href="/test-kits/au-ps">AU PS Test Kit</a></td>
+                <td>Validate the Bundle, its Composition sections and referenced resources against AU Patient Summary 1.0.0.</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>If your system is a client (it consumes data from an AU Core server), these kits do not test it directly. Use the <a href="https://fhir.hl7.org.au/aucore/fhir/DEFAULT">public AU Core test server</a> as a conformant counterpart to develop against, and raise client-testing needs in the feedback channel below.</p>
+      - title: Running a test session
+        anchor: running-a-session
         logo_path: /assets/images/rocket_launch.svg
         content: >
-          <div>
-            <b>Available Test Kits</b>
-            <ul>
-              <li>
-                AU FHIR Core Inferno
-                <ul>
-                  <li>Deployed  version: <a href="https://inferno.hl7.org.au/test-kits/au-core">https://inferno.hl7.org.au/test-kits/au-core</a></li>
-                  <li>Source code repository: <a href="https://github.com/hl7au/au-fhir-core-inferno">https://github.com/hl7au/au-fhir-core-inferno</a></li>
-                </ul>
-              </li>
-              <li>
-                AU PS Inferno
-                <ul>
-                  <li>Deployed  version: <a href="https://inferno.hl7.org.au/test-kits/au-ps">https://inferno.hl7.org.au/test-kits/au-ps</a></li>
-                  <li>Source code repository: <a href="https://github.com/hl7au/au-ps-inferno">https://github.com/hl7au/au-ps-inferno</a></li>
-                </ul>
-              </li>
-            </ul>
-          </div>
-      - title: Run Locally
+          <p>Inferno organises tests into a <b>suite</b> (one IG version), made of <b>groups</b> (one profile, or one way of obtaining a document), made of individual <b>tests</b>. You run groups; each test inside reports its own result.</p>
+          <ol>
+            <li><b>Create a session.</b> On the test kit page choose the IG version and click <b>Create Test Session</b>. The URL of the session is unique and shareable. Keep it: it is how you show a reviewer what happened, and how you re-open the run later.</li>
+            <li><b>Pick a group.</b> The left panel lists the groups. Click one to see its tests and the description of what it checks. You rarely need to run the whole suite while you are fixing things.</li>
+            <li><b>Run and supply inputs.</b> Click <b>Run Tests</b>. Inferno asks only for the inputs that group needs (an endpoint, patient ids, a pasted Bundle, credentials). Inputs are remembered for the rest of the session.</li>
+            <li><b>Watch it run.</b> Tests execute in order. Groups that depend on an earlier result (for example, Must Support checks depend on a successful search) wait for it.</li>
+            <li><b>Read the results, fix, re-run.</b> Re-running a group replaces its previous results in the same session.</li>
+          </ol>
+          <p>Sessions on this public service are periodically purged. Download or screenshot anything you need to keep. The <b>Report</b> button in the session header produces a printable summary of the run.</p>
+      - title: Reading results
+        anchor: reading-results
+        logo_path: /assets/images/checklist.svg
+        content: >
+          <p>Each test ends in one state:</p>
+          <table class="table">
+            <tbody>
+              <tr><td><b>Pass</b></td><td>The assertion held.</td></tr>
+              <tr><td><b>Fail</b></td><td>The assertion did not hold. Open the test: the <b>Messages</b> tab has the validator or search finding, the <b>Requests</b> tab has every HTTP request and response involved.</td></tr>
+              <tr><td><b>Skip</b></td><td>The test could not run because a precondition was missing, usually no resources were returned by an earlier search, or an input was empty. Fix the cause upstream and re-run.</td></tr>
+              <tr><td><b>Omit</b></td><td>The test does not apply, for example a search parameter your CapabilityStatement says you do not support. Not a problem.</td></tr>
+              <tr><td><b>Error</b></td><td>Something unexpected happened (connection refused, malformed response, a bug in the test). If your server was reachable, report it with the session URL.</td></tr>
+            </tbody>
+          </table>
+          <p><b>Warnings and information messages</b> can appear on a passing test. Warnings flag things the IG says SHOULD be done, or patterns the community discourages. They do not fail the test but are worth reading before a test event.</p>
+          <p><b>Validator messages</b> name the element path (for example <code>Bundle.entry[3].resource.code</code>) and the profile rule that was broken. Messages are grouped per resource, so a single missing terminology binding on twenty Observations shows as twenty lines with the same cause.</p>
+          <p>A group with SHALL tests passing and SHOULD or MAY tests failing is often acceptable; the test title states the conformance level.</p>
+      - title: Test data and public servers
+        anchor: test-data
+        logo_path: /assets/images/file_copy.svg
+        content: >
+          <p><b>Never send real patient data to this service.</b> It is a public reference instance with no protections for personal or health information. Use synthetic data throughout.</p>
+          <ul>
+            <li><a href="https://github.com/hl7au/au-fhir-test-data">HL7 AU FHIR test data</a>: synthetic patients and supporting resources designed to exercise every Must Support element in AU Core. Load these on your server before testing so the Must Support checks have something to find.</li>
+            <li><a href="https://fhir.hl7.org.au/aucore/fhir/DEFAULT">Public AU Core test server</a>: a hosted FHIR server preloaded with the test data. The AU Core kit inputs default to it, so you can run a passing session before touching your own endpoint. It is for testing only, not production.</li>
+            <li>The <a href="https://hl7.org.au/fhir/ps/1.0.0/examples.html">AU PS IG examples</a> and <a href="https://hl7.org.au/fhir/core/">AU Core IG</a> examples are also valid inputs for a first run.</li>
+            <li>Terminology is validated against <a href="https://tx.dev.hl7.org.au/fhir">tx.dev.hl7.org.au</a>, the HL7 AU terminology server loaded with the code systems and value sets the IGs use.</li>
+          </ul>
+      - title: Preparing for a connectathon or test event
+        anchor: test-events
+        logo_path: /assets/images/group.svg
+        content: >
+          <p>Most time lost at a test event is spent on things that can be checked the week before:</p>
+          <ul>
+            <li>Your endpoint is reachable over HTTPS from outside your network. Try it from a phone off the office wifi.</li>
+            <li>You know how Inferno will authenticate: an open endpoint, a long-lived bearer token, or a fixed header. Have the token ready.</li>
+            <li>Synthetic test data is loaded and you have the patient ids (and any practitioner, organisation, location ids) written down.</li>
+            <li>You have run the relevant kit once against your system and read the failures, so you arrive with a known baseline rather than a first run.</li>
+            <li>You know which IG version you are claiming. Test against that suite, not the newest one.</li>
+          </ul>
+          <p>During the event, keep the session URL for each run and share it when you ask for help. A reviewer can open it and see exactly what was sent and received.</p>
+      - title: Run a test kit locally
         anchor: run-locally
         logo_path: /assets/images/build.svg
         content: >
-          <div>
-            You can also run a test kit on your own machine. To do this, choose one of the following repositories based on the test kit you want to use:
-            <ul>
-              <li><b>AU FHIR Core Inferno repository</b>: <a href="https://github.com/hl7au/au-fhir-core-inferno">https://github.com/hl7au/au-fhir-core-inferno</a></li>
-              <li><b>AU PS Inferno repository</b>: <a href="https://github.com/hl7au/au-ps-inferno">https://github.com/hl7au/au-ps-inferno</a></li>
-            </ul>
-            <b>Prerequisites</b>
-            <ul>
-              <li>Docker installed (Instructions: <a href="https://docs.docker.com/get-started/introduction">https://docs.docker.com/get-started/introduction</a>)</li>
-              <li>At least 10 GB of memory allocated to Docker</li>
-            </ul>
-            <b>Setup Instructions</b>(All commands below should be run in your terminal)
-            <ol>
-              <li>
-                Clone the selected repository
-                <ol type="a">
-                  <li><i>git clone &lt;repository-url&gt;</i></li>
-                  <li><i>cd &lt;repository-directory&gt;</i></li>
-                </ol>
-              </li>
-              <li>
-                Set up the project. This installs dependencies and initializes the database.
-                <ol type="a">
-                  <li><i>make setup</i></li>
-                </ol>
-              </li>
-              <li>
-                Start the application
-                <ol type="a">
-                  <li><i>make run</i></li>
-                </ol>
-              </li>
-              <li>
-                Access the app
-                <ol type="a">
-                  <li>Open <a href="http://localhost">http://localhost</a> in your browser.</li>
-                  <li>The test suite will be available on the homepage.</li>
-                </ol>
-              </li>
-            </ol>
-          </div>
-      - title: Test Kit Authoring
+          <p>Run a kit on your own machine when your server is not reachable from the internet, when you want to test with data you cannot share, or to wire the tests into your own CI. Each kit ships with a Docker setup.</p>
+          <p><b>Prerequisites:</b> <a href="https://docs.docker.com/get-started/introduction">Docker</a> with at least 10 GB of memory allocated. The first start downloads and warms the FHIR validator, so allow 5 to 10 minutes.</p>
+          <ol>
+            <li>Clone the kit: <a href="https://github.com/hl7au/au-fhir-core-inferno">hl7au/au-fhir-core-inferno</a> or <a href="https://github.com/hl7au/au-ps-inferno">hl7au/au-ps-inferno</a>.</li>
+            <li>In the repository directory run <code>make setup</code> (installs dependencies, initialises the database), then <code>make run</code>.</li>
+            <li>Open <a href="http://localhost">http://localhost</a>. The kit is on the home page.</li>
+          </ol>
+          <p>Each README also documents the validator configuration and how to drive the tests from the Inferno API for automation.</p>
+      - title: Get help and give feedback
+        anchor: help
+        logo_path: /assets/images/feedback.svg
+        content: >
+          <ul>
+            <li><b>Ask a question or report a suspect result:</b> the <a href="https://chat.fhir.org/#narrow/channel/179173-australia/topic/Inferno.20Test.20Kit.20feedback.20and.20queries">Inferno Test Kit feedback and queries</a> topic in the #australia channel on chat.fhir.org. Include the session URL.</li>
+            <li><b>Report a bug or request a test:</b> open an issue in <a href="https://github.com/hl7au/au-fhir-core-inferno/issues">au-fhir-core-inferno</a> or <a href="https://github.com/hl7au/au-ps-inferno/issues">au-ps-inferno</a>.</li>
+            <li><b>Join the conversation:</b> the fortnightly <a href="https://confluence.hl7.org/display/HAFWG/Infrastructure+and+Tooling+Contact+List">HL7 AU Infrastructure and Tooling community meeting</a> triages issues and discusses test coverage.</li>
+            <li><b>Questions about Inferno itself:</b> the <a href="https://chat.fhir.org/#narrow/channel/179309-inferno">#inferno channel</a> on chat.fhir.org.</li>
+          </ul>
+      - title: Build your own tests
         anchor: test-kit-authoring
         logo_path: /assets/images/science.svg
         content: >
+          <p>Both kits are open source and built on the Inferno Framework. To extend them, or write a kit for another IG, start with:</p>
           <ul style="list-style-type:none; margin:0; padding:0;">
             <li><a href="https://inferno-framework.github.io/docs">Inferno documentation</a></li>
             <li><a href="https://inferno-framework.github.io/docs/writing-tests/">Writing tests</a></li>
-            <li><a href="https://inferno-framework.github.io/inferno-core/docs/">Inferno Core documentation</a></li>
+            <li><a href="https://inferno-framework.github.io/inferno-core/docs/">Inferno Core API documentation</a></li>
+            <li><a href="https://github.com/hl7au/inferno_suite_generator">Inferno Suite Generator</a>, which produces the AU Core suites from an IG package</li>
           </ul>
   license:
     title: License
