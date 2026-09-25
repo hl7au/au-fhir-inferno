@@ -195,6 +195,7 @@
     const testId = test.value.trim();
     const suiteOption = suite.selectedOptions[0];
     const suiteId = suite.value;
+    const testName = chosen ? [chosen.number, chosen.title].filter(Boolean).join(' — ') : '';
     if (reference && (reference.length > 100 || !validReference(reference))) {
       session.setCustomValidity('Use only letters, numbers, hyphens and underscores.');
       session.reportValidity();
@@ -207,13 +208,14 @@
     }
 
     const subject = isResult
-      ? `AU Inferno result feedback: ${testId}`
+      ? `AU Inferno result feedback: ${(testName || testId).slice(0, 120)}`
       : 'AU Inferno general feedback';
     const context = [
       `Test kit: ${suiteOption?.dataset.kit || 'Not specified'}`,
       `Test kit version: ${suiteOption?.dataset.kitVersion || 'Not available'}`,
       `Suite ID: ${suiteId || 'Not specified'}`,
       `Suite version: ${suiteVersion || 'Not available'}`,
+      `Test: ${isResult ? (testName || 'Not available') : 'Not applicable'}`,
       `Test ID: ${isResult ? testId : 'Not applicable'}`,
       `Outcome: ${isResult ? (safeReference(chosen?.result) || outcome.value) : 'Not applicable'}`,
       `Result time (UTC): ${isResult ? (safeTime(chosen?.created_at) || 'Not available') : 'Not applicable'}`,
