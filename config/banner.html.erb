@@ -37,7 +37,8 @@
   // The URL stays on this origin and the public issue contains only its hash.
   const attachFeedbackSession = (event) => {
     const link = event.target.closest?.('a[href^="/feedback/"]');
-    if (!link) return;
+    // The result action already carries its exact test and result IDs.
+    if (!link || link.getAttribute('href') !== '/feedback/') return;
     const match = location.pathname.match(/^\/suites\/(?:test_sessions\/|[^/]+\/)([A-Za-z0-9_-]+)\/?$/);
     if (!match) return;
     link.href = '/feedback/?session=' + encodeURIComponent(match[1]);

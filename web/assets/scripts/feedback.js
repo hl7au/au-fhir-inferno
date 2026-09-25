@@ -59,7 +59,7 @@
     outcome.disabled = !!result;
     if (result) {
       test.value = result.test_id;
-      outcome.value = ['pass', 'fail', 'error', 'skip', 'omit'].includes(result.result)
+      outcome.value = ['pass', 'fail', 'error', 'skip', 'omit', 'cancel', 'wait'].includes(result.result)
         ? result.result : 'other';
     } else {
       test.value = '';
@@ -101,7 +101,8 @@
 
   function resultLabel(item) {
     const name = [item.number, item.title].filter(Boolean).join(' — ') || item.test_id;
-    const outcome = { pass: 'Passed', fail: 'Failed', error: 'Error', skip: 'Skipped', omit: 'Omitted' }[item.result]
+    const outcome = { pass: 'Passed', fail: 'Failed', error: 'Error', skip: 'Skipped', omit: 'Omitted',
+      cancel: 'Cancelled', wait: 'Waiting' }[item.result]
       || 'Other outcome';
     return `${name} · ${outcome}`;
   }

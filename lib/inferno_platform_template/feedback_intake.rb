@@ -14,7 +14,7 @@ module InfernoPlatformTemplate
     MAX_BODY_BYTES = 4096
     REFERENCE = /\A[A-Za-z0-9_-]{1,160}\z/
     VERSION = /\A[A-Za-z0-9_.-]{1,80}\z/
-    OUTCOMES = %w[pass fail error skip omit other].freeze
+    OUTCOMES = %w[pass fail error skip omit cancel wait other].freeze
     SESSION_URL = %r{https?://\S*/suites/(?:test_sessions/|[A-Za-z0-9_-]+/)[A-Za-z0-9_-]+}i
 
     def initialize(app, token: ENV['FEEDBACK_GITHUB_TOKEN'], issue_client: nil, limiter: nil)
