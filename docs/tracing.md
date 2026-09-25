@@ -37,6 +37,7 @@ On every test span:
 |---|---|---|
 | `inferno.test_run_id` | `d266e9a6-...` | correlates the tests of one run |
 | `inferno.test_session_id` | `9VcZqjUPuIr` | the last path segment of a session URL, so a user's link is enough to find their traces |
+| `inferno.feedback_ref` | `fb-...` | one-way session reference for public feedback issues; see [feedback flow](feedback-flow.md) |
 | `inferno.test_id` | `au_core_v210_draft-..._patient-..._read_test` | fully qualified test identity |
 | `inferno.test_short_id` | `1.2.03` | the label the Inferno UI shows, so it matches what a user quotes |
 | `inferno.test_title` | `Server returns a Patient` | readable in a table without a lookup |

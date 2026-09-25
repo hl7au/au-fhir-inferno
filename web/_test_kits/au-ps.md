@@ -30,7 +30,7 @@ sections:
     icon: /assets/images/rocket_launch.svg
     content: >
       <ol>
-        <li>Click <b>Create Test Session</b>. Inferno opens a new session with a shareable URL; keep it, it is your record of the run.</li>
+        <li>Click <b>Create Test Session</b>. Keep the session URL as your record of the run and share it only with trusted reviewers.</li>
         <li>In the left panel choose the group that matches how you want to test (see the three ways above). You do not need to run the whole suite.</li>
         <li>Click <b>Run Tests</b> and fill in the inputs. Only the fields for the path you chose are needed; leave the rest empty.</li>
         <li>Wait for the run to finish, then open any failed test and read the <b>Messages</b> tab. Validator messages point at the exact element in your Bundle.</li>
@@ -48,8 +48,8 @@ sections:
   - title: "Feedback and issues"
     icon: /assets/images/feedback.svg
     content: >
-      <p>If a test fails and you believe your Bundle is right, or a check is missing, tell us. The fastest route is the <a href="https://chat.fhir.org/#narrow/channel/179173-australia/topic/Inferno.20Test.20Kit.20feedback.20and.20queries">Inferno Test Kit feedback and queries</a> topic on chat.fhir.org. Include the session URL.</p>
-      <p>For bugs and requests open an issue in <a href="https://github.com/hl7au/au-ps-inferno/issues">hl7au/au-ps-inferno</a>. The <a href="https://github.com/hl7au/au-ps-inferno#contributing-to-inferno-and-reporting-issues">README</a> explains what to include.</p>
+      <p>If a test fails and you believe your Bundle is right, or a check is missing, use the <a href="/feedback/">public feedback flow</a>. Open a result and choose “Give feedback on this result,” or use the suite footer link for general feedback. Anonymous reporting does not require a GitHub account when intake is configured. The public issue includes a trace-searchable feedback reference, not your session URL. Keep patient data, tokens and test payloads out of public issues.</p>
+      <p>Maintainers can link accepted test-kit bugs to <a href="https://github.com/hl7au/au-ps-inferno/issues">hl7au/au-ps-inferno</a> for implementation while keeping the community report visible.</p>
   - title: "Source, versions and licence"
     icon: /assets/images/code.svg
     content: >

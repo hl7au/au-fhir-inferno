@@ -39,6 +39,22 @@ If you would like to set up a platform, this is the place to start.  Please
 remember that this is under heavy development and is not yet stable.
 
 ## Reporting Issues
+For feedback about a specific result or the testing experience, use the platform's
+`/feedback/` page. An expanded test result has a feedback action that selects
+that exact result on the form; the suite footer link opens the same form for general
+feedback. The page shows the public report before submission. Reporters can post
+anonymously without a GitHub account when account-free intake is configured, or
+choose to publish a name or contact email. GitHub submission remains an option.
+For a platform bug or improvement that is not tied to a run, use the
+[repository issue forms](https://github.com/hl7au/au-fhir-inferno/issues/new/choose).
+
+The public issue contains a one-way feedback reference derived from the session ID.
+The worker adds the same reference to its test and run spans so maintainers can
+find the private Grafana trace while it is retained. The public issue does not
+automatically include session/run IDs, full session URLs, FHIR resources,
+request/response data, headers or tokens. Reporters should review their own text
+for sensitive data before submitting. Session rows are periodically purged.
+
 We appreciate your contributions to improving hl7au/au-fhir-inferno. **If you encounter a bug or wish to make a feature request, please follow the steps below to raise an issue**:
 
 ### 1. Search for Existing Issues

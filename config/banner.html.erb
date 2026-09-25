@@ -22,7 +22,30 @@
   </div>
 </div>
 
+<style>
+  .au-result-feedback-action { display: flex; justify-content: flex-end; padding: 8px 18px 0; }
+  .au-result-feedback-action a { color: #c05702; border: 1px solid #c05702; border-radius: 4px;
+    padding: 7px 10px; font: 500 0.875rem Roboto, Helvetica, Arial, sans-serif; text-decoration: none; }
+  .au-result-feedback-action a:hover, .au-result-feedback-action a:focus-visible {
+    color: #fff; background: #c05702; outline-offset: 2px; }
+</style>
+<script src="/assets/scripts/result-feedback.js" defer></script>
+
 <script type="text/javascript">
+  // Core renders the suite's footer links. The feedback link itself is
+  // configured by the platform; add this session's ID only when it is clicked.
+  // The URL stays on this origin and the public issue contains only its hash.
+  const attachFeedbackSession = (event) => {
+    const link = event.target.closest?.('a[href^="/feedback/"]');
+    // The result action already carries its exact test and result IDs.
+    if (!link || link.getAttribute('href') !== '/feedback/') return;
+    const match = location.pathname.match(/^\/suites\/(?:test_sessions\/|[^/]+\/)([A-Za-z0-9_-]+)\/?$/);
+    if (!match) return;
+    link.href = '/feedback/?session=' + encodeURIComponent(match[1]);
+  };
+  ['click', 'contextmenu', 'focusin'].forEach((type) =>
+    document.addEventListener(type, attachFeedbackSession, true));
+
   /* Get local storage sessions */
   const getSessions = () => {
     const sessionsString = localStorage.getItem('sessions');

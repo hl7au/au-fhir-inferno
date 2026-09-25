@@ -34,7 +34,7 @@ sections:
     icon: /assets/images/rocket_launch.svg
     content: >
       <ol>
-        <li>Pick the IG version your server implements and click <b>Create Test Session</b>. The session URL is shareable; keep it.</li>
+        <li>Pick the IG version your server implements and click <b>Create Test Session</b>. Keep the session URL and share it only with trusted reviewers.</li>
         <li>Click <b>Run Tests</b> on the top-level group to run everything, or on a single resource group to test one profile at a time.</li>
         <li>Enter your <b>FHIR endpoint</b> and a comma-separated list of <b>Patient IDs</b>. Add ids for HealthcareService, Location, Organization, Practitioner and PractitionerRole if you want those groups to run against known records. Add a bearer token or a custom header if your server needs one.</li>
         <li>Open any failed test. The <b>Messages</b> tab shows validator output; the <b>Requests</b> tab shows the exact HTTP request Inferno sent and what your server returned.</li>
@@ -52,8 +52,8 @@ sections:
   - title: "Feedback and issues"
     icon: /assets/images/feedback.svg
     content: >
-      <p>If a test fails and you believe your server is right, or a check is missing, tell us. The fastest route is the <a href="https://chat.fhir.org/#narrow/channel/179173-australia/topic/Inferno.20Test.20Kit.20feedback.20and.20queries">Inferno Test Kit feedback and queries</a> topic on chat.fhir.org. Include the session URL.</p>
-      <p>For bugs and requests open an issue in <a href="https://github.com/hl7au/au-fhir-core-inferno/issues">hl7au/au-fhir-core-inferno</a>. The <a href="https://github.com/hl7au/au-fhir-core-inferno#contributing-to-inferno-and-reporting-issues">README</a> explains what to include.</p>
+      <p>If a test fails and you believe your server is right, or a check is missing, use the <a href="/feedback/">public feedback flow</a>. Open a result and choose “Give feedback on this result,” or use the suite footer link for general feedback. Anonymous reporting does not require a GitHub account when intake is configured. The public issue includes a trace-searchable feedback reference, not your session URL. Keep patient data, tokens and test payloads out of public issues.</p>
+      <p>Maintainers can link accepted test-kit bugs to <a href="https://github.com/hl7au/au-fhir-core-inferno/issues">hl7au/au-fhir-core-inferno</a> for implementation while keeping the community report visible.</p>
   - title: "Source, versions and licence"
     icon: /assets/images/code.svg
     content: >

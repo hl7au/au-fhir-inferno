@@ -1,0 +1,166 @@
+---
+layout: page
+title: Give feedback
+---
+
+<main class="content-container feedback-page">
+  <div class="breadcrumb"><ul><li><a href="/">Home</a></li><li>Give feedback</li></ul></div>
+  <h1>Give feedback on Inferno</h1>
+  <p>Report a specific result or share general feedback in a public GitHub issue. No GitHub account
+    is needed when account-free submission is available. The community can follow the discussion
+    and see how it is resolved.</p>
+  <p class="feedback-notice"><strong>This report will be public.</strong> Describe the behaviour without
+    pasting FHIR resources, patient details, request or response bodies, headers, passwords, tokens,
+    or a full session URL. The form never adds those automatically. Session data is periodically purged,
+    so include enough detail to explain the issue.</p>
+
+  <form id="feedback-form" class="feedback-card">
+    <label for="feedback-kind">What are you reporting?</label>
+    <select id="feedback-kind" required>
+      <option value="result">A problem with a test result</option>
+      <option value="general">General feedback</option>
+    </select>
+
+    <label for="feedback-session">Session ID <span class="feedback-optional">(optional; stays on this site)</span></label>
+    <div class="feedback-inline">
+      <input id="feedback-session" type="text" maxlength="100" autocomplete="off" spellcheck="false"
+             placeholder="Filled from the session page when available">
+      <button id="feedback-load" type="button" class="btn btn-secondary">Load results</button>
+    </div>
+    <p id="feedback-load-status" class="feedback-hint" role="status" aria-live="polite"></p>
+
+    <label for="feedback-suite">Test suite <span class="feedback-optional">(optional for general feedback)</span></label>
+    <select id="feedback-suite">
+      <option value="">Choose a suite</option>
+      {% for kit in site.test_kits %}
+        {% for suite in kit.suites %}
+      <option value="{{ suite.id | escape }}" data-kit="{{ kit.title | escape }}"
+              data-kit-version="{{ kit.version | escape }}">{{ suite.title | escape }} — {{ kit.title | escape }}</option>
+        {% endfor %}
+      {% endfor %}
+    </select>
+
+    <div id="feedback-result-fields">
+      <label for="feedback-result">Result <span class="feedback-optional">(choose one if available)</span></label>
+      <input id="feedback-result-search" type="search" autocomplete="off" disabled
+             placeholder="Search by test number or title" aria-label="Search results by test number or title">
+      <select id="feedback-result"><option value="">Choose a result, or enter its test ID below</option></select>
+      <p id="feedback-result-count" class="feedback-hint" role="status" aria-live="polite"></p>
+      <div class="feedback-inline feedback-pair">
+        <div>
+          <label for="feedback-test">Internal test ID <span class="feedback-optional">(for maintainers)</span></label>
+          <input id="feedback-test" type="text" maxlength="160" autocomplete="off" spellcheck="false"
+                 placeholder="For example, au_core_v200-...">
+        </div>
+        <div>
+          <label for="feedback-outcome">Outcome</label>
+          <select id="feedback-outcome">
+            <option value="">Choose an outcome</option>
+            <option value="pass">Pass</option><option value="fail">Fail</option>
+            <option value="error">Error</option><option value="skip">Skip</option>
+            <option value="omit">Omit</option><option value="cancel">Cancel</option>
+            <option value="wait">Wait</option><option value="other">Other / unknown</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <label for="feedback-expected">What did you expect?</label>
+    <textarea id="feedback-expected" rows="4" maxlength="800" required
+              placeholder="Describe the expected behaviour without including sensitive data."></textarea>
+    <label for="feedback-actual">What happened?</label>
+    <textarea id="feedback-actual" rows="4" maxlength="800" required
+              placeholder="Describe what you saw and why it was confusing."></textarea>
+
+    <fieldset class="feedback-identity">
+      <legend>How should this report be attributed?</legend>
+      <label class="feedback-choice"><input type="radio" name="feedback-identity" value="anonymous" checked>
+        <span>Anonymous <small>No name or email appears in the public issue.</small></span></label>
+      <label class="feedback-choice"><input type="radio" name="feedback-identity" value="named">
+        <span>Add my name or contact email <small>These details will appear publicly.</small></span></label>
+    </fieldset>
+    <div id="feedback-contact" class="feedback-contact" hidden>
+      <label for="feedback-name">Name <span class="feedback-optional">(optional)</span></label>
+      <input id="feedback-name" type="text" maxlength="100" autocomplete="name">
+      <label for="feedback-email">Contact email <span class="feedback-optional">(optional; public)</span></label>
+      <input id="feedback-email" type="email" maxlength="254" autocomplete="email">
+      <label class="feedback-choice"><input id="feedback-contact-public" type="checkbox">
+        <span>I understand my name or email will be public in the GitHub issue.</span></label>
+      <p id="feedback-contact-status" class="feedback-hint" role="status"></p>
+    </div>
+    <input id="feedback-website" class="feedback-trap" type="text" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <button class="btn btn-attention" type="submit">Review public report</button>
+    <p id="feedback-form-status" role="status" aria-live="polite"></p>
+  </form>
+
+  <section id="feedback-review" class="feedback-card" hidden aria-labelledby="feedback-review-title">
+    <h2 id="feedback-review-title">Review what will be public</h2>
+    <p>These fields will be posted to a public GitHub issue. Review them before submitting.</p>
+    <label for="feedback-subject">Subject</label>
+    <input id="feedback-subject" readonly>
+    <label for="feedback-context">Test context</label>
+    <textarea id="feedback-context" rows="11" readonly></textarea>
+    <label for="feedback-review-expected">What I expected</label>
+    <textarea id="feedback-review-expected" rows="4" readonly></textarea>
+    <label for="feedback-review-actual">What happened</label>
+    <textarea id="feedback-review-actual" rows="4" readonly></textarea>
+    <label for="feedback-review-identity">Reporter</label>
+    <textarea id="feedback-review-identity" rows="2" readonly></textarea>
+    <div class="feedback-actions">
+      <button id="feedback-edit" type="button" class="btn btn-secondary">Edit feedback</button>
+      <button id="feedback-submit" type="button" class="btn btn-attention" hidden>Post public feedback</button>
+      <a id="feedback-issue" class="btn btn-secondary" href="https://github.com/hl7au/au-fhir-inferno/issues/new"
+         target="_blank" rel="noopener noreferrer">Use GitHub instead</a>
+      <button id="feedback-copy" type="button" class="btn btn-secondary">Copy report</button>
+    </div>
+    <p id="feedback-submit-status" role="status" aria-live="polite"></p>
+    <p id="feedback-copy-status" role="status" aria-live="polite"></p>
+    <p class="feedback-hint">The GitHub option requires sign-in. Check its prefilled draft before posting;
+      use Copy report if your browser does not carry it across.</p>
+  </section>
+
+  <section id="feedback-done" class="feedback-card" hidden aria-labelledby="feedback-done-title">
+    <h2 id="feedback-done-title">Feedback posted</h2>
+    <p>Your report is public and ready for the community to follow.</p>
+    <a id="feedback-done-link" class="btn btn-attention" target="_blank" rel="noopener noreferrer">View the GitHub issue</a>
+  </section>
+</main>
+
+<script src="/assets/scripts/feedback.js?v={{ site.time | date:'%s' }}" defer></script>
+<style>
+  .feedback-page { max-width: 860px; margin: 0 auto; padding: var(--spacing-lg) var(--spacing-md) var(--spacing-3xl);
+    gap: var(--spacing-md); }
+  .feedback-page h1 { margin: var(--spacing-sm) 0 0; color: var(--color-primary); }
+  .feedback-page > p { margin: 0; }
+  .feedback-notice { background: var(--color-background); border-left: 4px solid var(--color-accent);
+    padding: var(--spacing-md); color: var(--color-text); }
+  .feedback-card { display: grid; gap: var(--spacing-xs); margin-top: var(--spacing-xs); padding: var(--spacing-lg);
+    background: var(--color-background); border: 1px solid var(--color-border);
+    border-top: 4px solid var(--color-accent); border-radius: var(--radius-sm); }
+  .feedback-card[hidden], #feedback-result-fields[hidden], .feedback-contact[hidden] { display: none; }
+  #feedback-submit[hidden] { display: none; }
+  .feedback-card label { margin-top: var(--spacing-sm); font-weight: var(--font-weight-semibold); }
+  .feedback-card input, .feedback-card select, .feedback-card textarea { width: 100%; padding: var(--spacing-sm);
+    border: 1px solid var(--color-border-dark); border-radius: var(--radius-xs);
+    background: var(--color-background); color: var(--color-text); }
+  .feedback-card textarea { resize: vertical; }
+  .feedback-card input[readonly], .feedback-card textarea[readonly] { background: var(--color-background-alt); }
+  .feedback-optional, .feedback-hint { font-size: var(--font-size-sm); font-weight: var(--font-weight-regular);
+    color: var(--color-text-light); }
+  .feedback-inline { display: flex; align-items: end; gap: var(--spacing-sm); }
+  .feedback-inline > input, .feedback-pair > div:first-child { flex: 2; }
+  .feedback-pair > div:last-child { flex: 1; }
+  .feedback-pair label { display: block; }
+  .feedback-actions { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); margin-top: var(--spacing-sm); }
+  .feedback-identity { border: 0; padding: 0; margin: var(--spacing-md) 0 0; }
+  .feedback-identity legend { font-weight: var(--font-weight-semibold); margin-bottom: var(--spacing-xs); }
+  .feedback-card .feedback-choice { display: flex; align-items: flex-start; gap: var(--spacing-sm); padding: var(--spacing-xs) 0;
+    margin-top: 0;
+    font-weight: var(--font-weight-regular) !important; cursor: pointer; }
+  .feedback-choice input { width: auto; flex: none; margin: 0.25em 0 0; accent-color: var(--color-accent); }
+  .feedback-choice small { display: block; color: var(--color-text-light); font-size: var(--font-size-sm); }
+  .feedback-contact { display: grid; gap: var(--spacing-xs); padding: var(--spacing-md);
+    background: var(--color-background-alt); border-radius: var(--radius-sm); }
+  .feedback-trap { position: absolute; left: -9999px; width: 1px !important; height: 1px; opacity: 0; }
+  @media (max-width: 600px) { .feedback-inline { display: block; } .feedback-inline button { margin-top: var(--spacing-xs); } }
+</style>
