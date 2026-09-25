@@ -59,10 +59,11 @@ write** for `hl7au/au-fhir-inferno`. Put it in a Kubernetes Secret named
 namespace. Restart `inferno-app` after first provisioning. Do not put the
 token in chart values, the image, browser code, or issue text. In dev/prod,
 the existing AWS Secrets Manager integration can instead sync a JSON secret
-with a `token` property: set `externalSecrets.feedbackSecretArn` to its ARN
-and give the External Secrets role read access. Preview namespaces can use an
-ordinary namespace Secret. Without the Secret, the account-free button stays
-hidden and the GitHub fallback remains available.
+with a `token` property: set `externalSecrets.feedbackSecretArn` to its name or
+ARN and give the External Secrets role read access. Do not place a GitHub
+credential in pull request preview namespaces, which run PR supplied chart and
+application code. Without the Secret, the account-free button stays hidden and
+the GitHub fallback remains available.
 
 The intake validates typed fields and same-origin requests, caps request size,
 uses a bot trap, and applies Redis-backed limits of 20 reports per IP and 100
