@@ -53,8 +53,13 @@ do not become available to GitHub until they reach the default branch.
 
 ## Account-free intake configuration
 
-The web pod needs a dedicated fine-grained repository token with **Issues:
-write** for `hl7au/au-fhir-inferno`. Put it in a Kubernetes Secret named
+The web pod needs a GitHub token that can create issues in
+`hl7au/au-fhir-inferno`: preferably a fine-grained repository token with
+**Issues: write**, or, when the reporter is an outside collaborator who
+cannot select `hl7au` as resource owner, a classic token with only the
+`public_repo` scope. Classic tokens have broader access to public
+repositories, so use a dedicated identity if available. Put the token in a
+Kubernetes Secret named
 `inferno-feedback-github`, under the key `token`, in each environment's
 namespace. Restart `inferno-app` after first provisioning. Do not put the
 token in chart values, the image, browser code, or issue text. In dev/prod,
