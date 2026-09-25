@@ -8,7 +8,7 @@ reporters search by test number or title, and supports manual entry after a
 session is purged. The reporter reviews the exact public context before posting.
 Anonymous is the default; a reporter may instead choose to publish a name or
 contact email. Both modes create a public GitHub issue through the same-origin
-intake, without a GitHub account. The old GitHub issue form remains a fallback.
+intake, without a GitHub account. A prefilled GitHub issue draft remains a fallback.
 Public issues let the community follow resolution; Zulip remains useful for
 discussion.
 
@@ -19,7 +19,8 @@ omits all FHIR inputs and outputs, messages, request and response data, headers,
 and tokens. The server also rejects full session URLs and the current session
 ID in free text. The reporter must review their own text for sensitive data;
 optional contact details are public only after an explicit choice and consent.
-The GitHub fallback form repeats the warning and requires acknowledgement.
+The GitHub fallback opens a prefilled title and body after the reporter reviews
+the draft on this site. The issue editor requires GitHub sign-in.
 
 ## Trace correlation
 
@@ -46,7 +47,9 @@ first in the picker. The server rebuilds the public context from typed fields
 and computes the feedback reference itself; a preview endpoint returns the
 same fields shown to the reporter. No report is stored by this application.
 If account-free intake is unavailable, the page offers a copy button and a
-GitHub issue-form link; that fallback requires GitHub sign-in.
+GitHub issue-editor link; that fallback requires GitHub sign-in. The link uses
+GitHub's standard title and body parameters because issue forms on this branch
+do not become available to GitHub until they reach the default branch.
 
 ## Account-free intake configuration
 

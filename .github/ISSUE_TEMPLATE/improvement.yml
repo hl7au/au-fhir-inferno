@@ -1,0 +1,42 @@
+name: Improvement or test request
+description: Suggest a platform improvement, new test, or change to an existing test.
+title: "[Request] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue is public. Describe the need without patient data, FHIR
+        payloads, credentials, or full session URLs. For feedback from a run
+        without GitHub sign-in, use the
+        [Inferno feedback form](https://inferno.hl7.org.au/feedback/).
+  - type: textarea
+    id: need
+    attributes:
+      label: What needs to improve?
+      description: Explain the user or testing problem.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Describe the new behaviour or assertion you would find useful.
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Affected kit or version
+      description: Include the suite or implementation guide version if relevant.
+  - type: textarea
+    id: references
+    attributes:
+      label: Specification or related issue
+      description: Link the rule or prior discussion that supports this request, if available.
+  - type: checkboxes
+    id: privacy_check
+    attributes:
+      label: Public report check
+      options:
+        - label: I have removed sensitive data and full session URLs from this public issue.
+          required: true

@@ -353,13 +353,17 @@
     $('feedback-review-expected').value = draft.expected;
     $('feedback-review-actual').value = draft.actual;
     $('feedback-review-identity').value = draft.reporter;
+    // GitHub reads issue templates from the default branch. The feedback form
+    // may still be in preview, so use the documented title/body prefill here.
     const issueUrl = new URL('https://github.com/hl7au/au-fhir-inferno/issues/new');
-    issueUrl.searchParams.set('template', 'inferno-feedback.yml');
     issueUrl.searchParams.set('title', draft.subject);
-    issueUrl.searchParams.set('feedback_type', draft.type);
-    issueUrl.searchParams.set('context', draft.context + '\nReporter: ' + draft.reporter);
-    issueUrl.searchParams.set('expected', draft.expected);
-    issueUrl.searchParams.set('actual', draft.actual);
+    issueUrl.searchParams.set('body', [
+      `**Feedback type:** ${draft.type}`,
+      `**Reporter:** ${draft.reporter}`,
+      `## Test context\n\n\`\`\`text\n${draft.context}\n\`\`\``,
+      `## What I expected\n\n${draft.expected}`,
+      `## What happened\n\n${draft.actual}`
+    ].join('\n\n'));
     $('feedback-issue').href = issueUrl.toString();
     $('feedback-submit').hidden = !intakeEnabled;
     $('feedback-submit-status').textContent = intakeEnabled ? '' :
