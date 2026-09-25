@@ -39,6 +39,19 @@ If you would like to set up a platform, this is the place to start.  Please
 remember that this is under heavy development and is not yet stable.
 
 ## Reporting Issues
+For feedback about a specific result or the testing experience, use the platform's
+`/feedback/` page. The Feedback link in a test session lets the page load a result's
+test ID, outcome and time. It shows the exact public context before opening a
+prefilled GitHub issue form in this repository. The reporter submits the issue on
+GitHub, where the community can follow the response and resolution.
+
+The public issue contains a one-way feedback reference derived from the session ID.
+The worker adds the same reference to its test and run spans so maintainers can
+find the private Grafana trace while it is retained. The public issue does not
+automatically include session/run IDs, full session URLs, FHIR resources,
+request/response data, headers or tokens. Reporters should review their own text
+for sensitive data before submitting. Session rows are periodically purged.
+
 We appreciate your contributions to improving hl7au/au-fhir-inferno. **If you encounter a bug or wish to make a feature request, please follow the steps below to raise an issue**:
 
 ### 1. Search for Existing Issues

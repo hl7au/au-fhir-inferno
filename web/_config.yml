@@ -14,6 +14,8 @@ navigation_links:
   url: /test-kits
 - title: Resources / Guidance
   url: /guidance
+- title: Give feedback
+  url: /feedback/
 - title: About
   url: /about
 - title: License
@@ -146,7 +148,7 @@ custom_pages:
               <tr><td><b>Fail</b></td><td>The assertion did not hold. Open the test: the <b>Messages</b> tab has the validator or search finding, the <b>Requests</b> tab has every HTTP request and response involved.</td></tr>
               <tr><td><b>Skip</b></td><td>The test could not run because a precondition was missing, usually no resources were returned by an earlier search, or an input was empty. Fix the cause upstream and re-run.</td></tr>
               <tr><td><b>Omit</b></td><td>The test does not apply, for example a search parameter your CapabilityStatement says you do not support. Not a problem.</td></tr>
-              <tr><td><b>Error</b></td><td>Something unexpected happened (connection refused, malformed response, a bug in the test). If your server was reachable, report it with the session URL.</td></tr>
+              <tr><td><b>Error</b></td><td>Something unexpected happened (connection refused, malformed response, a bug in the test). If your server was reachable, use the Feedback link in the session to report it without publishing the session URL.</td></tr>
             </tbody>
           </table>
           <p><b>Warnings and information messages</b> can appear on a passing test. Warnings flag things the IG says SHOULD be done, or patterns the community discourages. They do not fail the test but are worth reading before a test event.</p>
@@ -175,7 +177,7 @@ custom_pages:
             <li>You have run the relevant kit once against your system and read the failures, so you arrive with a known baseline rather than a first run.</li>
             <li>You know which IG version you are claiming. Test against that suite, not the newest one.</li>
           </ul>
-          <p>During the event, keep the session URL for each run and share it when you ask for help. A reviewer can open it and see exactly what was sent and received.</p>
+          <p>During the event, keep the session URL for each run. Share it only with a trusted reviewer, since anyone with the link can see the test data. For public feedback, use the Feedback link in the session instead.</p>
       - title: Run a test kit locally
         anchor: run-locally
         logo_path: /assets/images/build.svg
@@ -193,8 +195,8 @@ custom_pages:
         logo_path: /assets/images/feedback.svg
         content: >
           <ul>
-            <li><b>Ask a question or report a suspect result:</b> the <a href="https://chat.fhir.org/#narrow/channel/179173-australia/topic/Inferno.20Test.20Kit.20feedback.20and.20queries">Inferno Test Kit feedback and queries</a> topic in the #australia channel on chat.fhir.org. Include the session URL.</li>
-            <li><b>Report a bug or request a test:</b> open an issue in <a href="https://github.com/hl7au/au-fhir-core-inferno/issues">au-fhir-core-inferno</a> or <a href="https://github.com/hl7au/au-ps-inferno/issues">au-ps-inferno</a>.</li>
+            <li><b>Report a suspect result or give feedback:</b> use the <a href="/feedback/">public feedback flow</a>. Open it from your session to choose a result and prepare a GitHub issue. Do not post session URLs or test data publicly.</li>
+            <li><b>Report a bug or request a test:</b> start with the <a href="/feedback/">Inferno feedback form</a>. Maintainers will link confirmed kit work to the appropriate kit repository.</li>
             <li><b>Join the conversation:</b> the fortnightly <a href="https://confluence.hl7.org/display/HAFWG/Infrastructure+and+Tooling+Contact+List">HL7 AU Infrastructure and Tooling community meeting</a> triages issues and discusses test coverage.</li>
             <li><b>Questions about Inferno itself:</b> the <a href="https://chat.fhir.org/#narrow/channel/179309-inferno">#inferno channel</a> on chat.fhir.org.</li>
           </ul>

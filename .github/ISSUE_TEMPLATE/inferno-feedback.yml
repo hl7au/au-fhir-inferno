@@ -1,0 +1,46 @@
+name: Inferno testing feedback
+description: Report a confusing result or suggest an improvement to AU Inferno.
+title: "[Inferno feedback] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue is public. Please use synthetic examples only. Do not include
+        patient identifiers, FHIR payloads, request or response bodies, headers,
+        tokens, credentials, or a full session URL. A feedback reference, when
+        available, lets maintainers find the corresponding private trace.
+  - type: dropdown
+    id: feedback_type
+    attributes:
+      label: Feedback type
+      options:
+        - Problem with a test result
+        - General feedback
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Test context
+      description: Suite, kit version, test ID, outcome, time, and feedback reference where available. Do not add a session URL.
+    validations:
+      required: false
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy_check
+    attributes:
+      label: Public report check
+      options:
+        - label: I have removed patient data, credentials, FHIR payloads, and full session URLs from this public report.
+          required: true

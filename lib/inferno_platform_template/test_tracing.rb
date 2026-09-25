@@ -37,6 +37,7 @@
 # aggregate by them:
 #   { span.inferno.test_run_id = "..." } | quantile_over_time(duration, .95) by (span.inferno.group_id)
 if ENV['OTEL_EXPORTER_OTLP_ENDPOINT']
+  require 'digest'
   require 'inferno/test_runner'
 
   module PerTestTraceRoot
@@ -106,6 +107,7 @@ if ENV['OTEL_EXPORTER_OTLP_ENDPOINT']
     def persist_span_attributes(params)
       {
         'inferno.test_session_id' => test_session.id,
+        'inferno.feedback_ref' => feedback_ref,
         'inferno.test_run_id' => test_run.id,
         'inferno.suite_id' => test_session.test_suite_id,
         'inferno.test_id' => params[:test_id],
@@ -119,6 +121,7 @@ if ENV['OTEL_EXPORTER_OTLP_ENDPOINT']
       {
         'inferno.test_run_id' => test_run.id,
         'inferno.test_session_id' => test_session.id,
+        'inferno.feedback_ref' => feedback_ref,
         'inferno.suite_id' => test_session.test_suite_id
       }.compact
     end
@@ -127,6 +130,7 @@ if ENV['OTEL_EXPORTER_OTLP_ENDPOINT']
       {
         'inferno.test_run_id' => test_run.id,
         'inferno.test_session_id' => test_session.id,
+        'inferno.feedback_ref' => feedback_ref,
         'inferno.test_id' => test.id,
         # short_id is the label the Inferno UI shows ("1.2.03"), so it is what a user reads
         # back to you when reporting a slow test.
@@ -144,6 +148,14 @@ if ENV['OTEL_EXPORTER_OTLP_ENDPOINT']
       test.suite&.id
     rescue StandardError
       nil
+    end
+
+    # Public reports use this one-way reference to locate the private traces.
+    # Inferno session IDs are 64-bit random; never put the raw ID in a public issue.
+    def feedback_ref
+      return if test_session.id.nil?
+
+      "fb-#{Digest::SHA256.hexdigest("au-inferno-feedback:v1:#{test_session.id}")[0, 24]}"
     end
 
     def annotate_test_result(span, result)

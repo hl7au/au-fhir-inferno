@@ -99,6 +99,11 @@ RSpec.describe PerTestTraceRoot do
       expect(attributes['inferno.test_session_id']).to eq('session-uuid')
     end
 
+    it 'adds a public feedback reference without exposing the session id in it' do
+      expect(attributes['inferno.feedback_ref']).to eq('fb-cbbda06044deb94958ff5bb9')
+      expect(attributes['inferno.feedback_ref']).to_not include('session-uuid')
+    end
+
     it 'carries what identifies the test itself' do
       expect(attributes['inferno.test_id']).to eq('au_core_v210_draft-patient_group-patient_read_test')
       expect(attributes['inferno.test_short_id']).to eq('1.2.03')
