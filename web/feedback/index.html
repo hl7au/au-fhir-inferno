@@ -41,10 +41,13 @@ title: Give feedback
 
     <div id="feedback-result-fields">
       <label for="feedback-result">Result <span class="feedback-optional">(choose one if available)</span></label>
-      <select id="feedback-result"><option value="">Enter a result below</option></select>
+      <input id="feedback-result-search" type="search" autocomplete="off" disabled
+             placeholder="Search by test number or title" aria-label="Search results by test number or title">
+      <select id="feedback-result"><option value="">Choose a result, or enter its test ID below</option></select>
+      <p id="feedback-result-count" class="feedback-hint" role="status" aria-live="polite"></p>
       <div class="feedback-inline feedback-pair">
         <div>
-          <label for="feedback-test">Test ID</label>
+          <label for="feedback-test">Internal test ID <span class="feedback-optional">(for maintainers)</span></label>
           <input id="feedback-test" type="text" maxlength="160" autocomplete="off" spellcheck="false"
                  placeholder="For example, au_core_v200-...">
         </div>

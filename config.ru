@@ -5,6 +5,7 @@ require_relative 'lib/inferno_platform_template/static_site'
 require_relative 'lib/inferno_platform_template/suite_redirects'
 require_relative 'lib/inferno_platform_template/request_host_redirects'
 require_relative 'lib/inferno_platform_template/database_pool'
+require_relative 'lib/inferno_platform_template/feedback_links'
 
 # Per-runnable duration tracking (results.duration_ms) is dev-only while it is a
 # prototype of an inferno-core change, gated by RESULT_DURATION_ENABLED. The web process
@@ -86,6 +87,7 @@ use Rack::Static,
 use(*OpenTelemetry::Instrumentation::Rack::Instrumentation.instance.middleware_args) if OTEL_ENABLED
 
 Inferno::Application.finalize!
+InfernoPlatformTemplate::FeedbackLinks.apply!
 
 InfernoPlatformTemplate::DatabasePool.configure!
 

@@ -7,9 +7,6 @@
           <span class="header-title">Inferno on hl7.org.au</span>
         </a>
       </div>
-      <div class="header-text web-header-text">
-        <a id="feedback-link" href="/feedback/">Give feedback</a>
-      </div>
     </div>
   </div>
 
@@ -21,21 +18,23 @@
           <span class="header-title-mobile">Inferno on hl7.org.au</span>
         </a>
       </div>
-      <a id="feedback-link-mobile" href="/feedback/">Feedback</a>
     </div>
   </div>
 </div>
 
 <script type="text/javascript">
-  // Inferno owns the session view. Pass only its opaque session ID to the
-  // platform feedback page; never forward the full URL or its query string.
-  (function () {
+  // Core renders the suite's footer links. The feedback link itself is
+  // configured by the platform; add this session's ID only when it is clicked.
+  // The URL stays on this origin and the public issue contains only its hash.
+  const attachFeedbackSession = (event) => {
+    const link = event.target.closest?.('a[href^="/feedback/"]');
+    if (!link) return;
     const match = location.pathname.match(/^\/suites\/(?:test_sessions\/|[^/]+\/)([A-Za-z0-9_-]+)\/?$/);
     if (!match) return;
-    const destination = '/feedback/?session=' + encodeURIComponent(match[1]);
-    document.getElementById('feedback-link').href = destination;
-    document.getElementById('feedback-link-mobile').href = destination;
-  })();
+    link.href = '/feedback/?session=' + encodeURIComponent(match[1]);
+  };
+  ['click', 'contextmenu', 'focusin'].forEach((type) =>
+    document.addEventListener(type, attachFeedbackSession, true));
 
   /* Get local storage sessions */
   const getSessions = () => {

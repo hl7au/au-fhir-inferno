@@ -1,9 +1,10 @@
 # Public Inferno feedback flow
 
-The platform serves `/feedback/` from its Jekyll site. The Inferno banner
+The platform serves `/feedback/` from its Jekyll site. The AU suite footer
 links to the page with only the session ID in a same-origin URL. The page reads
 Inferno's existing session and current-results APIs, then lets the reporter
-select a result or enter its test ID manually if the session has been purged.
+search by test number or title and select a result, or enter its test ID manually
+if the session has been purged.
 It previews the data that will prefill a GitHub issue form in this repository.
 The reporter reviews it again on GitHub and submits the public issue. The form
 asks what was expected and what happened. Public issues let the community see
@@ -35,7 +36,10 @@ instrumentation is deployed and while Tempo retains them. Session rows may be
 purged independently; the public issue remains useful as a problem report.
 
 The client reads Inferno's result response, which can contain inputs, outputs,
-messages and request summaries, but uses only the allowlisted scalar fields.
+messages and request summaries, but keeps only allowlisted scalar fields. Test
+numbers and titles come from suite metadata. Failed and errored results appear
+first in the picker. Opening an individual result in Core does not put its ID
+in the URL, so the suite footer passes session context only.
 No report is stored by this application. A GitHub account is needed to submit
 an issue. If the URL-prefilled issue form fails to carry fields across, the
 page provides a copy button and a plain link to the form.
@@ -59,5 +63,5 @@ A narrow Inferno Core extension would expose an optional result action URL
 callback. Core would render “Report this result” beside each result and pass
 only the session and result IDs to the platform's same-origin feedback page.
 The page would resolve the result and prepare the same public preview, without
-putting raw IDs or test data in the GitHub issue. The current banner link and
+putting raw IDs or test data in the GitHub issue. The current footer link and
 result selector work without that change.

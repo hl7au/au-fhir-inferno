@@ -8,6 +8,7 @@
   const session = $('feedback-session');
   const suite = $('feedback-suite');
   const resultSelect = $('feedback-result');
+  const resultSearch = $('feedback-result-search');
   const test = $('feedback-test');
   const outcome = $('feedback-outcome');
   const kind = $('feedback-kind');
@@ -26,8 +27,11 @@
 
   function resetResults() {
     results = [];
-    resultSelect.replaceChildren(new Option('Enter a result below', ''));
+    resultSearch.value = '';
+    resultSearch.disabled = true;
+    resultSelect.replaceChildren(new Option('Choose a result, or enter its test ID below', ''));
     resultSelect.value = '';
+    $('feedback-result-count').textContent = '';
     test.readOnly = false;
     outcome.disabled = false;
     test.value = '';
@@ -59,6 +63,54 @@
   function safeTime(value) {
     return typeof value === 'string' && /^\d{4}-\d\d-\d\dT[\d:.+-]+Z?$/.test(value)
       ? value : '';
+  }
+
+  function testIndex(testSuite) {
+    const index = new Map();
+    const groups = [...(Array.isArray(testSuite?.test_groups) ? testSuite.test_groups : [])];
+    while (groups.length) {
+      const group = groups.pop();
+      if (!group || typeof group !== 'object') continue;
+      (Array.isArray(group.tests) ? group.tests : []).forEach((entry) => {
+        if (!safeReference(entry?.id)) return;
+        const number = typeof entry.short_id === 'string' && /^[A-Za-z0-9. -]{1,30}$/.test(entry.short_id)
+          ? entry.short_id.trim() : '';
+        const title = typeof entry.title === 'string'
+          ? entry.title.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 120) : '';
+        index.set(entry.id, { number, title });
+      });
+      groups.push(...(Array.isArray(group.test_groups) ? group.test_groups : []));
+    }
+    return index;
+  }
+
+  function resultLabel(item) {
+    const name = [item.number, item.title].filter(Boolean).join(' — ') || item.test_id;
+    const outcome = { pass: 'Passed', fail: 'Failed', error: 'Error', skip: 'Skipped', omit: 'Omitted' }[item.result]
+      || 'Other outcome';
+    return `${name} · ${outcome}`;
+  }
+
+  function showResults() {
+    const query = resultSearch.value.trim().toLocaleLowerCase();
+    const selectedId = resultSelect.value;
+    resultSelect.replaceChildren(new Option('Choose a result, or enter its test ID below', ''));
+    const matching = results.filter((item) => !query ||
+      `${item.number} ${item.title} ${item.test_id} ${item.result}`.toLocaleLowerCase().includes(query));
+    const attention = matching.filter((item) => ['fail', 'error'].includes(item.result));
+    const other = matching.filter((item) => !['fail', 'error'].includes(item.result));
+    [['Failed or errored', attention], ['Other results', other]].forEach(([heading, items]) => {
+      if (!items.length) return;
+      const group = document.createElement('optgroup');
+      group.label = heading;
+      items.forEach((item) => group.append(new Option(resultLabel(item), item.id)));
+      resultSelect.add(group);
+    });
+    resultSelect.value = matching.some((item) => item.id === selectedId) ? selectedId : '';
+    selectResult();
+    $('feedback-result-count').textContent = results.length
+      ? `${matching.length} of ${results.length} results shown. Search by test number or title.`
+      : '';
   }
 
   async function feedbackRef(sessionId) {
@@ -105,6 +157,7 @@
       }
       suiteVersion = typeof sessionData.test_suite?.version === 'string'
         ? sessionData.test_suite.version.slice(0, 80) : '';
+      const tests = testIndex(sessionData.test_suite);
 
       // Inferno's result serializer also contains inputs, outputs, messages and
       // request summaries. Never render or include any of those in feedback.
@@ -115,15 +168,19 @@
         if (sequence !== loadSequence) return;
         if (Array.isArray(data)) {
           results = data.filter((item) => item && safeReference(item.id) &&
-            safeReference(item.test_id));
-          results.forEach((item) => {
-            const label = `${item.test_id} — ${safeReference(item.result) || 'unknown'} — ${safeTime(item.created_at) || 'time unknown'}`;
-            resultSelect.add(new Option(label, item.id));
-          });
+            safeReference(item.test_id)).map((item) => ({
+              id: item.id,
+              test_id: item.test_id,
+              result: safeReference(item.result),
+              created_at: safeTime(item.created_at),
+              ...tests.get(item.test_id)
+            }));
+          resultSearch.disabled = !results.length;
+          showResults();
         }
       }
       status.textContent = results.length
-        ? `Loaded ${results.length} test results. Choose one to include its run reference and time.`
+        ? `Loaded ${results.length} test results. Choose one to include its test ID, outcome and time.`
         : 'Session found, but no current test results are available. Enter a test ID and outcome if known.';
     } catch (_error) {
       if (sequence !== loadSequence) return;
@@ -173,6 +230,7 @@
   }
 
   kind.addEventListener('change', setKind);
+  resultSearch.addEventListener('input', showResults);
   resultSelect.addEventListener('change', selectResult);
   session.addEventListener('input', () => {
     loadSequence++;
