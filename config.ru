@@ -6,6 +6,7 @@ require_relative 'lib/inferno_platform_template/suite_redirects'
 require_relative 'lib/inferno_platform_template/request_host_redirects'
 require_relative 'lib/inferno_platform_template/database_pool'
 require_relative 'lib/inferno_platform_template/feedback_links'
+require_relative 'lib/inferno_platform_template/feedback_intake'
 
 # Per-runnable duration tracking (results.duration_ms) is dev-only while it is a
 # prototype of an inferno-core change, gated by RESULT_DURATION_ENABLED. The web process
@@ -69,6 +70,7 @@ use Rack::Deflater,
 # SuiteRedirects sits above StaticSite because its paths are under /suites, which the
 # site never contains; the ordering is about intent rather than necessity.
 use InfernoPlatformTemplate::SuiteRedirects
+use InfernoPlatformTemplate::FeedbackIntake
 use InfernoPlatformTemplate::StaticSite
 
 use Rack::Static,

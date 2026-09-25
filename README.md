@@ -40,10 +40,11 @@ remember that this is under heavy development and is not yet stable.
 
 ## Reporting Issues
 For feedback about a specific result or the testing experience, use the platform's
-`/feedback/` page. The Feedback link in a test session lets the page load a result's
-test ID, outcome and time. It shows the exact public context before opening a
-prefilled GitHub issue form in this repository. The reporter submits the issue on
-GitHub, where the community can follow the response and resolution.
+`/feedback/` page. An expanded test result has a feedback action that selects
+that test on the form; the suite footer link opens the same form for general
+feedback. The page shows the public report before submission. Reporters can post
+anonymously without a GitHub account when account-free intake is configured, or
+choose to publish a name or contact email. GitHub submission remains an option.
 
 The public issue contains a one-way feedback reference derived from the session ID.
 The worker adds the same reference to its test and run spans so maintainers can

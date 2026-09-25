@@ -195,7 +195,7 @@ custom_pages:
         logo_path: /assets/images/feedback.svg
         content: >
           <ul>
-            <li><b>Report a suspect result or give feedback:</b> use the <a href="/feedback/">public feedback flow</a>. Open it from your session to choose a result and prepare a GitHub issue. Do not post session URLs or test data publicly.</li>
+            <li><b>Report a suspect result or give feedback:</b> use the <a href="/feedback/">public feedback flow</a>. Open a result to select that test, review the public report, then post anonymously or with your chosen contact details. Do not post session URLs or test data publicly.</li>
             <li><b>Report a bug or request a test:</b> start with the <a href="/feedback/">Inferno feedback form</a>. Maintainers will link confirmed kit work to the appropriate kit repository.</li>
             <li><b>Join the conversation:</b> the fortnightly <a href="https://confluence.hl7.org/display/HAFWG/Infrastructure+and+Tooling+Contact+List">HL7 AU Infrastructure and Tooling community meeting</a> triages issues and discusses test coverage.</li>
             <li><b>Questions about Inferno itself:</b> the <a href="https://chat.fhir.org/#narrow/channel/179309-inferno">#inferno channel</a> on chat.fhir.org.</li>

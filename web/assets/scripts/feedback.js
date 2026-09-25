@@ -16,6 +16,11 @@
   let suiteVersion = '';
   let loadedSuiteId = '';
   let loadSequence = 0;
+  let intakeEnabled = false;
+  let activeDraft = null;
+  const query = new URLSearchParams(location.search);
+  let pendingTestId = safeReference(query.get('test'));
+  let pendingResultId = safeReference(query.get('result'));
 
   function selectedResult() {
     return results.find((result) => result.id === resultSelect.value);
@@ -23,6 +28,16 @@
 
   function setKind() {
     $('feedback-result-fields').hidden = kind.value !== 'result';
+  }
+
+  function setIdentity() {
+    const named = document.querySelector('input[name="feedback-identity"]:checked')?.value === 'named';
+    $('feedback-contact').hidden = !named;
+    ['feedback-name', 'feedback-email', 'feedback-contact-public'].forEach((id) => {
+      $(id).disabled = !named;
+    });
+    $('feedback-contact-public').required = named;
+    $('feedback-contact-status').textContent = '';
   }
 
   function resetResults() {
@@ -182,9 +197,29 @@
       status.textContent = results.length
         ? `Loaded ${results.length} test results. Choose one to include its test ID, outcome and time.`
         : 'Session found, but no current test results are available. Enter a test ID and outcome if known.';
+      if (pendingTestId) {
+        const linkedResult = results.find((item) => item.id === pendingResultId && item.test_id === pendingTestId) ||
+          results.filter((item) => item.test_id === pendingTestId)
+          .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0];
+        if (linkedResult) {
+          resultSelect.value = linkedResult.id;
+          selectResult();
+          status.textContent = 'Selected the result you opened in Inferno. Check its details before reporting.';
+        } else {
+          test.value = pendingTestId;
+          status.textContent = 'This test has no available result. Add the outcome you saw, if known.';
+        }
+        pendingTestId = '';
+        pendingResultId = '';
+      }
     } catch (_error) {
       if (sequence !== loadSequence) return;
       status.textContent = 'Session context is unavailable. It may have been purged. You can still report feedback with the reference and details you know.';
+      if (pendingTestId) {
+        test.value = pendingTestId;
+        pendingTestId = '';
+        pendingResultId = '';
+      }
     }
   }
 
@@ -206,10 +241,24 @@
       $('feedback-load-status').textContent = 'For a result report, choose a suite, test ID and outcome.';
       return null;
     }
+    const identity = document.querySelector('input[name="feedback-identity"]:checked')?.value || 'anonymous';
+    const name = identity === 'named' ? $('feedback-name').value.trim() : '';
+    const email = identity === 'named' ? $('feedback-email').value.trim() : '';
+    if (identity === 'named' && !name && !email) {
+      $('feedback-contact-status').textContent = 'Enter a name or contact email to use this option.';
+      $('feedback-name').focus();
+      return null;
+    }
 
     const subject = isResult
       ? `AU Inferno result feedback: ${(testName || testId).slice(0, 120)}`
       : 'AU Inferno general feedback';
+    const resultTime = isResult ? safeTime(chosen?.created_at) : '';
+    const feedbackTime = new Date().toISOString();
+    const feedbackReference = await feedbackRef(reference);
+    const reporter = identity === 'named'
+      ? [name, email && `Contact email (public): ${email}`].filter(Boolean).join('\n')
+      : 'Anonymous community member';
     const context = [
       `Test kit: ${suiteOption?.dataset.kit || 'Not specified'}`,
       `Test kit version: ${suiteOption?.dataset.kitVersion || 'Not available'}`,
@@ -218,20 +267,42 @@
       `Test: ${isResult ? (testName || 'Not available') : 'Not applicable'}`,
       `Test ID: ${isResult ? testId : 'Not applicable'}`,
       `Outcome: ${isResult ? (safeReference(chosen?.result) || outcome.value) : 'Not applicable'}`,
-      `Result time (UTC): ${isResult ? (safeTime(chosen?.created_at) || 'Not available') : 'Not applicable'}`,
-      `Feedback time (UTC): ${new Date().toISOString()}`,
-      `Feedback reference: ${await feedbackRef(reference) || 'Not available'}`
+      `Result time (UTC): ${isResult ? (resultTime || 'Not available') : 'Not applicable'}`,
+      `Feedback time (UTC): ${feedbackTime}`,
+      `Feedback reference: ${feedbackReference || 'Not available'}`
     ];
     return {
       subject,
       type: isResult ? 'Problem with a test result' : 'General feedback',
       context: context.join('\n'),
       expected: $('feedback-expected').value.trim(),
-      actual: $('feedback-actual').value.trim()
+      actual: $('feedback-actual').value.trim(),
+      reporter,
+      payload: {
+        type: kind.value,
+        website: $('feedback-website').value,
+        sessionId: reference,
+        suiteId,
+        suiteVersion,
+        kitVersion: suiteOption?.dataset.kitVersion || '',
+        testId: isResult ? testId : '',
+        testName: isResult ? testName : '',
+        outcome: isResult ? (safeReference(chosen?.result) || outcome.value) : '',
+        resultTime,
+        feedbackTime,
+        expected: $('feedback-expected').value.trim(),
+        actual: $('feedback-actual').value.trim(),
+        identity,
+        name,
+        email,
+        publishContact: identity === 'named' && $('feedback-contact-public').checked
+      }
     };
   }
 
   kind.addEventListener('change', setKind);
+  document.querySelectorAll('input[name="feedback-identity"]').forEach((radio) =>
+    radio.addEventListener('change', setIdentity));
   resultSearch.addEventListener('input', showResults);
   resultSelect.addEventListener('change', selectResult);
   session.addEventListener('input', () => {
@@ -254,32 +325,87 @@
     event.preventDefault();
     const draft = await report();
     if (!draft) return;
+    $('feedback-form-status').textContent = '';
+    try {
+      const response = await fetch('/feedback/api/preview', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(draft.payload)
+      });
+      const preview = await response.json();
+      if (!response.ok) {
+        $('feedback-form-status').textContent = preview.error || 'Review the report details and try again.';
+        return;
+      }
+      draft.subject = preview.title;
+      draft.context = preview.context;
+      draft.expected = preview.expected;
+      draft.actual = preview.actual;
+      draft.reporter = preview.reporter;
+    } catch (_error) {
+      intakeEnabled = false;
+      $('feedback-form-status').textContent = 'The preview service is unavailable. Review the draft carefully before using GitHub.';
+    }
+    activeDraft = draft;
     $('feedback-subject').value = draft.subject;
     $('feedback-context').value = draft.context;
     $('feedback-review-expected').value = draft.expected;
     $('feedback-review-actual').value = draft.actual;
+    $('feedback-review-identity').value = draft.reporter;
     const issueUrl = new URL('https://github.com/hl7au/au-fhir-inferno/issues/new');
     issueUrl.searchParams.set('template', 'inferno-feedback.yml');
     issueUrl.searchParams.set('title', draft.subject);
     issueUrl.searchParams.set('feedback_type', draft.type);
-    issueUrl.searchParams.set('context', draft.context);
+    issueUrl.searchParams.set('context', draft.context + '\nReporter: ' + draft.reporter);
     issueUrl.searchParams.set('expected', draft.expected);
     issueUrl.searchParams.set('actual', draft.actual);
     $('feedback-issue').href = issueUrl.toString();
+    $('feedback-submit').hidden = !intakeEnabled;
+    $('feedback-submit-status').textContent = intakeEnabled ? '' :
+      'Account-free submission is not configured in this environment yet. You can still use the GitHub option.';
+    $('feedback-copy-status').textContent = '';
     form.hidden = true;
     review.hidden = false;
     review.scrollIntoView({ block: 'start' });
   });
   $('feedback-edit').addEventListener('click', () => {
+    activeDraft = null;
     review.hidden = true;
     form.hidden = false;
     form.scrollIntoView({ block: 'start' });
+  });
+  $('feedback-submit').addEventListener('click', async () => {
+    if (!activeDraft || !intakeEnabled) return;
+    const button = $('feedback-submit');
+    button.disabled = true;
+    $('feedback-submit-status').textContent = 'Posting feedback…';
+    try {
+      const response = await fetch('/feedback/api/reports', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(activeDraft.payload)
+      });
+      const answer = await response.json();
+      if (!response.ok) throw new Error(answer.error || 'The report could not be posted.');
+      if (!/^https:\/\/github\.com\/hl7au\/au-fhir-inferno\/issues\/\d+$/.test(answer.url)) {
+        throw new Error('The report was posted, but its issue link could not be verified.');
+      }
+      $('feedback-done-link').href = answer.url;
+      review.hidden = true;
+      $('feedback-done').hidden = false;
+      $('feedback-done').scrollIntoView({ block: 'start' });
+    } catch (error) {
+      $('feedback-submit-status').textContent = error.message || 'The report could not be posted. Please try again.';
+    } finally {
+      button.disabled = false;
+    }
   });
   $('feedback-copy').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText([
         $('feedback-subject').value,
         $('feedback-context').value,
+        'Reporter:\n' + $('feedback-review-identity').value,
         'What I expected:\n' + $('feedback-review-expected').value,
         'What happened:\n' + $('feedback-review-actual').value
       ].join('\n\n'));
@@ -290,9 +416,17 @@
   });
 
   setKind();
-  const initialSession = new URLSearchParams(location.search).get('session');
+  setIdentity();
+  fetch('/feedback/api/config', { credentials: 'same-origin' })
+    .then((response) => response.json())
+    .then((config) => { intakeEnabled = config.enabled === true; })
+    .catch(() => { intakeEnabled = false; });
+  const initialSession = query.get('session');
   if (initialSession && initialSession.length <= 100 && validReference(initialSession)) {
     session.value = initialSession;
     loadSession();
+  } else if (pendingTestId) {
+    test.value = pendingTestId;
+    pendingTestId = '';
   }
 })();

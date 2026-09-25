@@ -182,6 +182,7 @@
         "enabled": { "type": "boolean" },
         "roleArn": { "type": "string" },
         "secretArn": { "type": "string" },
+        "feedbackSecretArn": { "type": "string" },
         "username": { "type": "string" },
         "region": { "type": "string" }
       }

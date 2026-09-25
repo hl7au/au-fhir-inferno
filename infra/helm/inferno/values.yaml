@@ -161,6 +161,7 @@ externalSecrets:
   enabled: false
   roleArn: ""
   secretArn: ""
+  feedbackSecretArn: ""
   username: "postgres"
   region: "ap-southeast-2"
 

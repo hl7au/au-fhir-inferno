@@ -52,7 +52,7 @@ sections:
   - title: "Feedback and issues"
     icon: /assets/images/feedback.svg
     content: >
-      <p>If a test fails and you believe your server is right, or a check is missing, use the <a href="/feedback/">public feedback flow</a>. From a session page, the Feedback link lets you choose a result and opens a prefilled GitHub issue draft. The issue includes a trace-searchable feedback reference, not your session URL. Please keep patient data, tokens and test payloads out of public issues.</p>
+      <p>If a test fails and you believe your server is right, or a check is missing, use the <a href="/feedback/">public feedback flow</a>. Open a result and choose “Give feedback on this result,” or use the suite footer link for general feedback. Anonymous reporting does not require a GitHub account when intake is configured. The public issue includes a trace-searchable feedback reference, not your session URL. Keep patient data, tokens and test payloads out of public issues.</p>
       <p>Maintainers can link accepted test-kit bugs to <a href="https://github.com/hl7au/au-fhir-core-inferno/issues">hl7au/au-fhir-core-inferno</a> for implementation while keeping the community report visible.</p>
   - title: "Source, versions and licence"
     icon: /assets/images/code.svg

@@ -75,6 +75,15 @@ spec:
             value: "http://k8s-monitoring-alloy-metrics.monitoring.svc:4318"
           - name: OTEL_EXPORTER_OTLP_PROTOCOL
             value: "http/protobuf"
+          # A dedicated token with Issues: write for this repository enables
+          # account-free public feedback. The optional Secret keeps previews and
+          # existing installations healthy before it is provisioned.
+          - name: FEEDBACK_GITHUB_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: inferno-feedback-github
+                key: token
+                optional: true
         envFrom:
         - configMapRef:
             name: inferno
