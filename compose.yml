@@ -8,6 +8,11 @@ services:
         BUNDLE_GEMFILE: Gemfile.dev
     mem_limit: 1500m
     restart: unless-stopped
+    # The app serves the static site at / and Inferno under /suites itself, so it is
+    # published directly: http://localhost is the whole platform, as in a deployed
+    # environment.
+    ports:
+      - "80:4567"
     volumes:
       - ./resources:/opt/inferno/resources
       - ./_site:/opt/inferno/_site
@@ -58,22 +63,6 @@ services:
     environment:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: inferno
-  nginx:
-    image: nginx
-    volumes:
-      - ./_site:/var/www/inferno/public/
-      - ./config/nginx.conf:/etc/nginx/nginx.conf
-      # - /etc/ssl/certs/inferno:/etc/ssl/certs/inferno:ro
-      # to use tls on localhost for development, comment out above line and uncomment below
-      - ./config/development-certs:/etc/ssl/certs/inferno:ro
-    ports:
-      - "80:80"
-      - "443:443"
-    command: [nginx, '-g', 'daemon off;']
-    mem_limit: 100m
-    restart: unless-stopped
-    depends_on:
-      - validator-api
   redis:
     image: redis
     volumes:

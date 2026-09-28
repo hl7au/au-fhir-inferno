@@ -65,7 +65,7 @@ RSpec.describe InfernoPlatformTemplate::StaticSite do
   end
 
   describe 'cache headers' do
-    # Mirrors the nginx.conf $cacheable map. Getting this backwards is invisible until a
+    # Mirrors the retired nginx.conf $cacheable map. Getting this backwards is invisible until a
     # content deploy fails to appear for a day.
     it 'gives cacheable asset types a day of browser caching' do
       response = request.get('/assets/images/checklist.svg')

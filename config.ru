@@ -59,7 +59,7 @@ use Rack::Deflater,
       'application/xml'
     ]
 
-# The two middlewares that replace the nginx layer: the /suites -> /test-kits landing
+# The two middlewares that replaced the nginx layer: the /suites -> /test-kits landing
 # page redirects, then the Jekyll site itself. Both are above the OpenTelemetry handler
 # and the request logger for the same reason HealthCheck is: a page view, an asset fetch
 # or a redirect is answered here and never forwarded, so it costs neither a span nor an

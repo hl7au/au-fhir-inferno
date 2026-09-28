@@ -11,8 +11,7 @@
 #
 # These rules used to be `rewrite ... redirect` directives in nginx.conf, alongside the
 # static site itself. Both moved into the application image together; see static_site.rb
-# for the reasoning and the sequencing that keeps nginx alive for prod until it is
-# promoted.
+# for the reasoning.
 #
 # PREFIX MATCHING RATHER THAN A VERSION REGEX
 #
