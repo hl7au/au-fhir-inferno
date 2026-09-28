@@ -94,15 +94,6 @@
         }
       }
     },
-    "nginx": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "enabled": { "type": "boolean" },
-        "platformImageUri": { "type": "string" }
-      },
-      "description": "DEPRECATED AND IGNORED. No template reads this block. It is accepted only so consumers in aehrc/sparked-argo that still pass it keep rendering; remove it from the schema once they have stopped sending it (aehrc/sparked-argo PR that drops the nginx keys)."
-    },
     "validator": {
       "type": "object",
       "additionalProperties": false,

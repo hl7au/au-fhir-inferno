@@ -8,7 +8,7 @@
 # the app: every release produced an app image and a matching -nginx image, and a
 # mismatch between them was a silent content skew. Serving the site from the app image
 # made the pair impossible to skew and let the nginx Deployment, Service, ConfigMap,
-# sidecar and image build all be deleted; docs/nginx-removal.md records how.
+# sidecar and image build all be deleted (au-fhir-inferno#200 and #211).
 #
 # SAME-ORIGIN IS THE POINT, NOT AN INCIDENTAL BENEFIT
 #
