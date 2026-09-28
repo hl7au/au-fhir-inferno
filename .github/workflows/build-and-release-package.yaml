@@ -3,7 +3,7 @@
 # Every push to master builds ONE released-flavour image (Gemfile + web:generate_prod);
 # staging and prod run that same artifact (build once, deploy many). Bleeding-edge /
 # unreleased kit work lives in preview environments (Gemfile.dev), not a persistent branch.
-name: Build and Release Inferno and Nginx Images
+name: Build and Release Inferno Image
 
 on:
   push:
@@ -54,7 +54,6 @@ jobs:
             echo "bundle_gemfile=Gemfile.dev" >> $GITHUB_OUTPUT
             echo "image_sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
             echo "app_tag=${{ github.event.pull_request.head.sha }}-pr" >> $GITHUB_OUTPUT
-            echo "nginx_tag=${{ github.event.pull_request.head.sha }}-nginx-pr" >> $GITHUB_OUTPUT
             echo "use_dev_env=true" >> $GITHUB_OUTPUT
             echo "BUNDLE_GEMFILE=$GITHUB_WORKSPACE/Gemfile.dev" >> $GITHUB_ENV
           else
@@ -65,7 +64,6 @@ jobs:
             echo "bundle_gemfile=Gemfile" >> $GITHUB_OUTPUT
             echo "image_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "app_tag=${{ github.sha }}" >> $GITHUB_OUTPUT
-            echo "nginx_tag=${{ github.sha }}-nginx" >> $GITHUB_OUTPUT
             echo "use_dev_env=false" >> $GITHUB_OUTPUT
             echo "BUNDLE_GEMFILE=$GITHUB_WORKSPACE/Gemfile" >> $GITHUB_ENV
           fi
@@ -101,14 +99,6 @@ jobs:
             BUNDLE_GEMFILE=${{ steps.config.outputs.bundle_gemfile }}
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.app_tag }}
 
-      - name: Build and push Nginx image
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./nginx.Dockerfile
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.nginx_tag }}
-
       # --- Trunk only (push to master): open the prod promotion PR ---
       # Staging auto-deploys via ArgoCD Image Updater (in sparked-argo): it watches ghcr
       # for the newest master build and writes the tag to apps/inferno-dev/image-values.yaml
@@ -121,7 +111,7 @@ jobs:
       # body carries a changelog + risk flags (deps / app / chart) diffed via the compare
       # API between the SHA prod runs now and this build, plus a proposed SemVer. Merging
       # the PR = the prod release (human gate); prod-release.yaml then tags vX.Y.Z, aliases
-      # the images, and cuts a GitHub Release. ArgoCD (inferno-prod, targetRevision: master)
+      # the image, and cuts a GitHub Release. ArgoCD (inferno-prod, targetRevision: master)
       # syncs prod on merge.
       #
       # values-prod.yaml stays pinned to the immutable SHA (reproducible); vX.Y.Z is the
@@ -137,7 +127,6 @@ jobs:
           PROMOTE_TOKEN: ${{ secrets.PROMOTE_TOKEN }}
         run: |
           APP="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.app_tag }}"
-          NGINX="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.config.outputs.nginx_tag }}"
           BRANCH="promote/prod-${GITHUB_SHA}"
           REPO_URL="https://github.com/${GITHUB_REPOSITORY}"
 
@@ -178,7 +167,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git switch -c "$BRANCH"
           sed -i "s|imageUrl:.*|imageUrl: ${APP}|" infra/helm/inferno/values-prod.yaml
-          sed -i "s|platformImageUri:.*|platformImageUri: ${NGINX}|" infra/helm/inferno/values-prod.yaml
           git commit -am "chore: promote prod to ${GITHUB_SHA}"
           git push --force-with-lease origin "$BRANCH"
 
@@ -202,8 +190,7 @@ jobs:
             echo ""
             echo "Full code diff: ${REPO_URL}/compare/${PROD_SHA}...${GITHUB_SHA}"
             echo ""
-            echo "- app:   \`${APP}\`"
-            echo "- nginx: \`${NGINX}\`"
+            echo "- app: \`${APP}\`"
           } > "$BODY_FILE"
 
           PR_TITLE="Promote prod -> ${PROPOSED}"

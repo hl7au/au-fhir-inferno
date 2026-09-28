@@ -3,7 +3,7 @@
 # verifiable:
 #   1. Resolve the SemVer (PR label release:* wins; else an explicit `-> vX.Y.Z` in the
 #      PR title; else a patch bump of the latest vX.Y.Z tag).
-#   2. Alias the already-built SHA-tagged images to the semver tag in ghcr (no rebuild).
+#   2. Alias the already-built SHA-tagged image to the semver tag in ghcr (no rebuild).
 #   3. Create the annotated git tag + a GitHub Release (changelog since the previous tag).
 #   4. Record a deployment against the `production` Environment, wait for prod to come up
 #      on the new build, then mark the deployment success/failure.
@@ -93,7 +93,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Alias SHA-tagged images to the semver tag
+      - name: Alias the SHA-tagged image to the semver tag
         env:
           VER: ${{ steps.ver.outputs.version }}
           BUILD_SHA: ${{ steps.ver.outputs.build_sha }}
@@ -101,8 +101,7 @@ jobs:
           set -euo pipefail
           IMG="${REGISTRY}/${IMAGE_NAME}"
           # Copy the existing manifests to semver tags (no rebuild, digest-identical).
-          docker buildx imagetools create -t "${IMG}:${VER}"        "${IMG}:${BUILD_SHA}"
-          docker buildx imagetools create -t "${IMG}:${VER}-nginx"  "${IMG}:${BUILD_SHA}-nginx"
+          docker buildx imagetools create -t "${IMG}:${VER}" "${IMG}:${BUILD_SHA}"
 
       - name: Create tag + GitHub Release
         env:
@@ -135,8 +134,7 @@ jobs:
             echo "${CHANGELOG}"
             echo ""
             echo "## Deployed artifact"
-            echo "- app:   \`${IMG}:${VER}\` (alias of \`${BUILD_SHA:0:12}\`)"
-            echo "- nginx: \`${IMG}:${VER}-nginx\`"
+            echo "- app: \`${IMG}:${VER}\` (alias of \`${BUILD_SHA:0:12}\`)"
             echo ""
             if [ -n "$RANGE_BASE" ]; then
               echo "**Full diff:** https://github.com/${GITHUB_REPOSITORY}/compare/${RANGE_BASE}...${VER}"

@@ -61,12 +61,10 @@ jobs:
           # aehrc/sparked-argo (apps/inferno-previews.yaml). Keep the KEY SET in step
           # with it, not just the values: values.schema.json rejects unknown keys, so a
           # key the ApplicationSet passes but this render omits would break every
-          # preview environment while CI still reported green.
-          #
-          # nginx.platformImageUri is one of those: previews no longer deploy nginx (the
-          # chart default is enabled: false now that the app image serves the static
-          # site) but the ApplicationSet still passes the key, so this render must too.
-          # It goes when the nginx layer does.
+          # preview environment while CI still reported green. The one tolerated
+          # exception is the deprecated nginx block: values.schema.json keeps accepting
+          # nginx.enabled and nginx.platformImageUri, which no template reads, only until
+          # sparked-argo has stopped sending them (see docs/nginx-removal.md).
           helm template inferno-pr-0 . -n inferno-pr-0 \
             --set createNamespace=true \
             --set capacityType=spot \
@@ -80,7 +78,6 @@ jobs:
             --set inferno.usesWrapper=true \
             --set inferno.replicas=1 \
             --set inferno.workerReplicas=1 \
-            --set nginx.platformImageUri=ghcr.io/hl7au/au-fhir-inferno:ci-nginx-pr \
             --set validator.replicas=1 \
             --set validator.storageClassName=gp3-encrypted \
             --set validator.sessionCacheSize=1 \
