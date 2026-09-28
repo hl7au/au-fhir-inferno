@@ -13,9 +13,9 @@
 
 eval_gemfile 'Gemfile.common'
 
-# Bleeding-edge AU Core test kit. Floored at the release carrying the inferno_core 1.4.x
-# reference-resolution fix; Gemfile.dev.lock pins the exact version.
-gem 'au_core_test_kit', '>= 1.4.6'
+# Preview pin: the unreleased hl7au/au-fhir-core-inferno#322 head, so a preview can
+# verify it before 1.4.7 is published. Replace with a '>= 1.4.7' floor once it ships.
+gem 'au_core_test_kit', github: 'hl7au/au-fhir-core-inferno', ref: 'd4c65da859c4fd0007d5691a9283e3c5ce5f6c45'
 
 # Bleeding-edge AU PS test kit. Floored at the release that drops the
 # 'inferno_core ~> 1.0.6' cap; Gemfile.dev.lock pins the exact version.
