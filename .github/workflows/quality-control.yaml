@@ -115,6 +115,18 @@ jobs:
             echo "redirect-nginx still rendered" >&2
             exit 1
           fi
+          # The whole nginx layer is gone: prod's / must reach the app Service directly
+          # and no nginx workload may render. Argo applies this chart to prod straight
+          # from master, so these two lines are the only automated check on the prod
+          # cutover before it happens.
+          if echo "$prod_render" | grep -qE 'name: nginx(-app|-config)?$'; then
+            echo "an nginx workload is still rendered for prod" >&2
+            exit 1
+          fi
+          prod_route_render=$(helm template inferno . -n inferno -f values-prod.yaml \
+            --show-only templates/configs/inferno-httproute.yaml)
+          echo "$prod_route_render" | grep -q 'name: inferno$'
+          echo "$prod_route_render" | grep -q 'port: 4567'
           echo "::endgroup::"
 
       # Boots the full Inferno app (spec_helper → migrations on sqlite :memory:), so it's
