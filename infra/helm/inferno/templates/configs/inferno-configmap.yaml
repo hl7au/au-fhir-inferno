@@ -13,9 +13,9 @@ data:
   # Nothing set it here, so it came from the .env file BAKED INTO THE IMAGE, which under
   # build-once is the wrong host for most environments: the dev-flavoured image (which
   # every preview also runs) carries https://development.inferno.sparked-fhir.com, so a
-  # preview creating a session sent the user to DEV. nginx hid this with proxy_redirect,
-  # rewriting the Location header to the host the client actually used. With nginx gone
-  # there is nothing to rewrite it, so the value has to be right at the source.
+  # preview creating a session sent the user to DEV. The reverse proxy that used to front
+  # the app hid this by rewriting the Location header to the host the client actually
+  # used; without it the value has to be right at the source.
   #
   # Derived from the first ingress hostname so a new environment gets this for free, and
   # https because TLS terminates at the gateway and every hostname is served over it.
@@ -28,7 +28,7 @@ data:
   # because InfernoPlatformTemplate::RequestHostRedirects rewrites a Location on this
   # origin under /suites back onto the hostname the client actually used. So on an
   # environment serving several hostnames, a session created on a non-canonical one STAYS
-  # on that hostname, exactly as it did behind nginx's proxy_redirect.
+  # on that hostname, exactly as it did behind the old reverse proxy.
   INFERNO_HOST: {{ .Values.inferno.host | default (printf "https://%s" (first .Values.ingress.hostnames)) | quote }}
   # validator-api is a single-pod Deployment, so this plain Service has one endpoint
   # (no cross-pod session-cache thrash, auto-fails-over when the pod is replaced).
