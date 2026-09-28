@@ -13,9 +13,10 @@
 #   * under build-once, the dev-flavoured image (which every preview also runs) carries
 #     the dev host, so a preview creating a session would send the user to DEV.
 #
-# nginx solved this with `proxy_redirect ~^https?://[^/]+(/suites/.*)$ $fwd_scheme://$host$1`
-# on its /suites location: rewrite the Location header to the scheme and host the client
-# used. This middleware is that rule, and it is why removing nginx does not regress
+# nginx used to solve this with
+# `proxy_redirect ~^https?://[^/]+(/suites/.*)$ $fwd_scheme://$host$1` on its /suites
+# location: rewrite the Location header to the scheme and host the client
+# used. This middleware is that rule, and it is why removing nginx did not regress
 # multi-hostname environments. INFERNO_HOST still matters and is still set per
 # environment (it is the canonical origin for the page's canonical link and og: metadata,
 # and for any other absolute URL inferno builds); this only stops it from moving a user

@@ -23,7 +23,7 @@ RUN bundle config set --local frozen 'true' && bundle install
 ADD . $INSTALL_PATH
 
 # The generated Jekyll landing site, served by lib/inferno_platform_template/static_site.rb
-# instead of by a separate nginx image. _site is gitignored and built by
+# (the app serves it itself; there is no separate web server image). _site is gitignored and built by
 # `rake web:generate_{dev,prod}` before docker build (see build-and-release-package.yaml),
 # so it is not part of the source tree the ADD above copies from a clean checkout. Copied
 # explicitly rather than relied on so a build with no generated site fails here, loudly,

@@ -1,7 +1,8 @@
 # Removing the nginx layer
 
-This change spans two PRs. Here is the sequencing that makes each step safe, and what is
-left to do. Delete this file once nothing is.
+This change spanned two PRs, both merged, plus one small follow-up. Here is the
+sequencing that made each step safe, and the one step left. Delete this file once it is
+done.
 
 The platform used to ship two images per release: the application image, and an nginx
 image (`nginx.Dockerfile`) that baked the generated Jekyll site in and proxied `/suites`
@@ -64,30 +65,32 @@ Image Updater tracks master builds there and their image is minutes behind the c
 * The nginx image is still built and still aliased on release. Nothing was removed from
   `build-and-release-package.yaml`, `prod-release.yaml` or the promotion step.
 
-### PR two (after prod is promoted)
+### PR two (done)
 
-Gated on a promotion PR landing a `values-prod.yaml` image that contains `_site`. Verify
-the promoted image serves the landing page in dev first, then:
+Landed once prod was promoted to an image containing `_site` (da27559).
 
-* Delete `nginx.Dockerfile` and `nginx.conf`.
-* Delete `templates/deployments/nginx.deployment.yaml`,
-  `templates/services/nginx.service.yaml`, `templates/configs/nginx-configmap.yaml`, and
-  the nginx **sidecar** container and its volume from
-  `templates/deployments/inferno.deployment.yaml`. That sidecar receives no traffic at all
-  today: the `nginx` Service selects the separate `nginx-app` Deployment, so the sidecar
-  in the app pod has been dead weight in every environment.
-* Delete the `nginx` block from `values.yaml`, `values-prod.yaml` and
-  `values.schema.json`, and the `enabled`/`else` branch from `inferno-httproute.yaml`.
-* Remove `- app: nginx-app` from `podDisruptionBudgets` in `values-prod.yaml`.
-* Remove the nginx image build from `.github/workflows/build-and-release-package.yaml`,
-  the `-nginx` alias from `.github/workflows/prod-release.yaml`, and the
-  `nginx.platformImageUri` line from the promotion `sed`.
-* Remove `--set nginx.platformImageUri=...` from the preview render in
-  `.github/workflows/quality-control.yaml`, and the `-nginx-pr` mentions from
-  `docs/preview-environments.md` and `docs/cicd-overhaul-plan.md`.
-* In **aehrc/sparked-argo**, drop `nginx.platformImageUri` from
-  `apps/inferno-dev/image-values.yaml`, and the `nginx.*` keys from the
-  `inferno-previews` and `kit-previews` ApplicationSets. Order matters: the schema keeps
-  accepting the keys, so sparked-argo can be cleaned up before or after this PR, but the
-  keys must not be removed from the schema until sparked-argo has stopped sending them.
-* Delete this section.
+* `nginx.Dockerfile`, `nginx.conf` and the local-only `config/nginx.conf` deleted, with
+  `config/development-certs`, which existed only for that local nginx's TLS listener.
+  `compose.yml` publishes `inferno_web` on host port 80, so `http://localhost` still
+  serves the whole platform.
+* The chart's nginx Deployment, Service, ConfigMap and the sidecar in the inferno-app pod
+  deleted. The HTTPRoute sends `/` to `inferno:4567` unconditionally, the `inferno`
+  Service exposes only 4567, and prod's `nginx` block and `nginx-app` PodDisruptionBudget
+  are gone. No template reads `.Values.nginx`.
+* The nginx image build, its promotion `sed` and its `-nginx` release alias removed from
+  the workflows; the quality-control preview render no longer passes
+  `nginx.platformImageUri`.
+* `values.schema.json` keeps a schema-only `nginx` property accepting just `enabled` and
+  `platformImageUri`, marked deprecated and ignored, because aehrc/sparked-argo still
+  sent those keys when this merged and the top-level schema rejects unknown properties.
+* In **aehrc/sparked-argo**, a companion PR drops `nginx.platformImageUri` from
+  `apps/inferno-dev/image-values.yaml` and the Image Updater's nginx alias, and the
+  `nginx.*` keys from the `inferno-previews` and `kit-previews` ApplicationSets.
+
+### Remaining step
+
+Once the sparked-argo PR has merged and Argo CD has synced it (check that
+`apps/inferno-dev/image-values.yaml` has no `nginx:` key and that neither ApplicationSet
+passes one), delete the `nginx` property from `values.schema.json` and the sentence about
+it in the preview-render comment in `.github/workflows/quality-control.yaml`. Nothing
+else in the chart references it. Then delete this file.

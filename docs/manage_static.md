@@ -39,8 +39,9 @@ Two ways, depending on whether you care about the `/suites` half of the site:
 * **Jekyll only** (fastest loop for content work): `bundle exec rake web:serve_dev`
   regenerates and serves the static pages on `http://localhost:4000`. Anything under
   `/suites` 404s, because Inferno is not running.
-* **The real thing**: `bundle exec rake web:generate_dev` then start the app
-  (`bundle exec puma -p 4567`, or `make run`). `http://localhost:4567/` serves the site
+* **The real thing**: `bundle exec rake web:generate_dev` then start the app, either
+  with `bundle exec puma -p 4567` (serves `http://localhost:4567/`) or with `make run`
+  (the compose stack publishes the app on `http://localhost/`). Either serves the site
   exactly as a deployed environment does, redirects included, with Inferno live under
   `/suites`. Regenerate after editing content; the middleware reads `_site` from disk, so
   a reload is enough and no restart is needed.

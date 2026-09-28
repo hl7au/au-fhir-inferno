@@ -2,33 +2,22 @@
 #
 # WHY THIS EXISTS
 #
-# The static site used to be served by a SEPARATE nginx image (nginx.Dockerfile baked
-# _site into nginx:1.27, nginx.conf served it at / and proxied /suites to this app).
-# That layer bought nothing the app cannot do itself and cost a second image to build,
-# tag, promote and keep in step with the app: every release produced an app image and a
-# matching -nginx image, and a mismatch between them was a silent content skew. Serving
-# the site from the app image makes the pair impossible to skew, drops a Deployment, a
-# Service, a ConfigMap and a sidecar from the chart, and removes the nginx build from
-# the release pipeline.
+# The static site used to be served by a SEPARATE nginx image, which baked _site in,
+# served it at / and proxied /suites to this app. That layer bought nothing the app
+# cannot do itself and cost a second image to build, tag, promote and keep in step with
+# the app: every release produced an app image and a matching -nginx image, and a
+# mismatch between them was a silent content skew. Serving the site from the app image
+# made the pair impossible to skew and let the nginx Deployment, Service, ConfigMap,
+# sidecar and image build all be deleted; docs/nginx-removal.md records how.
 #
 # SAME-ORIGIN IS THE POINT, NOT AN INCIDENTAL BENEFIT
 #
 # web/assets/scripts/config.js sets infernoHost to window.location.origin, so the kit
 # pages POST to /suites/api/... on whatever host served them. That only works while the
-# site and the API answer on ONE origin. nginx provided that origin by proxying; this
-# middleware provides it by being in the same process. Nothing in the site needs to know
+# site and the API answer on ONE origin. nginx used to provide that origin by proxying;
+# this middleware provides it by being in the same process. Nothing in the site needs to know
 # which environment it is running in, which is what lets one image serve dev, prod and
 # every preview.
-#
-# SEQUENCING (why nginx still exists while this does)
-#
-# The Helm chart renders from master the moment a PR merges, but the application image is
-# pinned per environment and only advances on a separate promotion PR. An environment
-# whose chart had dropped nginx while its image predated this file would have no landing
-# page at all. So nginx.enabled defaults to false (dev and previews, which track master
-# builds, pick this up immediately) and values-prod.yaml keeps it true until prod is
-# promoted to an image containing _site. The nginx image, templates and sidecar are
-# deleted in the follow-up change; see docs/nginx-removal.md.
 #
 # Implemented as middleware rather than a mounted app so it can sit above Inferno's
 # RequestLogger and the OpenTelemetry handler: a page view or an asset fetch is answered
@@ -42,7 +31,7 @@ module InfernoPlatformTemplate
   class StaticSite
     INDEX = 'index.html'.freeze
 
-    # Mirrors the nginx.conf $cacheable map: images, scripts, styles and the favicon got
+    # Mirrors the retired nginx.conf $cacheable map: images, scripts, styles and the favicon got
     # a day of browser caching, everything else (chiefly the generated HTML) was served
     # revalidate-always so a content deploy is visible immediately.
     CACHEABLE_EXTENSIONS = ['.png', '.svg', '.js', '.css', '.ico'].freeze
@@ -56,8 +45,9 @@ module InfernoPlatformTemplate
     # /suites is Inferno's mount point (BASE_PATH) and /healthz is HealthCheck's.
     RESERVED_PREFIXES = ['/suites', '/healthz'].freeze
 
-    # nginx's default_type. Rack::Files otherwise labels an unknown extension text/plain,
-    # which is worse than octet-stream for a file the browser should download.
+    # The retired nginx config's default_type. Rack::Files otherwise labels an unknown
+    # extension text/plain, which is worse than octet-stream for a file the browser
+    # should download.
     DEFAULT_MIME = 'application/octet-stream'.freeze
 
     def initialize(app, root: nil)

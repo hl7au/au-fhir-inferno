@@ -97,17 +97,11 @@
     "nginx": {
       "type": "object",
       "additionalProperties": false,
-      "description": "DEPRECATED. The nginx layer no longer does anything the application image cannot: the static site, the /suites -> /test-kits redirects, gzip and a correct INFERNO_HOST all moved into it. Default is now enabled: false, prod sets enabled: true until it is promoted to an image containing the static site, and the whole block (with the templates and the image build) is removed after that. Nothing is required here any more, and the block itself is optional, because consumers in aehrc/sparked-argo still pass platformImageUri and must keep rendering while it is dropped on their side.",
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "description": "Render the nginx layer (nginx-app Deployment/Service, the sidecar in the inferno-app pod, nginx-config ConfigMap). False, the default, routes / straight to the inferno Service."
-        },
-        "platformImageUri": {
-          "type": "string",
-          "description": "Read only when enabled. Retained so environments that still pass it keep rendering; drop it from the consumer and then from this schema."
-        }
-      }
+        "enabled": { "type": "boolean" },
+        "platformImageUri": { "type": "string" }
+      },
+      "description": "DEPRECATED AND IGNORED. No template reads this block. It is accepted only so consumers in aehrc/sparked-argo that still pass it keep rendering; remove it from the schema once they have stopped sending it (aehrc/sparked-argo PR that drops the nginx keys)."
     },
     "validator": {
       "type": "object",

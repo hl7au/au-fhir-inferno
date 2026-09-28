@@ -12,8 +12,9 @@ spec:
     http:
       # Puma 8 defaults its persistent connection timeout to 65s. Keep Envoy's
       # upstream idle timeout just below that so Envoy closes idle connections
-      # first and never reuses one while Puma is closing it. The same race with
-      # the retired nginx backend surfaced as intermittent 503 UC responses.
+      # first and never reuses one while Puma is closing it. The same race
+      # surfaced as intermittent 503 UC responses when this route's backend was
+      # the old reverse proxy rather than Puma.
       connectionIdleTimeout: 60s
   retry:
     numRetries: 2

@@ -42,12 +42,11 @@ capacityType: "on-demand"
 #       value: on-demand
 #       effect: NoSchedule
 #
-# Deliberately NOT applied to nginx-app (the last workload outside the four, and itself
-# on its way out). It does not pin a capacity type, so it does not need to tolerate one,
-# and handing it the toleration would make it eligible for on-demand nodes without
-# holding it there, which is the exact drift the taint exists to prevent. If it ever
-# needs on-demand, give it capacityType pinning in the same change, so the pin and the
-# toleration stay paired.
+# Those four are every workload this chart's own templates render. The optional
+# postgresql subchart (previews only) takes neither setting. Any workload added here later
+# should take both or neither: a toleration without the capacityType pin makes a pod
+# eligible for on-demand nodes without holding it there, which is the exact drift the
+# taint exists to prevent.
 tolerations: []
 
 ingress:
@@ -112,36 +111,6 @@ inferno:
   # because that feature is being retired in favour of the OpenTelemetry pipeline and this
   # one is not.
   resultDuration: false
-
-# DEPRECATED, and on its way out. The whole nginx layer: the nginx-app Deployment and
-# Service the HTTPRoute sends "/" to, the sidecar in the inferno-app pod, and the
-# nginx-config ConfigMap.
-#
-# Everything it did now lives in the application image. The Jekyll landing site is baked
-# into it and served by lib/inferno_platform_template/static_site.rb, the
-# /suites -> /test-kits redirects by suite_redirects.rb, gzip by Rack::Deflater, and
-# INFERNO_HOST is set properly instead of being patched over by proxy_redirect. The
-# gateway already routes /hl7validatorapi straight to the validator Service, so with
-# those moved the proxy adds nothing: the HTTPRoute sends / directly to the inferno
-# Service on 4567. nginx's client_max_body_size stops mattering too; that directive only
-# exists because nginx itself defaults to a 1MB body cap, and Envoy streams request
-# bodies without one.
-#
-# OFF by default, which is what makes that switch. Dev and preview environments track
-# master builds, so their image already carries the static site. PROD is the exception
-# and sets enabled: true explicitly in values-prod.yaml: the chart renders from master
-# the moment a PR merges, but prod's image is pinned and only advances on a promotion PR,
-# so prod would otherwise serve no landing page until that promotion landed.
-#
-# This block, the templates behind it and the nginx image build are all deleted in the
-# follow-up change, once prod runs an image containing the static site. Until then the
-# key is still accepted (see values.schema.json) because aehrc/sparked-argo passes it.
-nginx:
-  enabled: false
-  # Ignored unless enabled. Same placeholder treatment as inferno.imageUrl above: always
-  # overridden per environment, so this default only exists to keep the chart renderable
-  # on its own.
-  platformImageUri: "ghcr.io/hl7au/au-fhir-inferno:overridden-per-environment-nginx"
 
 # HPA for inferno-app (templates/deployments/inferno.hpa.yaml). OFF by default: only
 # prod autoscales, dev and previews run fixed single replicas. The min/max/target values

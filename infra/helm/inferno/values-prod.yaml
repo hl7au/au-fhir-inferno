@@ -49,20 +49,6 @@ autoscaling:
   maxReplicas: 6
   targetCPUUtilizationPercentage: 70
 
-# PROD ONLY, and temporary. The chart default is now enabled: false, because the static
-# site and the /suites -> /test-kits redirects ship in the application image. Prod cannot
-# take that default yet: this chart renders from master on merge while inferno.imageUrl
-# above is pinned and only advances on a promotion PR, so between the two prod would run
-# an image with no static site behind a chart with nothing serving one, and the landing
-# page would 404.
-#
-# Remove this block, along with the nginx templates, sidecar and image build, in the
-# follow-up change once the promotion above lands an image containing _site.
-nginx:
-  enabled: true
-  platformImageUri: ghcr.io/hl7au/au-fhir-inferno:da275590632eaa7002ac2131d4000f756533c660-nginx
-
-
 externalSecrets:
   enabled: true
   roleArn: arn:aws:iam::471112546300:role/prod-inferno-external-secrets-sa
@@ -78,18 +64,15 @@ postgresql:
         database: inferno
 
 # Cap voluntary disruption (Karpenter consolidation, node drain) to one pod at a time
-# for each replicated workload: worker and nginx run 2 replicas and inferno-app
-# autoscales 1 to 6. maxUnavailable of 1 is permissive at 1 replica and protective above
-# it, and never blocks consolidation. inferno-redis and validator-api are deliberately
-# omitted: they are singletons whose protection is on-demand pinning, not a no-op PDB.
-#
-# redirect-nginx is gone: the old-hostname 301 is now a Gateway API RequestRedirect
-# filter on the HTTPRoute, so there is no pod left to protect. nginx-app follows it in
-# the change that removes the nginx layer from prod.
+# for each replicated workload: the worker runs 2 replicas and inferno-app autoscales
+# 1 to 6. maxUnavailable of 1 is permissive at 1 replica and protective above it, and
+# never blocks consolidation. inferno-redis and validator-api are deliberately omitted:
+# they are singletons whose protection is on-demand pinning, not a no-op PDB. The
+# old-hostname 301 is a Gateway API RequestRedirect filter on the HTTPRoute, so it has
+# no pod to protect either.
 podDisruptionBudgets:
   - app: inferno-app
   - app: inferno-worker
-  - app: nginx-app
 
 healthProbes:
   # The promoted image now contains the app's /healthz endpoints and the worker's
