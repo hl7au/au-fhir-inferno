@@ -11,7 +11,7 @@ redirectIngress:
   targetUrl: "https://inferno.hl7.org.au"
 
 inferno:
-  imageUrl: ghcr.io/hl7au/au-fhir-inferno:da275590632eaa7002ac2131d4000f756533c660
+  imageUrl: ghcr.io/hl7au/au-fhir-inferno:339be94819f5bddc9c14331613f887d8e7cb3ba1
   # Set explicitly because prod serves TWO hostnames and the derived default would take
   # the first one, inferno.sparked-fhir.com. hl7.org.au is the canonical origin: it is
   # what the site, the retired-hostname redirect above and the image's own .env all point
