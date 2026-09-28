@@ -25,7 +25,7 @@ The infrastructure is divided into two main components:
 │              Helm Chart Deployment                       │
 │  - Inferno Application (inferno-helmd)                  │
 │  - PostgreSQL (Bitnami dependency)                      │
-│  - Ingress NGINX (ingress-nginx)                        │
+│  - HTTPRoutes on the shared Envoy Gateway               │
 └─────────────────────────────────────────────────────────┘
                           │
                           ▼
@@ -121,10 +121,9 @@ terraform output
    - Repository: https://charts.bitnami.com/bitnami
    - Conditional: `postgresql.enabled`
 
-2. **Ingress NGINX**
-   - Version: 4.11.1
-   - Repository: https://kubernetes.github.io/ingress-nginx
-   - Conditional: `controller.enabled`
+Routing is not a chart dependency: the chart renders Gateway API `HTTPRoute`s
+(`templates/configs/inferno-httproute.yaml`) attached to the cluster's shared Envoy
+Gateway, and the application serves the static site and Inferno itself on port 4567.
 
 ### Environment-Specific Values
 

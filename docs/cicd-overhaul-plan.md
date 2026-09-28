@@ -167,7 +167,7 @@ Full user-facing guide: `docs/preview-environments.md`.
 ```
 add `preview` label
    ├─► build-and-release-package.yaml builds the PR HEAD (Gemfile.dev) and pushes
-   │     ghcr.io/hl7au/au-fhir-inferno:<head-sha>-pr  (+ -nginx-pr)
+   │     ghcr.io/hl7au/au-fhir-inferno:<head-sha>-pr
    ├─► preview-comment.yaml posts a sticky PR comment with the URL, polls, flips to "live"
    └─► ArgoCD ApplicationSet `inferno-previews` (sparked-argo) — GitHub PR generator
          filtered by the `preview` label → Application `inferno-pr-<n>` deploying the

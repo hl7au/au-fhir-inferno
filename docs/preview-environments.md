@@ -28,7 +28,7 @@ add `preview` label
    │
    ├─►  GitHub Actions (build-and-release-package.yaml)
    │       builds this PR's HEAD commit (dev-flavoured: Gemfile.dev) and pushes
-   │       ghcr.io/hl7au/au-fhir-inferno:<head-sha>-pr  (+ -nginx-pr)
+   │       ghcr.io/hl7au/au-fhir-inferno:<head-sha>-pr
    │
    └─►  ArgoCD ApplicationSet `inferno-previews` (in aehrc/sparked-argo)
            PR generator (filtered by the `preview` label) creates an Application
@@ -37,11 +37,9 @@ add `preview` label
            ephemeral in-namespace Postgres (no RDS).
 ```
 
-> **The `-nginx-pr` image is still built but no longer deployed.** The static landing
-> site and the `/suites` -> `/test-kits` redirects now ship inside the application image
-> and are served by Rack middleware, so `nginx.enabled` defaults to false and no preview
-> runs an nginx pod. The image build (and the tag above) goes away with the rest of the
-> nginx layer once prod is promoted to an image containing the site.
+> **One image serves the whole preview.** The static landing site and the `/suites` ->
+> `/test-kits` redirects ship inside the application image and are served by Rack
+> middleware, so the gateway sends `/` straight to the app on port 4567.
 
 - **Hostname:** `pr-<n>.preview.inferno.sparked-fhir.com`, covered by the
   `*.preview.inferno.sparked-fhir.com` wildcard TLS cert + gateway listener.

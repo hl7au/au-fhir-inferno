@@ -21,7 +21,7 @@ top of that flow.
    - **Explicit version:** edit the PR title to end with `-> vX.Y.Z` (used when no
      `release:*` label is present).
 4. On merge, `prod-release.yaml`:
-   - resolves the version, aliases the SHA-tagged images to `vX.Y.Z` / `vX.Y.Z-nginx`
+   - resolves the version, aliases the SHA-tagged image to `vX.Y.Z`
      in ghcr (no rebuild, digest-identical),
    - creates the annotated git tag + a **GitHub Release** (changelog since the previous tag),
    - records a deployment against the **`production` Environment**, waits for
