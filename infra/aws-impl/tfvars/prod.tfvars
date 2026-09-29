@@ -10,3 +10,4 @@ vpc_name                = "sparkey-vpc"
 snapshot_identifier     = "prod-inferno-sparked-snapshot-manual"
 postgres_instance_class = "db.t4g.medium"
 rds_name                = "prod-inferno-postgresql"
+deletion_protection     = true
