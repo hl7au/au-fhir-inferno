@@ -28,10 +28,10 @@ module "rds" {
 
   # All available versions: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_PostgreSQL.html#PostgreSQL.Concepts
   engine = "postgres"
-  # Matches the live prod and dev instances. Auto minor version upgrades moved
-  # both past the previous pin of 16.8, so a stale pin makes the plan propose a
-  # downgrade that AWS rejects. Bump this after each minor upgrade.
-  engine_version = "16.13"
+  # Major version only. Auto minor version upgrades move prod and dev forward
+  # (both run 16.13 today), and a minor pin goes stale after each one and makes
+  # the plan propose a downgrade that AWS rejects.
+  engine_version = "16"
   instance_class = var.postgres_instance_class
 
   allocated_storage = 20
