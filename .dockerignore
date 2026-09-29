@@ -1,0 +1,4 @@
+# The build context is the checkout. Keep git metadata out of the image: nothing at runtime
+# reads it, and actions/checkout persists the job's token in .git/config, which `ADD .`
+# would otherwise copy into every published image.
+.git

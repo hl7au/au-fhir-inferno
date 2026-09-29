@@ -8,7 +8,8 @@
 # Ruby stays at exactly 3.3.6 because inferno_suite_generator's gemspec declares
 # required_ruby_version "= 3.3.6", so bundler refuses any other Ruby. 3.3.6 has no Debian
 # trixie image, hence bookworm. Keep RUBY_VERSION in step with .ruby-version and the ruby
-# directive in Gemfile.common.
+# directive in Gemfile.common, and with ruby-version in the build-and-release-package and
+# quality-control workflows.
 ARG RUBY_VERSION=3.3.6
 FROM ruby:${RUBY_VERSION}-slim-bookworm AS base
 
