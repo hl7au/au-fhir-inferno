@@ -16,11 +16,11 @@
 
 eval_gemfile 'Gemfile.common'
 
-# Released AU Core test kit (published on RubyGems by hl7au). '~> 1.4.6' means
-# >= 1.4.6, < 1.5.0; Gemfile.lock pins the exact version. 1.4.6 is the first release whose
-# ReferenceResolutionTest validates through the supported DSL rather than the Validator
-# internals inferno_core removed in v1.1.0, so it is the floor for the 1.4.x line.
-gem 'au_core_test_kit', '~> 1.4.6'
+# Released AU Core test kit (published on RubyGems by hl7au). '~> 1.4.7' means
+# >= 1.4.7, < 1.5.0; Gemfile.lock pins the exact version. 1.4.7 is the first release that
+# validates against the Australian SNOMED CT edition in every AU Core suite, and it needs
+# inferno_suite_generator ce03f930 or later (Gemfile.common).
+gem 'au_core_test_kit', '~> 1.4.7'
 
 # Released AU PS test kit (published on RubyGems by hl7au). '~> 1.0.1' means
 # >= 1.0.1, < 1.1.0; Gemfile.lock pins the exact version. 1.0.1 is the first release
