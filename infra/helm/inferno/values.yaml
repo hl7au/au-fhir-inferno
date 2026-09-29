@@ -111,6 +111,58 @@ inferno:
   # because that feature is being retired in favour of the OpenTelemetry pipeline and this
   # one is not.
   resultDuration: false
+  # inferno-app (Puma) pod resources, shared by every environment. Measured over the 30
+  # days to 2026-09-29 (5-minute CPU rate, busiest replica): p99 0.002 cores in prod, dev
+  # and every preview, highest 5-minute average 0.35 cores (dev). Memory peaked at 0.67Gi
+  # (dev) against the 768Mi request.
+  #
+  # The CPU request was 1000m. The limit stays at 2000m on purpose: an earlier measurement
+  # put session creation at 30s with 512Mi/100m and 9s with 2Gi/1000m, so session builds
+  # are CPU-bound bursts, and a limit well above the request lets a burst use the node's
+  # idle CPU. The request only sets the guaranteed share under contention, and 250m still
+  # covers the largest 5-minute average seen.
+  #
+  # Prod autoscales on CPU utilization, which Kubernetes measures against this request: the
+  # 70% target is now 175m per pod instead of 700m. The 30-day prod peak (0.03 cores) is 12%
+  # of the new request, so the HPA stays at minReplicas under today's load.
+  resources:
+    requests:
+      memory: "768Mi"
+      cpu: "250m"
+    limits:
+      memory: "1536Mi"
+      cpu: "2000m"
+  # inferno-worker (Sidekiq) pod resources, shared by every environment. Measured over the
+  # 30 days to 2026-09-29: CPU p99 0.04 to 0.08 cores in prod, dev and previews, highest
+  # 5-minute average 0.55 cores (a preview). The CPU request was 500m; the limit is unchanged.
+  #
+  # Memory goes UP. Peak RSS was 1.34Gi in prod and 1.10Gi in dev (container_memory_rss, so
+  # resident memory rather than page cache), above the old 768Mi request and at 87% of the
+  # old 1536Mi limit. The Sparked event (07-01..09) measured the Sidekiq plateau at ~954Mi;
+  # it has since grown. The request now covers the measured peak, and the limit leaves about
+  # 650Mi above it, so reaching the limit means a runaway rather than normal operation.
+  workerResources:
+    requests:
+      memory: "1536Mi"
+      cpu: "250m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+# inferno-redis (the Sidekiq queue) pod resources. It previously declared none, which made
+# it a BestEffort pod: the first thing the kubelet evicts under node memory pressure. It is
+# a Recreate singleton on an RWO PVC, so an eviction is a queue outage until it reschedules
+# in the PVC's zone. Measured over the 30 days to 2026-09-29: CPU p99 0.007 cores and memory
+# under 10Mi in every environment. The memory limit is about 25x that peak, so it only stops
+# a runaway.
+redis:
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "25m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
 
 # HPA for inferno-app (templates/deployments/inferno.hpa.yaml). OFF by default: only
 # prod autoscales, dev and previews run fixed single replicas. The min/max/target values

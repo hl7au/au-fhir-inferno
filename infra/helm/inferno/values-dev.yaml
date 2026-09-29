@@ -45,9 +45,16 @@ validator:
   # + ~480Mi native lands ~3.6Gi, and a 5Gi limit now sits inside what the node can
   # actually deliver, so it can bind.
   javaOpts: "-Xmx3g"
+  # CPU request 250m, down from the chart's prod-sized 1000m. Measured over the 30 days to
+  # 2026-09-29: p99 0.006 cores, highest 5-minute average 0.55 cores. The chart's 3000m
+  # limit still applies (Helm deep-merges), so JVM startup and a cold engine build can
+  # burst onto idle node CPU. Previews have run the validator at 250m throughout
+  # (apps/inferno-previews.yaml in aehrc/sparked-argo) with no restarts. Memory is unchanged:
+  # the 30-day working-set peak was 3.51Gi against the 4Gi request.
   resources:
     requests:
       memory: "4Gi"
+      cpu: "250m"
     limits:
       memory: "5Gi"
 

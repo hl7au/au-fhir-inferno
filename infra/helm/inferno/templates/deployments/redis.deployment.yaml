@@ -40,6 +40,8 @@ spec:
         imagePullPolicy: Always
         ports:
           - containerPort: 6379
+        resources:
+          {{- toYaml .Values.redis.resources | nindent 10 }}
         env:
           - name: MASTER
             value: "true"
