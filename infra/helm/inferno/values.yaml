@@ -119,19 +119,20 @@ inferno:
   # The CPU request was 1000m. The limit stays at 2000m on purpose: an earlier measurement
   # put session creation at 30s with 512Mi/100m and 9s with 2Gi/1000m, so session builds
   # are CPU-bound bursts, and a limit well above the request lets a burst use the node's
-  # idle CPU. The request only sets the guaranteed share under contention, and 250m still
-  # covers the largest 5-minute average seen.
+  # idle CPU. The request only sets the guaranteed share under contention. 400m covers the
+  # largest 5-minute average seen (0.35 cores, dev) and every event window's p99 (at most
+  # 0.046 cores: Aug 10-12, Aug 18-28 connectathon, Sep 11-13, July Sparked).
   #
   # Prod autoscales on CPU utilization, which Kubernetes measures against this request: the
-  # 70% target is now 175m per pod instead of 700m. Over the 30 days to 2026-09-29 (no testing
-  # event) the per-pod average peaked at 0.096 cores at 1-minute resolution, 38% of the new
-  # request, so the HPA stays at minReplicas. During the July Sparked event the busiest
-  # minute reached 0.35 cores per pod in short spikes (5-minute p95 about 0), so expect a
-  # brief extra replica during events rather than none.
+  # 70% target is now 280m per pod instead of 700m. Over the 30 days to 2026-09-29 the
+  # per-pod average peaked at 0.096 cores at 1-minute resolution (24% of the request), so
+  # the HPA stays at minReplicas. During the July Sparked event the busiest minute reached
+  # 0.35 cores per pod in short spikes (5-minute p95 about 0), 88% of the request, so a
+  # spike that lasts past the HPA's 60s scale-up window can still add a replica briefly.
   resources:
     requests:
       memory: "768Mi"
-      cpu: "250m"
+      cpu: "400m"
     limits:
       memory: "1536Mi"
       cpu: "2000m"
