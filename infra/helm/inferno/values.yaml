@@ -123,8 +123,11 @@ inferno:
   # covers the largest 5-minute average seen.
   #
   # Prod autoscales on CPU utilization, which Kubernetes measures against this request: the
-  # 70% target is now 175m per pod instead of 700m. The 30-day prod peak (0.03 cores) is 12%
-  # of the new request, so the HPA stays at minReplicas under today's load.
+  # 70% target is now 175m per pod instead of 700m. Over the 30 days to 2026-09-29 (no testing
+  # event) the per-pod average peaked at 0.096 cores at 1-minute resolution, 38% of the new
+  # request, so the HPA stays at minReplicas. During the July Sparked event the busiest
+  # minute reached 0.35 cores per pod in short spikes (5-minute p95 about 0), so expect a
+  # brief extra replica during events rather than none.
   resources:
     requests:
       memory: "768Mi"
