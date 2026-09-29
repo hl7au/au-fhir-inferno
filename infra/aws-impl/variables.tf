@@ -48,3 +48,9 @@ variable "postgres_instance_class" {
   description = "The instance class to use for the RDS instance"
   default     = "db.t4g.small"
 }
+
+variable "deletion_protection" {
+  type        = bool
+  description = "Refuse RDS DeleteDBInstance calls until this is turned off. Set true in tfvars/prod.tfvars."
+  default     = false
+}

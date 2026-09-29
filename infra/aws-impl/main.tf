@@ -27,8 +27,11 @@ module "rds" {
   create_db_parameter_group = false
 
   # All available versions: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_PostgreSQL.html#PostgreSQL.Concepts
-  engine         = "postgres"
-  engine_version = "16.8"
+  engine = "postgres"
+  # Matches the live prod and dev instances. Auto minor version upgrades moved
+  # both past the previous pin of 16.8, so a stale pin makes the plan propose a
+  # downgrade that AWS rejects. Bump this after each minor upgrade.
+  engine_version = "16.13"
   instance_class = var.postgres_instance_class
 
   allocated_storage = 20
@@ -56,6 +59,8 @@ module "rds" {
 
 
   snapshot_identifier = var.snapshot_identifier
+
+  deletion_protection = var.deletion_protection
 }
 
 ################################################################################
