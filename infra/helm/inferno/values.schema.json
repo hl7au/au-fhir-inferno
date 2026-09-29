@@ -88,6 +88,8 @@
         "resultDuration": { "type": "boolean" },
         "replicas": { "type": "integer", "minimum": 0 },
         "workerReplicas": { "type": "integer", "minimum": 0 },
+        "resources": { "type": "object", "properties": { "requests": { "type": "object" }, "limits": { "type": "object" } } },
+        "workerResources": { "type": "object", "properties": { "requests": { "type": "object" }, "limits": { "type": "object" } } },
         "usesWrapper": {
           "type": "boolean",
           "description": "No longer read by any template. Accepted so existing environments that still pass it keep rendering; drop it from the consumer and then from this schema."
@@ -139,6 +141,13 @@
         "auPsProfile": { "type": "string" },
         "pollTimeout": { "type": "integer", "minimum": 1 },
         "recheckInterval": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "redis": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "resources": { "type": "object", "properties": { "requests": { "type": "object" }, "limits": { "type": "object" } } }
       }
     },
     "autoscaling": {
