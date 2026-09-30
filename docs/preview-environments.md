@@ -55,7 +55,7 @@ by git ref. To preview a change to one of those kits:
 
 1. Push your change to the kit repo (e.g. `hl7au/au-ps-inferno`) and note the commit SHA.
 2. In an `au-fhir-inferno` branch, bump that gem's `ref:` in `Gemfile.dev` and
-   regenerate `Gemfile.dev.lock` (Ruby 3.3.6, clean `GEM_HOME`).
+   regenerate `Gemfile.dev.lock` (Ruby 3.3.12, clean `GEM_HOME`).
 3. Open the PR, add the `preview` label — the preview runs your kit change.
 
 ## Teardown
