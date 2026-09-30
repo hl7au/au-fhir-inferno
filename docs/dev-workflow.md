@@ -127,7 +127,7 @@ to the **actual tests** (`au-fhir-core-inferno`, `au-ps-inferno`):
 
 1. Make and push the change in the kit repo; note the commit SHA.
 2. In an `au-fhir-inferno` branch, bump that gem's `ref:` in **`Gemfile.dev`** and regenerate
-   `Gemfile.dev.lock` (Ruby 3.3.6, clean `GEM_HOME`).
+   `Gemfile.dev.lock` (Ruby 3.3.12, clean `GEM_HOME`).
 3. Open a PR and add the `preview` label — the preview runs your kit change end-to-end.
 4. Once the kit is released to RubyGems, bump the version in the base **`Gemfile`** for prod.
 

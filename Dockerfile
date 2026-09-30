@@ -5,24 +5,17 @@
 # packages), none of which the app uses at runtime, and they made up nearly all of its
 # vulnerability findings.
 #
-# Ruby stays at exactly 3.3.6 because inferno_suite_generator's gemspec declares
-# required_ruby_version "= 3.3.6", so bundler refuses any other Ruby. 3.3.6 has no Debian
-# trixie image, hence bookworm. Keep RUBY_VERSION in step with .ruby-version and the ruby
-# directive in Gemfile.common, and with ruby-version in the build-and-release-package and
-# quality-control workflows.
-ARG RUBY_VERSION=3.3.6
-FROM ruby:${RUBY_VERSION}-slim-bookworm AS base
-
-# The ruby:3.3.6 slim images predate upstream dropping the -dev packages from slim, so
-# they still ship libssl-dev, libyaml-dev, libffi-dev, libgmp-dev and zlib1g-dev, which
-# pull in libc6-dev and linux-libc-dev (over 3700 of the base's findings on their own).
-# The runtime libraries Ruby links against are marked manually installed in the base, so
-# the purge keeps them. The images were also last rebuilt in January 2025, when 3.3.7
-# superseded them, so the upgrade applies the Debian security fixes published since.
-RUN apt-get update -qq && \
-    apt-get purge -y --auto-remove libffi-dev libgmp-dev libssl-dev libyaml-dev zlib1g-dev && \
-    apt-get upgrade -y && \
-    rm -rf /var/lib/apt/lists/*
+# Ruby is the latest 3.3 patch release on the current Debian slim base (trixie).
+# inferno_suite_generator's gemspec allows any Ruby from 3.3.6 up to, not including, 3.4;
+# moving to 3.4 is a separate decision. Keep RUBY_VERSION in step with .ruby-version, the
+# ruby directive in Gemfile.common, the RUBY VERSION stanza in Gemfile.lock and
+# Gemfile.dev.lock, and ruby-version in the build-and-release-package and quality-control
+# workflows.
+ARG RUBY_VERSION=3.3.12
+# The slim images no longer ship any -dev packages (no libc6-dev or linux-libc-dev), and
+# the tag is rebuilt upstream whenever its Debian base is refreshed, so the base stage
+# needs no purge or apt-get upgrade of its own.
+FROM ruby:${RUBY_VERSION}-slim-trixie AS base
 
 ENV INSTALL_PATH=/opt/inferno/
 ENV APP_ENV=production
@@ -41,9 +34,10 @@ ENV BUNDLE_GEMFILE=$INSTALL_PATH$BUNDLE_GEMFILE
 FROM base AS build
 
 # build-essential compiles the gems that ship no precompiled x86_64-linux build
-# (bigdecimal, json, nio4r, oj, puma, racc). The -dev packages are the ones the base
-# stage purges, restored here only; libssl-dev also keeps puma's SSL support compiled in,
-# as it was on the full image. git fetches the git-sourced gems in Gemfile.common
+# (bigdecimal, json, nio4r, oj, puma, racc). The -dev packages supply the headers those
+# native extensions build against, installed in this stage only so the runtime image
+# stays free of them; libssl-dev also keeps puma's SSL support compiled in, as it was on
+# the full image. git fetches the git-sourced gems in Gemfile.common
 # (validation_test_kit, inferno_suite_generator).
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential git \
