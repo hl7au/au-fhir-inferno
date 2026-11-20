@@ -117,8 +117,8 @@ Runner and Ruby
 - Workflows run on `ubuntu-latest` with a Ruby that ruby/ruby-builder builds for it, and
   every kit uses the same Ruby as the aggregator image. Every Ruby pin in a repository moves
   together. As of 2026-11-20 both kits are on Ruby 3.3.12 (`ubuntu-latest` is ubuntu-26.04,
-  which has no Ruby 3.3.6 build); the aggregator moves to `ruby:3.3.12-slim-trixie` in
-  hl7au/au-fhir-inferno#220 and is on 3.3.6 until it merges.
+  which has no Ruby 3.3.6 build); the aggregator moved to `ruby:3.3.12-slim-trixie` in
+  hl7au/au-fhir-inferno#220.
 - Pinning `runs-on` to an older image is allowed only as a dated interim, with a comment
   naming the change that lifts it.
 - A kit's Dockerfile is a development image: it matches the aggregator's Ruby version, but
@@ -128,7 +128,7 @@ Runner and Ruby
   `inferno_core` to exactly 1.4.4 (added in `c6d1a90a`, generator #50), so whatever adopts
   it stays on inferno_core 1.4.4 until the generator relaxes that pin (issue
   hl7au/inferno_suite_generator#68 asks for `~> 1.4, >= 1.4.1`). Both kits are on it; the
-  aggregator moves to it in hl7au/au-fhir-inferno#220. Check the
+  aggregator moved to it in hl7au/au-fhir-inferno#220. Check the
   gemspec at whatever revision you adopt. Move a kit to a new revision by editing the git
   revision and relocking, not by a broad `bundle update`, so no unrelated gem moves.
 
@@ -152,22 +152,40 @@ Specs each kit carries
 Since the trunk cut-over (`docs/phase3-trunk-cutover.md`), every push to master builds one
 released-flavour image from `Gemfile`, and staging (`development.inferno.sparked-fhir.com`)
 and production run that same image, so the CI suites cannot live in it. Decided 2026-11-20
-(option A-prime), to be built in section 2c of the platform work:
+(option A-prime), built in section 2c of the platform work and described in full in
+`docs/ci-build-environment.md`:
 
-- A permanent ci-build environment, built from `Gemfile.dev` with each kit taken from its
-  `ci-build` branch (for example
-  `gem 'au_core_test_kit', github: 'hl7au/au-fhir-core-inferno', branch: 'ci-build'`, the
-  lock recording the commit) and `INFERNO_CI_BUILD_SUITES=true` (through a chart key
-  and configmap entry, the way `inferno.resultDuration` maps to `RESULT_DURATION_ENABLED` in
-  `infra/helm/inferno/values-*.yaml`). Staging and production keep one tested image and
-  never set the flag.
-- `web/_test_kits/au-ps.md` and `au-core.md` list the CI suite first, by its fixed id, with a
-  title that says ci-build, as a radio that launches on the ci-build environment's host.
-  The host is a per-environment setting, unset on production, so production shows no such
-  radio; the radio says the session runs on another host.
-- A scheduled workflow in hl7au/au-fhir-inferno compares the pinned `ci-build` commits with
-  each branch's head and bumps them, so the environment does not go stale silently.
-- When a regenerated suite reaches the environment, its validator restarts.
+- A permanent ci-build environment, built from `Gemfile.ci-build`, which takes each kit
+  from its `ci-build` branch (for example
+  `gem 'au_core_test_kit', github: 'hl7au/au-fhir-core-inferno', branch: 'ci-build'`),
+  and the only environment with `INFERNO_CI_BUILD_SUITES=true` (chart key
+  `inferno.ciBuildSuites`, configmap entry and schema, the way `inferno.resultDuration`
+  maps to `RESULT_DURATION_ENABLED`). Its values are `infra/helm/inferno/values-ci-build.yaml`;
+  its Argo Application, Image Updater and hostname live in aehrc/sparked-argo. Staging and
+  production keep one tested image and never set the flag.
+- `Gemfile.ci-build.lock` on master is the seed: every shared gem matches `Gemfile.lock`
+  and quality-control installs it frozen. The deployed pin is the image tag,
+  `ci-build-<master>-<au core>-<au ps>` (twelve hex characters each), also recorded in the
+  image's labels, because master needs a reviewed pull request and a nightly bump waiting
+  on review would go stale silently.
+- `.github/workflows/ci-build-environment.yaml` runs every three hours, on a master
+  push that changes the application, and on `workflow_dispatch` with a `force` input. It
+  moves only the two kits in the lock to their `ci-build` heads, and builds and pushes the
+  image when ghcr has no image of that name yet. ArgoCD Image Updater deploys the newest
+  `ci-build-*` tag. While the workflow fails it keeps one issue titled
+  `CI-build environment image failing` open, assigned to KyleOps; the next success closes
+  it.
+- The validator restarts with every new image: `validator.restartWithAppImage` stamps the
+  app image into the validator's pod template, so a regenerated suite always meets a
+  validator that reloads `#current`.
+- `web/_test_kits/au-ps.md` and `au-core.md` list the CI suite first, by its fixed id,
+  marked `ci_build: true`. It renders hidden and is never the default selection. On the
+  ci-build environment it launches locally. On staging, `inferno.ciBuildHost`
+  (`INFERNO_CI_BUILD_HOST`, served to the page by `/site-config.json`) names the ci-build
+  host; the page shows the radio only when that host's `/site-config.json` lists the
+  suite, labels it with the suite title the kit generated, says the session runs on
+  another host, and launches through inferno_core's session form route there. Production
+  sets no host and never shows it.
 
 ## Adding a kit
 
