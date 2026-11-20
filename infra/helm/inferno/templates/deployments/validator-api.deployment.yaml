@@ -30,6 +30,13 @@ spec:
         # Roll the pod when the presets ConfigMap changes — the wrapper reads presets.json
         # only at startup, so a ConfigMap edit alone would not take effect otherwise.
         checksum/presets: {{ include (print $.Template.BasePath "/configs/validator-presets-configmap.yaml") . | sha256sum }}
+        {{- if .Values.validator.restartWithAppImage }}
+        # Roll the validator with the app image (ci-build environment only). Its suites
+        # track an IG's CI build through '#current', and a warm validator keeps the
+        # package it already loaded, so a regenerated suite needs a fresh validator. See
+        # validator.restartWithAppImage in values.yaml.
+        checksum/app-image: {{ .Values.inferno.imageUrl | sha256sum }}
+        {{- end }}
     spec:
       securityContext:
         fsGroup: 1000  # Ensures volumes are writable by ktor user (UID 1000)

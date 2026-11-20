@@ -39,6 +39,15 @@ jobs:
           BUNDLE_GEMFILE: ${{ github.workspace }}/Gemfile.dev
         run: bundle install
 
+      # The ci-build environment's seed lock. Each kit comes from its `ci-build` branch,
+      # which only ever moves forward (no force-push), so the locked commits stay
+      # fetchable. A Gemfile.common change that is not relocked here fails this step rather
+      # than the nightly ci-build image build.
+      - name: CI-build dependency set resolves (Gemfile.ci-build, frozen)
+        env:
+          BUNDLE_GEMFILE: ${{ github.workspace }}/Gemfile.ci-build
+        run: bundle install
+
       - name: Static site generates (Jekyll)
         run: |
           cp .env.development .env
@@ -47,7 +56,7 @@ jobs:
       - name: Set up Helm
         uses: azure/setup-helm@v4
 
-      - name: Helm chart renders (dev / prod / preview)
+      - name: Helm chart renders (dev / prod / ci-build / preview)
         working-directory: infra/helm/inferno
         run: |
           echo "::group::dev"
@@ -55,6 +64,9 @@ jobs:
           echo "::endgroup::"
           echo "::group::prod"
           helm template inferno . -n inferno -f values-prod.yaml > /dev/null
+          echo "::endgroup::"
+          echo "::group::ci-build"
+          helm template inferno-ci-build . -n ci-build-inferno -f values-ci-build.yaml > /dev/null
           echo "::endgroup::"
           echo "::group::preview"
           # Mirrors the inline values block of the inferno-previews ApplicationSet in
@@ -84,6 +96,29 @@ jobs:
             --set validator.resources.limits.memory=4Gi \
             --set validator.resources.limits.cpu=2000m \
             --set 'ingress.hostnames[0]=pr-0.preview.inferno.sparked-fhir.com' > /dev/null
+          echo "::endgroup::"
+          echo "::group::ci-build invariants"
+          # Only the ci-build environment registers the CI-build suites and rolls its
+          # validator with the app image; staging and production must do neither, and
+          # production must offer no CI-build host to its kit pages.
+          ci_render=$(helm template inferno-ci-build . -n ci-build-inferno -f values-ci-build.yaml)
+          echo "$ci_render" | grep -q 'INFERNO_CI_BUILD_SUITES: "true"'
+          echo "$ci_render" | grep -q 'checksum/app-image:'
+          for env in dev prod; do
+            render=$(helm template inferno . -n inferno -f values-$env.yaml)
+            if ! echo "$render" | grep -q 'INFERNO_CI_BUILD_SUITES: "false"'; then
+              echo "$env would register the CI-build suites" >&2
+              exit 1
+            fi
+            if echo "$render" | grep -q 'checksum/app-image:'; then
+              echo "$env would restart its validator on every app deploy" >&2
+              exit 1
+            fi
+          done
+          if ! helm template inferno . -n inferno -f values-prod.yaml | grep -q 'INFERNO_CI_BUILD_HOST: ""'; then
+            echo "production would offer a CI-build host to its kit pages" >&2
+            exit 1
+          fi
           echo "::endgroup::"
           echo "::group::production rollout invariants"
           # The old-hostname 301 is a Gateway API RequestRedirect filter rather than a

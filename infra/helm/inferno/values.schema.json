@@ -86,6 +86,15 @@
           "description": "No longer read by any template; the performance page and its timing middleware were retired in favour of the OpenTelemetry pipeline. Accepted so existing environments that still pass it keep rendering; drop it from the consumer and then from this schema."
         },
         "resultDuration": { "type": "boolean" },
+        "ciBuildSuites": {
+          "type": "boolean",
+          "description": "Written to INFERNO_CI_BUILD_SUITES. Registers the kits' CI-build suites; the ci-build environment only."
+        },
+        "ciBuildHost": {
+          "type": "string",
+          "pattern": "^(https://[a-z0-9.-]+(:[0-9]+)?)?$",
+          "description": "Written to INFERNO_CI_BUILD_HOST. Origin (https://host, no path or trailing slash) the kit pages launch CI-build suites on. Empty shows no such radio; production leaves it empty."
+        },
         "replicas": { "type": "integer", "minimum": 0 },
         "workerReplicas": { "type": "integer", "minimum": 0 },
         "resources": { "type": "object", "properties": { "requests": { "type": "object" }, "limits": { "type": "object" } } },
@@ -107,6 +116,10 @@
           "description": "Singleton by design: the session cache is per-pod and in-memory, so a second replica only thrashes it. See docs/VALIDATOR_OPTIMIZATION.md."
         },
         "storageClassName": { "type": "string" },
+        "restartWithAppImage": {
+          "type": "boolean",
+          "description": "Stamp inferno.imageUrl into the validator pod template so the validator restarts with every app image change. The ci-build environment only."
+        },
         "javaOpts": { "type": "string" },
         "sessionCacheDuration": { "type": "integer" },
         "sessionCacheSize": { "type": "integer", "minimum": 1 },
