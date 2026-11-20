@@ -9,7 +9,10 @@
 #   1. Move only the two kits in Gemfile.ci-build.lock to their `ci-build` heads. Every
 #      other gem stays where the committed seed (and so Gemfile.lock) has it.
 #   2. Name the image after the three commits it is made of:
-#      ci-build-<master>-<au core>-<au ps>, twelve hex characters each.
+#      ci-build-<app>-<au core>-<au ps>, twelve hex characters each, where <app> is the
+#      last master commit that touched anything but infra/, docs/, .github/ or Markdown.
+#      A docs change or a prod promotion therefore leaves the name, the image and the warm
+#      validator alone.
 #   3. If ghcr already has that tag, nothing changed: stop. Otherwise build and push it.
 #   4. ArgoCD Image Updater (in aehrc/sparked-argo) deploys the newest ci-build-* tag to
 #      the ci-build environment, and the chart restarts the validator with it
@@ -30,12 +33,10 @@ on:
     # master change that the push trigger skipped. A run with nothing new costs one
     # ls-remote and one registry lookup.
     - cron: '23 */3 * * *'
+  # A dispatch runs the same check now instead of waiting for the schedule. There is no
+  # force rebuild on purpose: the same commits would push new content under the same tag,
+  # which Image Updater never redeploys. To roll the environment, restart its Deployments.
   workflow_dispatch:
-    inputs:
-      force:
-        description: Rebuild and push even when an image for these commits already exists
-        type: boolean
-        default: false
   push:
     branches:
       - master
@@ -75,6 +76,9 @@ jobs:
     steps:
       - name: Checkout master
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history, to find the last commit that changed the application.
+          fetch-depth: 0
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
@@ -98,8 +102,12 @@ jobs:
             end')
           core=$(sed -n 1p <<< "$revisions")
           ps=$(sed -n 2p <<< "$revisions")
-          tag="ci-build-${GITHUB_SHA:0:12}-${core:0:12}-${ps:0:12}"
+          # The same paths the push trigger ignores. Gemfile.ci-build.lock counts as the
+          # application, so a seed relock does rebuild.
+          app=$(git log -1 --format=%H -- . ':!infra' ':!docs' ':!.github' ':!*.md')
+          tag="ci-build-${app:0:12}-${core:0:12}-${ps:0:12}"
           {
+            echo "app=$app"
             echo "core=$core"
             echo "ps=$ps"
             echo "tag=$tag"
@@ -117,9 +125,8 @@ jobs:
         id: exists
         env:
           IMAGE: ${{ steps.tag.outputs.image }}
-          FORCE: ${{ inputs.force || false }}
         run: |
-          if [ "$FORCE" != "true" ] && docker buildx imagetools inspect "$IMAGE" > /dev/null 2>&1; then
+          if docker buildx imagetools inspect "$IMAGE" > /dev/null 2>&1; then
             echo "build=false" >> "$GITHUB_OUTPUT"
           else
             echo "build=true" >> "$GITHUB_OUTPUT"
@@ -144,7 +151,7 @@ jobs:
           tags: ${{ steps.tag.outputs.image }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.revision=${{ steps.tag.outputs.app }}
             au.org.hl7.inferno.ci-build.au-core-test-kit=${{ steps.tag.outputs.core }}
             au.org.hl7.inferno.ci-build.au-ps-inferno=${{ steps.tag.outputs.ps }}
 
@@ -153,6 +160,7 @@ jobs:
         env:
           BUILT: ${{ steps.exists.outputs.build }}
           TAG: ${{ steps.tag.outputs.tag }}
+          APP: ${{ steps.tag.outputs.app }}
           CORE: ${{ steps.tag.outputs.core }}
           PS: ${{ steps.tag.outputs.ps }}
         run: |
@@ -165,13 +173,16 @@ jobs:
               echo "## Up to date: \`$TAG\` already exists"
             fi
             echo ""
-            echo "- au-fhir-inferno master: [\`${GITHUB_SHA:0:12}\`](https://github.com/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA})"
+            echo "- au-fhir-inferno application: [\`${APP:0:12}\`](https://github.com/${GITHUB_REPOSITORY}/commit/${APP})"
             echo "- au_core_test_kit ci-build: [\`${CORE:0:12}\`](https://github.com/hl7au/au-fhir-core-inferno/commit/${CORE})"
             echo "- au_ps_inferno ci-build: [\`${PS:0:12}\`](https://github.com/hl7au/au-ps-inferno/commit/${PS})"
             # Only the two kits should move. Anything else in this diff means a kit's
-            # ci-build branch now needs a newer shared gem than master has locked.
-            other=$(diff "$RUNNER_TEMP/seed.lock" Gemfile.ci-build.lock | grep -E '^[<>] {4}[a-z0-9_-]+ \(' \
-              | grep -vE ' (au_core_test_kit|au_ps_inferno) \(' || true)
+            # ci-build branch now needs a newer shared gem than master has locked, and
+            # bundler unlocked it despite --conservative. diff prefixes each line with
+            # "< " or "> "; strip that so the lockfile's own four-space spec indent is what
+            # the pattern matches.
+            other=$(diff "$RUNNER_TEMP/seed.lock" Gemfile.ci-build.lock | grep -E '^[<>] ' | cut -c3- \
+              | grep -E '^ {4}[a-z0-9_-]+ \(' | grep -vE '^ {4}(au_core_test_kit|au_ps_inferno) \(' || true)
             if [ -n "$other" ]; then
               echo ""
               echo "### Shared gems moved from the seed lock"

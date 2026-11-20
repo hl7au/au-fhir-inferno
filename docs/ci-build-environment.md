@@ -37,10 +37,14 @@ A-prime).
    pushes the `ci-build` branch, only after its own rubocop and specs pass.
 2. Every three hours, `ci-build-environment.yaml` moves only the two kits in
    `Gemfile.ci-build.lock` to their `ci-build` heads and names the image after the three
-   commits it is made of: `ci-build-<master>-<au core>-<au ps>`, twelve hex characters
-   each. If ghcr already has that tag nothing changed and the run stops; otherwise it
-   builds and pushes the image. A push to master that changes the application starts it
-   too.
+   commits it is made of: `ci-build-<app>-<au core>-<au ps>`, twelve hex characters each,
+   where `<app>` is the last master commit that changed anything but `infra/`, `docs/`,
+   `.github/` or Markdown (so a prod promotion or a docs change does not rebuild, or
+   restart a warm validator). If ghcr already has that tag nothing changed and the run
+   stops; otherwise it builds and pushes the image. A push to master that changes the
+   application starts it too, and `workflow_dispatch` runs the same check on demand. There
+   is no forced rebuild: new content under an existing tag is never redeployed by Image
+   Updater, so to roll the environment, restart its Deployments.
 3. ArgoCD Image Updater (in aehrc/sparked-argo) sees the newest `ci-build-*` tag, writes it
    to `apps/inferno-ci-build/image-values.yaml` through a pull request that
    `aiu-automerge.yaml` merges, and the `inferno-ci-build` Application rolls out.
@@ -53,7 +57,7 @@ A-prime).
 
 The commits an environment runs are in its image tag, and in the image's labels
 (`au.org.hl7.inferno.ci-build.au-core-test-kit`, `au.org.hl7.inferno.ci-build.au-ps-inferno`,
-`org.opencontainers.image.revision`). The committed lockfile is the seed, not the pin:
+and `org.opencontainers.image.revision` for the application commit). The committed lockfile is the seed, not the pin:
 master needs a reviewed pull request, and a nightly bump waiting on a review would go
 stale silently, which is what this design exists to prevent.
 
