@@ -79,3 +79,6 @@ lingers. Because merging also tears it down, a preview is a *pre-merge* review t
   for ephemeral review environments, but don't treat a preview as a secure deployment.
 - **Persistent dev** (`development.inferno.sparked-fhir.com`) is unaffected — previews
   are additive.
+- **CI-build suites** do not run in previews: they need `Gemfile.ci-build` and
+  `INFERNO_CI_BUILD_SUITES=true`, which only the permanent ci-build environment has. See
+  [ci-build-environment.md](ci-build-environment.md).
