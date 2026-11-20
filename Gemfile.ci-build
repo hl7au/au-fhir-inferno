@@ -1,0 +1,27 @@
+# frozen_string_literal: true
+
+# CI-BUILD dependency set, for the ci-build environment only. Each test kit comes from
+# its `ci-build` branch, which is the kit's mainline plus a suite generated from the IG's
+# CI build on build.fhir.org and refreshed daily by the kit's own workflow. It has its
+# OWN lockfile, Gemfile.ci-build.lock. Select it with:
+#
+#   BUNDLE_GEMFILE=Gemfile.ci-build bundle install
+#
+# The suites only register where INFERNO_CI_BUILD_SUITES is exactly 'true', which only
+# the ci-build environment sets. Staging and production run the image built from the
+# base Gemfile and never set it. See docs/ci-build-environment.md and the contract in
+# docs/kit-ci-build-contract.md.
+#
+# The committed lockfile is the seed, not the deployed pin. The ci-build-environment
+# workflow moves only these two gems to their branch heads (`bundle lock --update
+# au_core_test_kit au_ps_inferno`) before each build, so every other gem stays exactly
+# where this lockfile, and therefore Gemfile.lock, has it. The commits an image was built
+# from are in its tag and labels. Relock this file whenever Gemfile.common changes:
+# quality-control installs it frozen, so a stale seed fails the PR rather than the
+# nightly build.
+
+eval_gemfile 'Gemfile.common'
+
+gem 'au_core_test_kit', github: 'hl7au/au-fhir-core-inferno', branch: 'ci-build'
+
+gem 'au_ps_inferno', github: 'hl7au/au-ps-inferno', branch: 'ci-build'
