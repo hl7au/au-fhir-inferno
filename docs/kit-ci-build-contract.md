@@ -160,9 +160,10 @@ and production run that same image, so the CI suites cannot live in it. Decided 
   `gem 'au_core_test_kit', github: 'hl7au/au-fhir-core-inferno', branch: 'ci-build'`),
   and the only environment with `INFERNO_CI_BUILD_SUITES=true` (chart key
   `inferno.ciBuildSuites`, configmap entry and schema, the way `inferno.resultDuration`
-  maps to `RESULT_DURATION_ENABLED`). Its values are `infra/helm/inferno/values-ci-build.yaml`;
-  its Argo Application, Image Updater and hostname live in aehrc/sparked-argo. Staging and
-  production keep one tested image and never set the flag.
+  maps to `RESULT_DURATION_ENABLED`). Its values are
+  `infra/helm/inferno/values-ci-build.yaml`; its Argo Application, Image Updater and
+  hostname live in aehrc/sparked-argo. Staging and production keep one tested image and
+  never set the flag.
 - `Gemfile.ci-build.lock` on master is the seed: every shared gem matches `Gemfile.lock`
   and quality-control installs it frozen. The deployed pin is the image tag,
   `ci-build-<master>-<au core>-<au ps>` (twelve hex characters each), also recorded in the
