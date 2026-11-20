@@ -291,6 +291,13 @@ layout: page
 </script>
 
 <style>
+  /* Bootstrap's reboot floats the legend and clears only the element right after it
+     (legend + *). That element is now the hidden CI-build row, so without this the next
+     visible suite's radio floats up beside the legend. */
+  #start-testing-form legend ~ .form-check {
+    clear: left;
+  }
+
   .first {
     order: 1;
   }
