@@ -18,7 +18,7 @@ on are listed below.
   version replaces the suite in place, and losing old ci-build sessions on dev is accepted.
 - Nothing depends on a GitHub App or on hl7au organisation admin (2026-11-20).
 - Kit gems are not published until the full team signs off, so nothing here automates or
-  touches gem publishing, and the development aggregator takes the kits by git ref.
+  touches gem publishing.
 
 ## The kit side
 
@@ -31,26 +31,28 @@ Suite and registration
 - Its suite id is fixed: `au_ps_ci_build`, `au_core_ci_build`, and `<prefix>_ci_build` for a
   new kit.
 - Its title shows the package version and says it tracks the CI build, not a release:
-  `AU PS 1.1.0-ci-build Test Suite (tracks the CI build)`,
-  `AU Core v3.0.0-ci-build (tracks the CI build)`. Its description says a regeneration can
-  stop earlier sessions rendering.
+  `AU PS <version> Test Suite (tracks the CI build)`,
+  `AU Core v<version> (tracks the CI build)`, where `<version>` is the package version
+  recorded in `config.ci-build.json` (for example `1.0.1-ci-build`). Its description says
+  a regeneration can stop earlier sessions rendering.
 - `lib/<kit>.rb` requires it only when `ENV['INFERNO_CI_BUILD_SUITES'] == 'true'` (exactly
-  `true`), so production never lists it. A gem built from the mainline does carry the CI
-  suite's code and generated metadata, frozen at whatever CI build the mainline held when
-  it was built; only the downloaded package is excluded.
+  `true`), so production never lists it.
 
 Validation
 
 - The validator gets `igs '<package id>#current'`, a package id, never a file path. The
   HL7 validator's package cache re-checks `#current` against build.fhir.org's
-  `package.manifest.json` when it loads the package (from the platform roadmap's research,
-  not re-checked since). A warm validator session keeps the package it already loaded, so
-  the deployment's validator restarts when a regenerated suite reaches it (see the
-  aggregator side).
+  `package.manifest.json` when it loads the package, and a warm validator session keeps the
+  package it already loaded, so the deployment's validator restarts when a regenerated suite
+  reaches it. Both come from research done when this design was planned and have not been
+  re-checked since.
 - Profile canonicals in the CI suite are unversioned, because a validator following
   `#current` can hold a newer package than the suite was generated from. AU PS does this.
   AU Core still pins `|<package version>` until the generator can emit unversioned
   references (hl7au/inferno_suite_generator#52); that is a tracked gap, not a variant.
+- A gem built from a kit's mainline carries the CI suite's code and generated metadata,
+  frozen at whatever CI build the mainline held when the gem was built; only the downloaded
+  package is excluded. The flag keeps it unloaded wherever it is not set.
 
 Config, package and generated output
 
@@ -95,25 +97,36 @@ Refresh workflow (`.github/workflows/refresh-ci-build-suite.yaml`)
   2026-11-20: the AU PS refresh's own `GITHUB_TOKEN` dispatch put a SUCCESS status on its
   refresh pull request (hl7au/au-ps-inferno#137), and a hand dispatch did the same on AU
   Core's mainline.
+- While the refresh pull request is open, every run checks it, not only runs that changed
+  it: it dispatches Quality Control only when the head commit has no result yet, waits up to
+  30 minutes for the status, squash-merges with `--match-head-commit` on success, and fails
+  the job on a failure or a timeout. create-pull-request v8 sets `pull-request-number` and
+  `pull-request-head-sha` on unchanged days too (checked in its source), which this relies
+  on. After a merge it dispatches Quality Control on the mainline, because a merge made with
+  `GITHUB_TOKEN` starts no push run there, and anything chained off the mainline run (AU
+  Core's image build is) would otherwise never fire.
 - While any run fails, scheduled or dispatched, it keeps one issue titled
-  `CI build refresh failing` open, assigned to KyleOps so GitHub notifies a person,
-  commenting on it at each further failure, and the next successful run closes it.
+  `CI build refresh failing` open, assigned to a named maintainer (KyleOps) so GitHub
+  notifies a person, commenting on it at each further failure, and the next successful run
+  closes it.
 
 Runner and Ruby
 
-- Workflows run on `ubuntu-latest` with a Ruby that ruby/ruby-builder builds for it.
-  Today that is Ruby 3.3.12 across the aggregator and every kit: `ubuntu-latest` is
-  ubuntu-26.04, which has no Ruby 3.3.6 build, and 3.3.12 matches the aggregator image
-  (`ruby:3.3.12-slim-trixie`). Every Ruby pin in a repository moves together.
+- Workflows run on `ubuntu-latest` with a Ruby that ruby/ruby-builder builds for it, and
+  every kit uses the same Ruby as the aggregator image. Every Ruby pin in a repository moves
+  together. As of 2026-11-20 both kits are on Ruby 3.3.12 (`ubuntu-latest` is ubuntu-26.04,
+  which has no Ruby 3.3.6 build); the aggregator moves to `ruby:3.3.12-slim-trixie` in
+  hl7au/au-fhir-inferno#220 and is on 3.3.6 until it merges.
 - Pinning `runs-on` to an older image is allowed only as a dated interim, with a comment
   naming the change that lifts it.
 - A kit's Dockerfile is a development image: it matches the aggregator's Ruby version, but
   its base flavour (full or slim) may differ.
 - `inferno_suite_generator` at `9aff974c` is the first revision allowing Ruby beyond
   3.3.6. Its gemspec allows Ruby `>= 3.3.6, < 3.4` (so 3.4 is closed too) and pins
-  `inferno_core` to exactly 1.4.4 (added in `c6d1a90a`, generator #50), so every kit and
-  the aggregator stay on inferno_core 1.4.4 until the generator relaxes that pin
-  (hl7au/inferno_suite_generator#68 proposes `~> 1.4, >= 1.4.1`). Check the
+  `inferno_core` to exactly 1.4.4 (added in `c6d1a90a`, generator #50), so whatever adopts
+  it stays on inferno_core 1.4.4 until the generator relaxes that pin (issue
+  hl7au/inferno_suite_generator#68 asks for `~> 1.4, >= 1.4.1`). Both kits are on it; the
+  aggregator moves to it in hl7au/au-fhir-inferno#220. Check the
   gemspec at whatever revision you adopt. Move a kit to a new revision by editing the git
   revision and relocking, not by a broad `bundle update`, so no unrelated gem moves.
 
@@ -123,45 +136,44 @@ Specs each kit carries
 - With the flag it registers under the fixed id. This is tested by booting Inferno in a
   child process, because requiring a suite file after boot does not register its tests.
 - Its validator `igs` is exactly `<package id>#current`.
-- Its title starts with the version recorded in `config.ci-build.json`.
-- No generated file carries a version-derived id.
+- Its title starts with the kit name and the version recorded in `config.ci-build.json`.
+- Where the kit generates Ruby for the CI suite (AU Core), no generated file carries a
+  version-derived id. A kit that generates only metadata (AU PS) instead checks its fixed
+  id and that it shares no id with a released suite.
 - Download refuses a version that is not `-ci-build` and leaves the config untouched.
 - A failed refresh restores the config.
 
 ## The aggregator side
 
-Not built yet (roadmap section 2c).
+To be designed (section 2c of the platform work). The original plan had development take
+the kits by git ref, and that no longer matches how hl7au/au-fhir-inferno builds: since the
+trunk cut-over (`docs/phase3-trunk-cutover.md`), every push to master builds one
+released-flavour image from `Gemfile`, which pins released kit gems, and staging
+(`development.inferno.sparked-fhir.com`) and production run that same image. `Gemfile.dev`
+is used only for `preview`-labelled PR environments. A released kit gem published before a
+kit's CI suite merged carries none, so today the CI suites have no path to staging. 2c has
+to choose one, and this section records the choice once made.
 
-- `values-dev.yaml` sets `INFERNO_CI_BUILD_SUITES=true`; production never does.
-- `web/_test_kits/<kit>.md` lists the CI suite first, by its fixed id, with a title that
-  says ci-build. The kit page hides suites the running app does not report, so production
-  shows none.
-- Dev takes the kits by git ref in `Gemfile.dev.lock`. A scheduled workflow bumps those refs
-  and opens a pull request, because Dependabot does not track git-ref Bundler sources
-  reliably.
-- When a regenerated suite reaches dev, the dev validator restarts, so its in-memory
-  session drops the previously loaded `#current` IG (a warm session never re-checks it).
-
-## Where each kit stands
-
-Checked 2026-11-20.
-
-| | AU PS | AU Core |
-| --- | --- | --- |
-| Suite, config, tasks, workflow | merged (#135, #136) | merged (hl7au/au-fhir-core-inferno#324) |
-| Quality Control by dispatch, failure issue | merged (#139) | merged (#324); assignee in #326 |
-| Ruby 3.3.12 | merged (#138) | hl7au/au-fhir-core-inferno#326, open |
-| Unversioned canonicals | yes | gap, inferno_suite_generator#52 |
+Whatever it chooses, these parts hold:
+- The environment that should list the CI suites sets `INFERNO_CI_BUILD_SUITES=true`
+  (through a chart key and configmap entry, the way `inferno.resultDuration` maps to
+  `RESULT_DURATION_ENABLED` in `infra/helm/inferno/values-*.yaml`); production never does.
+- `web/_test_kits/au-ps.md` and `au-core.md` list the CI suite first, by its fixed id, with a
+  title that says ci-build. The kit page hides suites the running app does not report, so an
+  environment without the flag shows none.
+- When a regenerated suite reaches that environment, its validator restarts.
 
 ## Merging refresh pull requests
 
-Ruled 2026-11-20: a person merges them for now, and they merge themselves once the
-Quality Control status path is proven. With no app, an automatic merge has to be made with
-`GITHUB_TOKEN` by the refresh workflow after it waits on the dispatched run, and a merge
-made that way starts no push workflows on the mainline.
+Ruled 2026-11-20: a person merges them until the Quality Control status path is proven,
+then they merge themselves. The path was proven the same day: the refresh's own
+`GITHUB_TOKEN` dispatch put an "Automated Quality Control" SUCCESS status on
+hl7au/au-ps-inferno#137 and on hl7au/au-fhir-core-inferno#327. The automatic merge (the
+refresh workflow steps above) is in hl7au/au-ps-inferno#140 and
+hl7au/au-fhir-core-inferno#328.
 
 ## Adding a kit
 
-Follow the kit side above, including its spec list, then add the kit to the aggregator side
-and to the table. Copy the workflow and rake tasks from an existing kit rather than writing
-new ones, so a difference between kits is always deliberate and written down here.
+Follow the kit side above, including its spec list, then add the kit to the aggregator side.
+Copy the workflow and rake tasks from an existing kit rather than writing new ones, so a
+difference between kits is always deliberate and written down here.
