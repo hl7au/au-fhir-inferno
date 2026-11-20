@@ -53,14 +53,32 @@ const clearSessions = () => {
   location.reload();
 };
 
+// POST /suites/<suite id> is inferno_core's session form route
+// (TestSessionFormPostController): it creates the session, applies any suite options
+// sent as form fields, and redirects to the session page on the host it was posted to.
+const launchOnHost = (host, suiteId, options) => {
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = `${host}${basePath}/${encodeURIComponent(suiteId)}`;
+  options.forEach((option) => {
+    const field = document.createElement('input');
+    field.type = 'hidden';
+    field.name = option.id;
+    field.value = option.value;
+    form.appendChild(field);
+  });
+  document.body.appendChild(form);
+  form.submit();
+};
+
 const createSession = (target) => {
 
   showSpinner(target);
 
   // Get Suite ID
-  const suiteId = Array.from(document.getElementsByTagName('input'))
-    .filter((elem) => elem.checked && elem.name === 'suite')
-    .map((elem) => elem.value)[0]; // should only have one selected option
+  const suiteInput = Array.from(document.getElementsByTagName('input'))
+    .filter((elem) => elem.checked && elem.name === 'suite')[0]; // should only have one selected option
+  const suiteId = suiteInput && suiteInput.value;
 
   // Get checked options and map to id and value
   const checkedOptions = Array.from(document.getElementsByTagName('input'))
@@ -69,6 +87,16 @@ const createSession = (target) => {
       id: elem.name,
       value: elem.value
     }));
+
+  // A CI-build suite offered from another environment (see the test-kit layout) launches
+  // there. The page cannot POST the JSON API cross-origin, so it submits Inferno's own
+  // session form route instead: a top-level navigation, which needs no CORS, and which
+  // ends on the new session's page on that host.
+  const launchHost = suiteInput && suiteInput.dataset.launchHost;
+  if (launchHost) {
+    launchOnHost(launchHost, suiteId, checkedOptions);
+    return;
+  }
 
   const hostAndBasePath = `${siteConfig.infernoHost}${basePath}`
   const postUrl = `${hostAndBasePath}/api/test_sessions?test_suite_id=${suiteId}`;

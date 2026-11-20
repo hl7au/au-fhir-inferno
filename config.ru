@@ -2,6 +2,7 @@ require 'inferno'
 require_relative 'lib/inferno_platform_template/patches'
 require_relative 'lib/inferno_platform_template/health_check'
 require_relative 'lib/inferno_platform_template/static_site'
+require_relative 'lib/inferno_platform_template/site_config'
 require_relative 'lib/inferno_platform_template/suite_redirects'
 require_relative 'lib/inferno_platform_template/request_host_redirects'
 require_relative 'lib/inferno_platform_template/database_pool'
@@ -69,6 +70,11 @@ use Rack::Deflater,
 # site never contains; the ordering is about intent rather than necessity.
 use InfernoPlatformTemplate::SuiteRedirects
 use InfernoPlatformTemplate::StaticSite
+
+# /site-config.json: the per-environment facts the kit pages read at runtime (where the
+# ci-build environment lives, and which CI-build suites this one runs). Beside the static
+# site for the same reason: it is answered here and never reaches the logger or a span.
+use InfernoPlatformTemplate::SiteConfig
 
 use Rack::Static,
     urls: Inferno::Utils::StaticAssets.static_assets_map,

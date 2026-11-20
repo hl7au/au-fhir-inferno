@@ -10,6 +10,9 @@ canonical_url: "http://hl7.org.au/fhir/core"
 logo: /assets/images/au-core-logo.png
 preview_text: Check that a FHIR server's API conforms to AU Core. Inferno queries your server the way an AU Core client would and validates every resource it gets back.
 suites:
+  - title: AU Core CI build (tracks the IG's CI build)
+    id: au_core_ci_build
+    ci_build: true
   - title: AU Core v3.0.0-ballot1
     id: au_core_v300_ballot1
   - title: AU Core v2.0.0

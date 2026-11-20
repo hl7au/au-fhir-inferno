@@ -10,6 +10,9 @@ canonical_url: "http://hl7.org.au/fhir/ps"
 logo: /assets/images/au-core-logo.png
 preview_text: Check that a patient summary document conforms to the AU Patient Summary (AU PS) implementation guide. Paste a Bundle, fetch one from a server, or have Inferno call $summary on your server.
 suites:
+  - title: AU PS CI build (tracks the IG's CI build)
+    id: au_ps_ci_build
+    ci_build: true
   - title: AU PS 1.0.0
     id: au_ps_v100
 sections:
