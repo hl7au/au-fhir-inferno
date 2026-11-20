@@ -166,13 +166,14 @@ and production run that same image, so the CI suites cannot live in it. Decided 
   never set the flag.
 - `Gemfile.ci-build.lock` on master is the seed: every shared gem matches `Gemfile.lock`
   and quality-control installs it frozen. The deployed pin is the image tag,
-  `ci-build-<master>-<au core>-<au ps>` (twelve hex characters each), also recorded in the
-  image's labels, because master needs a reviewed pull request and a nightly bump waiting
-  on review would go stale silently.
+  `ci-build-<app>-<au core>-<au ps>` (twelve hex characters each; `<app>` is the last
+  master commit that changed the application), also recorded in the image's labels,
+  because master needs a reviewed pull request and a nightly bump waiting on review would
+  go stale silently.
 - `.github/workflows/ci-build-environment.yaml` runs every three hours, on a master
-  push that changes the application, and on `workflow_dispatch` with a `force` input. It
-  moves only the two kits in the lock to their `ci-build` heads, and builds and pushes the
-  image when ghcr has no image of that name yet. ArgoCD Image Updater deploys the newest
+  push that changes the application, and on `workflow_dispatch`. It moves only the two
+  kits in the lock to their `ci-build` heads, and builds and pushes the image when ghcr
+  has no image of that name yet. ArgoCD Image Updater deploys the newest
   `ci-build-*` tag. While the workflow fails it keeps one issue titled
   `CI-build environment image failing` open, assigned to KyleOps; the next success closes
   it.
