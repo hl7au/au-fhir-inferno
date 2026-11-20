@@ -19,6 +19,13 @@ on are listed below.
 - Nothing depends on a GitHub App or on hl7au organisation admin (2026-11-20).
 - Kit gems are not published until the full team signs off, so nothing here automates or
   touches gem publishing.
+- The generated CI suite lives only on a `ci-build` branch in each kit, which the daily
+  refresh updates directly; there are no refresh pull requests, and the kit's mainline
+  carries the tooling but no CI suite (2026-11-21). The repository only ever holds one CI
+  build: a new CI build replaces the old one in place.
+- Testers reach the CI suites through a permanent ci-build environment that takes each kit
+  from its `ci-build` branch, launched from a radio on development.inferno's kit page
+  (2026-11-20, option A-prime).
 
 ## The kit side
 
@@ -36,7 +43,8 @@ Suite and registration
   recorded in `config.ci-build.json` (for example `1.0.1-ci-build`). Its description says
   a regeneration can stop earlier sessions rendering.
 - `lib/<kit>.rb` requires it only when `ENV['INFERNO_CI_BUILD_SUITES'] == 'true'` (exactly
-  `true`), so production never lists it.
+  `true`) and the suite file exists, so production never lists it and the mainline, which
+  has no CI suite, loads cleanly.
 
 Validation
 
@@ -50,17 +58,18 @@ Validation
   `#current` can hold a newer package than the suite was generated from. AU PS does this.
   AU Core still pins `|<package version>` until the generator can emit unversioned
   references (hl7au/inferno_suite_generator#52); that is a tracked gap, not a variant.
-- A gem built from a kit's mainline carries the CI suite's code and generated metadata,
-  frozen at whatever CI build the mainline held when the gem was built; only the downloaded
-  package is excluded. The flag keeps it unloaded wherever it is not set.
+- A gem built from a kit's mainline carries no CI suite, because the mainline has none.
 
-Config, package and generated output
+Branch, config, package and generated output
 
-- `config.ci-build.json` in the repository root, with a top-level `ci_build` section:
-  `package_url`, `manifest_url` and `package_date` (the date of the package the suite was
-  generated from).
-- Generated output goes to `lib/<kit>/generated/ci-build/`, a stable directory whatever the
-  package version.
+- The mainline holds the tooling: `config.ci-build.json` in the repository root (with a
+  top-level `ci_build` section: `package_url`, `manifest_url` and `package_date`), the rake
+  tasks, the refresh workflow, the flag check and the specs. Its `config.ci-build.json`
+  values are only a starting point.
+- The `ci-build` branch is the mainline plus the generated suite: the generated output in
+  `lib/<kit>/generated/ci-build/` (a stable directory whatever the package version), the
+  suite file where the kit's suite class is not generated (AU PS), and its own
+  `config.ci-build.json` recording the package the suite was generated from.
 - The package is a local download at `lib/<kit>/igs/ci-build.tgz`. It is listed in
   `.gitignore` and `.dockerignore` and excluded from the gemspec's files.
 
@@ -82,33 +91,25 @@ Refresh workflow (`.github/workflows/refresh-ci-build-suite.yaml`)
 - Runs daily at 19:00 UTC (early morning in eastern Australia) and on `workflow_dispatch`
   with a boolean `force` input; one concurrency group, `refresh-ci-build-suite`, with no
   cancelling.
-- Permissions: `actions`, `contents`, `issues` and `pull-requests` write. The job sets
-  `GH_TOKEN` and `GH_REPO`, so the failure issue can still be opened when checkout fails.
-- Opens or updates the `automated/refresh-ci-build-suite` pull request against the
-  mainline, labelled `automated-pr`, with `add-paths` limited to the ci-build files (the
-  `bundler-cache` gem install in `vendor/bundle` must never reach it).
-- A push made with `GITHUB_TOKEN` starts no workflows, so when the pull request is created
-  or updated the workflow runs `gh workflow run quality-control.yaml --ref <branch>`. The
-  kit's Quality Control workflow therefore has a `workflow_dispatch` trigger. GitHub
-  leaves a dispatched run's check run out of the commit's status check rollup, which is
-  what a pull request's checks read, so a dispatched Quality Control run also posts a
-  commit status on its commit (context `Automated Quality Control`: pending when it starts,
-  then its result), which does show. It needs `statuses: write` on that job. Confirmed on
-  2026-11-20: the AU PS refresh's own `GITHUB_TOKEN` dispatch put a SUCCESS status on its
-  refresh pull request (hl7au/au-ps-inferno#137), and a hand dispatch did the same on AU
-  Core's mainline.
-- While the refresh pull request is open, every run checks it, not only runs that changed
-  it: it dispatches Quality Control only when the head commit has no result yet, waits up to
-  30 minutes for the status, squash-merges with `--match-head-commit` on success, and fails
-  the job on a failure or a timeout. create-pull-request v8 sets `pull-request-number` and
-  `pull-request-head-sha` on unchanged days too (checked in its source), which this relies
-  on. After a merge it dispatches Quality Control on the mainline, because a merge made with
-  `GITHUB_TOKEN` starts no push run there, and anything chained off the mainline run (AU
-  Core's image build is) would otherwise never fire.
-- While any run fails, scheduled or dispatched, it keeps one issue titled
+- Checks out `ci-build` (creating it from the mainline if absent) and runs
+  `git merge --no-edit origin/<mainline>`. It never resolves a conflict: a conflict fails
+  the job, and a person merges the mainline into `ci-build` by hand once. A mainline edit to
+  `config.ci-build.json` is the likely cause, since its recorded date sits beside the URLs.
+- Regenerates when the CI build's `package.manifest.json` date differs from the date
+  recorded on the branch, when the merge brought in new mainline commits (so a generator
+  change reaches the suite), or when forced.
+- Runs the kit's rubocop and unit specs on the merged, regenerated tree, and pushes to
+  `ci-build` only if they pass, so the branch is always green for whatever pins it. It never
+  force-pushes: the ci-build environment pins a commit on this branch, and a force-push
+  would orphan it. The branch's history accumulates generated diffs; the mainline never sees
+  them.
+- The job sets `GH_TOKEN` and `GH_REPO`, so the failure issue can still be opened when
+  checkout fails. While any run fails, scheduled or dispatched, it keeps one issue titled
   `CI build refresh failing` open, assigned to a named maintainer (KyleOps) so GitHub
   notifies a person, commenting on it at each further failure, and the next successful run
   closes it.
+- The kit's Quality Control workflow runs on push as usual; the refresh does its own gate
+  because a push made with `GITHUB_TOKEN` starts no workflows.
 
 Runner and Ruby
 
@@ -140,37 +141,30 @@ Specs each kit carries
 - Where the kit generates Ruby for the CI suite (AU Core), no generated file carries a
   version-derived id. A kit that generates only metadata (AU PS) instead checks its fixed
   id and that it shares no id with a released suite.
+- Specs that need the generated suite skip when it is absent, so they run on `ci-build`
+  and in the refresh job; the tooling specs run everywhere.
 - Download refuses a version that is not `-ci-build` and leaves the config untouched.
 - A failed refresh restores the config.
 
 ## The aggregator side
 
-To be designed (section 2c of the platform work). The original plan had development take
-the kits by git ref, and that no longer matches how hl7au/au-fhir-inferno builds: since the
-trunk cut-over (`docs/phase3-trunk-cutover.md`), every push to master builds one
-released-flavour image from `Gemfile`, which pins released kit gems, and staging
-(`development.inferno.sparked-fhir.com`) and production run that same image. `Gemfile.dev`
-is used only for `preview`-labelled PR environments. A released kit gem published before a
-kit's CI suite merged carries none, so today the CI suites have no path to staging. 2c has
-to choose one, and this section records the choice once made.
+Since the trunk cut-over (`docs/phase3-trunk-cutover.md`), every push to master builds one
+released-flavour image from `Gemfile`, and staging (`development.inferno.sparked-fhir.com`)
+and production run that same image, so the CI suites cannot live in it. Decided 2026-11-20
+(option A-prime), to be built in section 2c of the platform work:
 
-Whatever it chooses, these parts hold:
-- The environment that should list the CI suites sets `INFERNO_CI_BUILD_SUITES=true`
-  (through a chart key and configmap entry, the way `inferno.resultDuration` maps to
-  `RESULT_DURATION_ENABLED` in `infra/helm/inferno/values-*.yaml`); production never does.
+- A permanent ci-build environment, built from `Gemfile.dev` with each kit pinned to a
+  commit on its `ci-build` branch and `INFERNO_CI_BUILD_SUITES=true` (through a chart key
+  and configmap entry, the way `inferno.resultDuration` maps to `RESULT_DURATION_ENABLED` in
+  `infra/helm/inferno/values-*.yaml`). Staging and production keep one tested image and
+  never set the flag.
 - `web/_test_kits/au-ps.md` and `au-core.md` list the CI suite first, by its fixed id, with a
-  title that says ci-build. The kit page hides suites the running app does not report, so an
-  environment without the flag shows none.
-- When a regenerated suite reaches that environment, its validator restarts.
-
-## Merging refresh pull requests
-
-Ruled 2026-11-20: a person merges them until the Quality Control status path is proven,
-then they merge themselves. The path was proven the same day: the refresh's own
-`GITHUB_TOKEN` dispatch put an "Automated Quality Control" SUCCESS status on
-hl7au/au-ps-inferno#137 and on hl7au/au-fhir-core-inferno#327. The automatic merge (the
-refresh workflow steps above) is in hl7au/au-ps-inferno#140 and
-hl7au/au-fhir-core-inferno#328.
+  title that says ci-build, as a radio that launches on the ci-build environment's host.
+  The host is a per-environment setting, unset on production, so production shows no such
+  radio; the radio says the session runs on another host.
+- A scheduled workflow in hl7au/au-fhir-inferno compares the pinned `ci-build` commits with
+  each branch's head and bumps them, so the environment does not go stale silently.
+- When a regenerated suite reaches the environment, its validator restarts.
 
 ## Adding a kit
 
