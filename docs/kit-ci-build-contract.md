@@ -67,8 +67,9 @@ Branch, config, package and generated output
   tasks, the refresh workflow, the flag check and the specs. Its `config.ci-build.json`
   values are only a starting point.
 - The `ci-build` branch is the mainline plus the generated suite: the generated output in
-  `lib/<kit>/generated/ci-build/` (a stable directory whatever the package version), the
-  suite file where the kit's suite class is not generated (AU PS), and its own
+  `lib/<kit>/generated/ci-build/` (a stable directory whatever the package version), any
+  suite file the kit generates outside it (AU PS writes
+  `lib/au_ps_inferno/suite/au_ps_ci_build.rb` from a template on the mainline), and its own
   `config.ci-build.json` recording the package the suite was generated from.
 - The package is a local download at `lib/<kit>/igs/ci-build.tgz`. It is listed in
   `.gitignore` and `.dockerignore` and excluded from the gemspec's files.
@@ -153,8 +154,10 @@ released-flavour image from `Gemfile`, and staging (`development.inferno.sparked
 and production run that same image, so the CI suites cannot live in it. Decided 2026-11-20
 (option A-prime), to be built in section 2c of the platform work:
 
-- A permanent ci-build environment, built from `Gemfile.dev` with each kit pinned to a
-  commit on its `ci-build` branch and `INFERNO_CI_BUILD_SUITES=true` (through a chart key
+- A permanent ci-build environment, built from `Gemfile.dev` with each kit taken from its
+  `ci-build` branch (for example
+  `gem 'au_core_test_kit', github: 'hl7au/au-fhir-core-inferno', branch: 'ci-build'`, the
+  lock recording the commit) and `INFERNO_CI_BUILD_SUITES=true` (through a chart key
   and configmap entry, the way `inferno.resultDuration` maps to `RESULT_DURATION_ENABLED` in
   `infra/helm/inferno/values-*.yaml`). Staging and production keep one tested image and
   never set the flag.
