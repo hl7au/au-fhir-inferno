@@ -39,8 +39,8 @@ human-facing release identity (git tag + Release + image alias + Environment rec
 merge commit of the latest promotion PR. Moving it is the only thing that changes prod.
 
 - **Chart and image move together.** The chart templates, `values.yaml` and
-  `values-prod.yaml` that prod renders are the ones on `master` when the promotion PR
-  merged, which is the same combination staging was running.
+  `values-prod.yaml` (including the image it pins in `inferno.imageUrl`) that prod renders
+  are the ones on `master` when the promotion PR merged.
 - **An ordinary merge to `master` does not reach prod.** A chart or `values-prod.yaml`
   change waits for the next promotion. If there is no app change to carry it, run
   **Build and Release Inferno Image** by hand on `master` (Actions, Run workflow): it
@@ -52,8 +52,32 @@ merge commit of the latest promotion PR. Moving it is the only thing that change
   `PROMOTE_TOKEN` when set. GitHub refuses a ref update that changes files under
   `.github/workflows/` unless the token has the **Workflows** permission, which the
   default `GITHUB_TOKEN` can never have, so `PROMOTE_TOKEN` needs Contents and Workflows
-  read and write. If the step fails, prod stays where it was and a release owner runs the
-  command the job prints (`git push origin <merge sha>:refs/heads/prod`).
+  read and write. If the step fails, prod stays where it was and a repository admin runs
+  the command the job prints (`git push origin <merge sha>:refs/heads/prod`).
+- **Protected by a ruleset.** Because moving `prod` deploys, a branch ruleset on
+  `refs/heads/prod` blocks deleting it, pushing to it and force-pushing it for everyone
+  except the repository admin role. `PROMOTE_TOKEN` is a repository admin's
+  fine-grained PAT, so the promotion step and the rollback below still work; a token
+  that is not an admin's (`GITHUB_TOKEN`, or a GitHub App token) is refused, and the job
+  fails with prod unchanged. If `PROMOTE_TOKEN` ever becomes a GitHub App token, add that
+  App as a bypass actor. A repository admin creates the ruleset once, right after the
+  branch is first created:
+
+  ```sh
+  gh api -X POST repos/hl7au/au-fhir-inferno/rulesets --input - <<'EOF'
+  {
+    "name": "prod environment branch",
+    "target": "branch",
+    "enforcement": "active",
+    "conditions": {"ref_name": {"include": ["refs/heads/prod"], "exclude": []}},
+    "rules": [{"type": "deletion"}, {"type": "update"}, {"type": "non_fast_forward"}],
+    "bypass_actors": [{"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}]
+  }
+  EOF
+  ```
+
+  `actor_id` 5 is the built-in repository admin role, the same bypass the `master`
+  ruleset uses.
 
 ## PROMOTE_TOKEN (auto-open the draft PR)
 
@@ -74,7 +98,8 @@ without a token is safe.
 
 Every release tag `vX.Y.Z` points at its promotion merge commit, so a rollback moves
 `prod` back to the previous tag. That restores the chart, `values-prod.yaml` and the image
-of that release together. A release owner runs:
+of that release together. A repository admin (the only role the `prod` ruleset lets
+force-push) runs:
 
 ```sh
 git fetch origin --tags
