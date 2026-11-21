@@ -8,6 +8,8 @@
 name: AU Core Inferno
 
 on:
+  # In a public repository, keep this on GitHub-hosted runners: on a self-hosted runner,
+  # pull_request runs code from any fork on your machine (README.md, Authentication).
   pull_request:
   push:
     branches: [main]
@@ -35,9 +37,12 @@ jobs:
       RECIPE: .github/inferno
       # The suite to run. GET https://inferno.hl7.org.au/suites/api/test_suites lists them.
       SUITE: au_core_v200
-      # The au-fhir-test-data release whose AU Core folder is loaded.
-      TEST_DATA_REF: v2.0.0
+      # The au-fhir-test-data release whose AU Core folder is loaded, pinned by commit.
+      TEST_DATA_REF: 6dd0e1a873353cade63561ecac37db9de632917e # v2.0.0
+      # The committed baseline each run compares with.
       BASELINE: .github/inferno/baseline-au_core_v200.json
+      # Where a run that records a baseline writes it, at the top of the results artifact.
+      NEW_BASELINE: baseline-au_core_v200.json
     steps:
       - name: Check out this repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -70,10 +75,11 @@ jobs:
           #   SERVER_TOKEN: ${{ secrets.FHIR_SERVER_TOKEN }}
           # and add to args below:
           #   --input header_name=Authorization --input "header_value=Bearer $SERVER_TOKEN"
+          # --output leaves every result's inputs out, so the token is not in the artifact.
         run: |
           args=(--suite "$SUITE" --input url=http://fhir-server:8080/fhir --output inferno-results.json)
           if [ "$WRITE_BASELINE" = true ]; then
-            args+=(--write-baseline "$BASELINE")
+            args+=(--write-baseline "$NEW_BASELINE")
           else
             args+=(--baseline "$BASELINE")
           fi
@@ -86,7 +92,7 @@ jobs:
           name: inferno-results
           path: |
             inferno-results.json
-            ${{ env.BASELINE }}
+            ${{ env.NEW_BASELINE }}
           if-no-files-found: ignore
 
       - name: Show the container logs

@@ -6,8 +6,10 @@ to fail the build when a test that was fine before now fails or errors.
 
 It runs everything inside the CI job: your server, the HL7 AU test data, and a private
 Inferno with its own FHIR validator, from the same image that serves
-[inferno.hl7.org.au](https://inferno.hl7.org.au). Nothing is sent to the hosted Inferno or
-its validator, and no results leave your job.
+[inferno.hl7.org.au](https://inferno.hl7.org.au). Nothing is sent to HL7 Australia, the
+hosted Inferno or its validator. Two things leave the job: the results artifact the
+workflow uploads to your own repository's run, and the codes the validator looks up on a
+public terminology server (see [Running the suite](#running-the-suite)).
 
 The results tell you what changed between two runs of your own server. They are not an
 assessment by HL7 Australia or Sparked, and a clean run is not a statement that a server
@@ -19,6 +21,9 @@ meets AU Core.
 | [`load_test_data.py`](load_test_data.py) | Writes the AU Core test data from [hl7au/au-fhir-test-data](https://github.com/hl7au/au-fhir-test-data) to your server in reference order |
 | [`run_inferno.py`](run_inferno.py) | Runs a test suite through the Inferno JSON API and compares the results with your baseline |
 | [`example-workflow.yml`](example-workflow.yml) | A GitHub Actions workflow that does all of the above |
+
+The [`tests`](tests) folder holds the scripts' own tests, for this repository; you do not
+need to copy it.
 
 The two scripts need Python 3.9 or later and nothing outside the standard library. Any
 CI system that can run Docker Compose and Python can use them; the workflow is the
@@ -37,8 +42,8 @@ GitHub Actions version.
 3. If your server needs authentication, store the token as a repository secret and give
    it to both scripts (see [Authentication](#authentication)).
 4. Run the workflow once by hand (Actions, AU Core Inferno, Run workflow) with **Record
-   this run as the baseline** ticked. Download `baseline-au_core_v200.json` from the
-   run's `inferno-results` artifact, look through it, and commit it to
+   this run as the baseline** ticked. Download the run's `inferno-results` artifact,
+   look through `baseline-au_core_v200.json` at the top of it, and commit that file to
    `.github/inferno/`.
 5. From then on, every run compares with that file.
 
@@ -46,16 +51,17 @@ GitHub Actions version.
 
 1. **Starts the stack.** `docker compose up --wait` starts your server and Inferno and
    waits until Inferno's API and the validator answer.
-2. **Loads the test data.** The workflow checks out a tagged release of
-   hl7au/au-fhir-test-data and `load_test_data.py` writes its `au-core` folder to your
-   server (1,403 resources in release v2.0.0, plus one Patient that an AU Core Encounter
-   references from the `au-erequesting` folder).
+2. **Loads the test data.** The workflow checks out a release of
+   hl7au/au-fhir-test-data, pinned by commit, and `load_test_data.py` writes its
+   `au-core` folder to your server (1,403 resources in release v2.0.0, plus one Patient
+   that an AU Core Encounter references from the `au-erequesting` folder).
 3. **Runs the suite.** `run_inferno.py` creates an Inferno test session, starts a run of
    the whole suite with your server's URL, waits for it to finish and reads every result.
 4. **Compares with your baseline** and fails the job if there is a regression.
-5. **Keeps the results.** The raw results (`inferno-results.json`) are uploaded as an
-   artifact, and a summary table goes on the run's summary page. If a step fails, the
-   container logs are printed.
+5. **Keeps the results.** The results (`inferno-results.json`, every group and test
+   result without the inputs and outputs, which can hold credentials) are uploaded as
+   an artifact, and a summary table goes on the run's summary page. If a step fails,
+   the container logs are printed.
 
 Each run starts from empty containers, so the validator downloads the AU Core packages
 every time. In testing, loading the data took a few seconds against the HAPI server and
@@ -79,9 +85,19 @@ found anywhere under `DIR`. A reference that cannot be found is printed as a war
 the loader still tries the write. The loader exits non-zero if any write fails, with the
 server's OperationOutcome for each failure.
 
-Your server needs to accept `PUT` to an id that does not exist yet (update as create).
-If it assigns its own ids instead, the suite's default `patient_ids` and other id inputs
-will not match; give the ids your server assigned with `--input`.
+Your server needs:
+
+- to accept `PUT` to an id that does not exist yet (update as create). If it assigns its
+  own ids instead, the suite's default `patient_ids` and other id inputs will not match;
+  give the ids your server assigned with `--input`.
+- to accept a `transaction` Bundle (`POST [base]`), because the loader writes each
+  reference cycle as one (in the AU Core v2.0.0 data, one Bundle of nine resources).
+  Each entry has a `fullUrl` of the resource's own URL on your server, so a reference to
+  another member of the cycle resolves to that entry.
+
+If the first 20 writes all fail with the same HTTP status and none succeeds, the loader
+stops there rather than printing the same failure for every resource; that is usually
+one of these requirements, or missing credentials.
 
 Run `python3 load_test_data.py --help` for every option, and `--dry-run` to print the
 write order without writing anything.
@@ -105,9 +121,10 @@ the workflow sets is `url`. Inferno runs inside the compose network, so `url` is
 `http://fhir-server:8080/fhir` (the service name), while the loader on the runner uses
 `http://localhost:8080/fhir`.
 
-To run a different suite, change `SUITE` in the workflow and the baseline file name. The
-suite ids the image offers are listed at `GET http://localhost:4567/suites/api/test_suites`
-(or on the hosted instance at <https://inferno.hl7.org.au/suites/api/test_suites>):
+To run a different suite, change `SUITE` in the workflow and the file names in
+`BASELINE` and `NEW_BASELINE`. The suite ids the image offers are listed at
+`GET http://localhost:4567/suites/api/test_suites` (or on the hosted instance at
+<https://inferno.hl7.org.au/suites/api/test_suites>):
 `au_core_v100`, `au_core_v200`, `au_core_v210_draft` and `au_core_v300_ballot1` in
 image v1.2.2. Use the test data release that matches the AU Core version you build to.
 A suite that stops to wait for a person (a SMART App Launch login, for example) cannot
@@ -126,7 +143,17 @@ expose it to the step as an environment variable, and add:
 - to the loader: `--header "Authorization: Bearer $SERVER_TOKEN"`
 - to the suite: `--input header_name=Authorization --input "header_value=Bearer $SERVER_TOKEN"`
 
-The runner prints the names of the inputs it was given, never their values.
+The runner prints the names of the inputs it was given, never their values. Inferno
+returns every input with its value in each test result, so `--output` writes the results
+without each result's `inputs` and `outputs`; the token does not reach the uploaded
+artifact. GitHub hides a secret's value in the job log, but not inside an artifact, so
+check anything else you add to the artifact. In a public repository, anyone can read the
+job log, and anyone signed in to GitHub can download the artifact.
+
+In a public repository, run this workflow on GitHub-hosted runners. On a self-hosted
+runner, the `pull_request` trigger runs code from any fork on your machine; if you use
+one, require approval for workflows from forks (Settings, Actions, General) or drop the
+`pull_request` trigger.
 
 ## What counts as a regression
 
@@ -197,9 +224,10 @@ docker compose down --volumes
 
 If port 8080 or 4567 is taken, set `FHIR_SERVER_PORT` or `INFERNO_PORT` for
 `docker compose`, then give the loader the matching `--base-url` and the runner the
-matching `--inferno` (or set `INFERNO_URL`, for example `http://localhost:14567/suites`). The Inferno and validator
-images are built for amd64 only; on an Apple silicon Mac Docker runs them under
-emulation, which works but is slower. While a run is going, the Inferno web page at
+matching `--inferno` (or set `INFERNO_URL`, for example
+`http://localhost:14567/suites`). The Inferno and validator images are built for amd64
+only; on an Apple silicon Mac Docker runs them under emulation, which works but is
+slower. While a run is going, the Inferno web page at
 <http://localhost:4567> shows the session.
 
 The stack peaked at about 6 GB of memory in testing, most of it the validator (its Java
@@ -207,14 +235,15 @@ heap is capped at 4 GB in `compose.yaml`); give Docker at least 8 GB.
 
 ## Versions and how to move them
 
-Every image is pinned to a tag and its digest, and every action to a commit, so a run
-today and a run next month use the same software unless you change it.
+Every image is pinned to a tag and its digest, and every action and the test data to a
+commit, so a run today and a run next month use the same software and data unless you
+change them.
 
 | What | Pinned to | Where to look for a newer one |
 | --- | --- | --- |
 | Inferno (`ghcr.io/hl7au/au-fhir-inferno`) | `v1.2.2`, the release hosted at inferno.hl7.org.au | [Releases](https://github.com/hl7au/au-fhir-inferno/releases) |
 | Validator (`markiantorno/validator-wrapper`) | `1.0.78`, held on purpose (below) | Keep in step with `validatorImageUri` in [`infra/helm/inferno/values-prod.yaml`](../../infra/helm/inferno/values-prod.yaml) |
-| Test data (`hl7au/au-fhir-test-data`) | `v2.0.0` | [Releases](https://github.com/hl7au/au-fhir-test-data/releases) |
+| Test data (`hl7au/au-fhir-test-data`) | `v2.0.0`, commit `6dd0e1a8` (`TEST_DATA_REF` in the workflow) | [Releases](https://github.com/hl7au/au-fhir-test-data/releases) |
 | PostgreSQL, Redis | `postgres:19.0-alpine`, `redis:8.10.3-alpine` | Docker Hub |
 | HAPI FHIR (placeholder only) | `hapiproject/hapi:v8.12.0-2` | Replaced by your server |
 | `actions/checkout`, `actions/upload-artifact` | `v7.0.1`, `v7.0.2` | Their GitHub releases |
@@ -240,8 +269,17 @@ updates:
   - package-ecosystem: docker-compose
     directories: [/.github/inferno]
     schedule: { interval: weekly }
+    ignore:
+      # Held at the version the hosted Inferno runs; newer versions validate about
+      # twice as slowly against tx.dev.hl7.org.au. Move it by hand when the hosted
+      # Inferno moves.
+      - dependency-name: markiantorno/validator-wrapper
 ```
 
-Dependabot will also offer validator updates; decline them unless the hosted Inferno has
-moved. After any version change, record a new baseline in the same pull request, so the
-change in results is reviewed with the change that caused it.
+To move the test data to a new release, set `TEST_DATA_REF` in the workflow to the
+commit the release tag points at, which
+`gh api repos/hl7au/au-fhir-test-data/commits/<tag> --jq .sha` prints, and keep the tag
+in the comment beside it.
+
+After any version change, record a new baseline in the same pull request, so the change
+in results is reviewed with the change that caused it.
