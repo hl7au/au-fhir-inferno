@@ -57,8 +57,9 @@ GitHub Actions version.
    artifact, and a summary table goes on the run's summary page. If a step fails, the
    container logs are printed.
 
-On a GitHub-hosted runner the first run downloads the images and the validator downloads
-the AU Core packages, so expect it to take longer than later runs.
+Each run starts from empty containers, so the validator downloads the AU Core packages
+every time. In testing, loading the data took a few seconds against the HAPI server and
+the AU Core v2.0.0 suite (425 tests) took about six minutes.
 
 ## Loading the test data
 
@@ -151,7 +152,9 @@ its test number, title and Inferno's message, and the job fails (exit code 1).
 Nothing else fails the job on its own:
 
 - A test that failed or errored in the baseline and still does is not a regression.
-- A test that moves to `skip` or `omit` is not a regression.
+- A test that moves to `skip` or `omit` is not a regression. A test skips when the
+  server returns no data for it, so if a change loses resources, those tests skip
+  rather than fail; the counts on the summary page show it.
 - A test that failed or errored in the baseline and no longer does is listed as fixed.
   Record a new baseline to hold on to the improvement.
 - A test the baseline does not list (after the kit adds tests) is a regression only if
@@ -160,6 +163,10 @@ Nothing else fails the job on its own:
 The job also fails (exit code 2) when the run cannot finish: Inferno does not start,
 the suite id is unknown, the run is still going after `--timeout` seconds (default
 3600), or the run produced no results.
+
+Some tests fail in any CI stack, which is why the first baseline records them rather
+than the job treating them as regressions: the TLS test fails because the server is
+reached over plain `http` inside the job, for example.
 
 Record a new baseline whenever you mean to accept the current results: after you fix
 something, and after you update the Inferno image or the test data release, because new

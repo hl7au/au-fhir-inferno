@@ -132,8 +132,15 @@ def main():
                 baseline = json.load(f)["results"]
         except (OSError, ValueError, KeyError) as err:
             stop(f"cannot read baseline {args.baseline} ({err}); create one with --write-baseline")
-    regressions = sorted(t for t, r in tests.items() if r["result"] in NOT_OK and baseline.get(t) not in NOT_OK)
-    fixed = sorted(t for t, r in baseline.items() if r in NOT_OK and tests.get(t, {}).get("result") not in NOT_OK)
+    def by_number(test_id):
+        """Sort key: the test's short id (1.2.10) as numbers, so 1.2.9 comes before 1.2.10."""
+        number = titles.get(test_id, "").split(" ")[0]
+        return [int(n) for n in number.split(".") if n.isdigit()], test_id
+
+    regressions = sorted((t for t, r in tests.items() if r["result"] in NOT_OK and baseline.get(t) not in NOT_OK),
+                         key=by_number)
+    fixed = sorted((t for t, r in baseline.items() if r in NOT_OK and tests.get(t, {}).get("result") not in NOT_OK),
+                   key=by_number)
 
     lines = [f"## Inferno {args.suite}", "",
              f"{len(tests)} tests: " + ", ".join(f"{n} {k}" for k, n in sorted(counts.items())), "",
@@ -143,7 +150,10 @@ def main():
         for g in [group] + group.get("test_groups", []):
             if g["id"] in groups:
                 lines.append(f"| {titles[g['id']]} | {groups[g['id']]['result']} |")
-    lines += ["", f"Regressions against the baseline: {len(regressions)}"]
+    if args.baseline:
+        lines += ["", f"Regressions against the baseline: {len(regressions)}"]
+    else:
+        lines += ["", f"No baseline given, so every test that failed or errored is listed: {len(regressions)}"]
     for t in regressions:
         message = tests[t].get("result_message", "").replace("\n", " ")[:300]
         lines.append(f"- {titles.get(t, t)} ({tests[t]['result']}, baseline {baseline.get(t, 'absent')}): {message}")
