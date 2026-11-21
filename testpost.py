@@ -8,11 +8,11 @@ collapses, so the same run shows the difference between a slow (unpatched) and f
 
 Everything you would want to change lives in CONFIG below or on the command line.
 
-  python3 dos_probe.py dev       # ramp against the dev target
-  python3 dos_probe.py prod      # ramp against the prod target
-  python3 dos_probe.py dev --steps 1,2,3,5,10 --suite au_ps_v100
-  python3 dos_probe.py prod --once 10        # single burst of 10, no ramp
-  python3 dos_probe.py prod --open 5         # warm single-user session open (POST+GET)
+  python3 testpost.py dev        # ramp against the dev target
+  python3 testpost.py prod       # ramp against the prod target
+  python3 testpost.py dev --steps 1,2,3,5,10 --suite au_ps_v100
+  python3 testpost.py prod --once 10         # single burst of 10, no ramp
+  python3 testpost.py prod --open 5          # warm single-user session open (POST+GET)
 
 Latency shown is end to end from this machine (includes network + download).
 """
