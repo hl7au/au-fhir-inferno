@@ -1,7 +1,9 @@
 # Code owners for the prod deploy gate.
 #
-# In GitOps the merge to master IS the prod deploy, so owning the deploy surface
-# (Helm chart + values, dependencies, CI, image build) gates prod. When the master
+# Prod renders the chart and values from the `prod` branch, which the merge of a
+# promotion PR moves (docs/prod-releases.md). Whatever is on master when that PR merges
+# ships, so owning the deploy surface (Helm chart + values, dependencies, CI, image
+# build) gates prod. When the master
 # ruleset has require_code_owner_review enabled, any PR touching these paths needs an
 # approving review from one of the listed owners before it can merge. Listing more than
 # one owner means ANY one of them satisfies the review (either can release).

@@ -1,6 +1,10 @@
 # Prod release: fires when a prod-promotion PR (head `promote/prod-<sha>`) merges to
-# master. The merge is the release gate; this workflow makes the release legible and
-# verifiable:
+# master. The merge is the release gate; this workflow deploys it and makes the release
+# legible and verifiable:
+#   0. Move the `prod` branch to the merge commit. inferno-prod (aehrc/sparked-argo
+#      apps/inferno-prod.yaml) renders the chart AND values-prod.yaml from `prod`, so this
+#      step is the deploy: chart and image change together, and an ordinary merge to
+#      master never reaches prod. See docs/prod-releases.md "The prod branch".
 #   1. Resolve the SemVer (PR label release:* wins; else an explicit `-> vX.Y.Z` in the
 #      PR title; else a patch bump of the latest vX.Y.Z tag).
 #   2. Alias the already-built SHA-tagged image to the semver tag in ghcr (no rebuild).
@@ -10,7 +14,8 @@
 #
 # values-prod.yaml stays pinned to the immutable SHA (the promotion PR bumped it);
 # vX.Y.Z is the human-facing release identity + a convenience image alias. ArgoCD
-# (inferno-prod, targetRevision: master) performs the actual deploy on merge.
+# (inferno-prod, targetRevision: prod) performs the actual deploy once step 0 moves
+# the branch.
 name: Prod Release
 
 on:
@@ -43,6 +48,35 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0     # need tags to compute the changelog range
+
+      # First, so the deploy does not depend on the versioning and release steps below.
+      # Fast-forward only (force=false): `prod` only ever moves forward along master, and
+      # a rollback is a deliberate human action (docs/prod-releases.md "Rollback"). A
+      # refusal here means someone pushed to `prod` by hand; the job fails, prod stays
+      # where it was, and a release owner resolves it.
+      #
+      # PROMOTE_TOKEN when it is set, because GitHub refuses a ref update that changes
+      # files under .github/workflows/ unless the token holds the Workflows permission,
+      # which GITHUB_TOKEN can never have. Promotions whose range touches no workflow
+      # file succeed with GITHUB_TOKEN too.
+      - name: Move the prod branch to the merge commit (the deploy)
+        env:
+          GH_TOKEN: ${{ secrets.PROMOTE_TOKEN || secrets.GITHUB_TOKEN }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          set -euo pipefail
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/prod" --jq .object.sha >/dev/null 2>&1; then
+            if ! gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/heads/prod" \
+                -f sha="$MERGE_SHA" -F force=false >/dev/null; then
+              echo "::error::Could not fast-forward prod to ${MERGE_SHA}. Either prod is not an ancestor of the merge commit (moved by hand), or the token lacks the Workflows permission for a range that changes .github/workflows/. A release owner can run: git push origin ${MERGE_SHA}:refs/heads/prod"
+              exit 1
+            fi
+          else
+            gh api "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f ref=refs/heads/prod -f sha="$MERGE_SHA" >/dev/null
+          fi
+          echo "prod -> ${MERGE_SHA}"
+          echo "- \`prod\` moved to \`${MERGE_SHA:0:7}\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Resolve release version
         id: ver
@@ -170,7 +204,7 @@ jobs:
         id: smoke
         run: |
           set -uo pipefail
-          # ArgoCD (inferno-prod) polls master ~every 3 min; give it up to ~10 min.
+          # ArgoCD (inferno-prod) polls the prod branch ~every 3 min; give it up to ~10 min.
           OK=0
           for i in $(seq 1 20); do
             CODE=$(curl -fsS -o /dev/null -w '%{http_code}' "${PROD_URL}/" 2>/dev/null || echo "000")

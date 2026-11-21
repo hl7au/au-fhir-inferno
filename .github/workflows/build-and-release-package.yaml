@@ -14,6 +14,10 @@ on:
       - 'docs/**'
       - '.github/**'       # CI, CODEOWNERS, templates: never change the app image
       - '*.md'
+  # A chart-only change (infra/**) builds nothing above, and the inferno-prod Application
+  # renders the chart from the `prod` branch, which only a merged promotion PR moves. Run
+  # this workflow by hand on master to build and open a promotion PR for such a change.
+  workflow_dispatch: {}
   pull_request:
     # Preview images for `preview`-labelled PRs (any base). PR quality gating lives in
     # quality-control.yaml; this workflow's only PR job is building preview images.
@@ -30,9 +34,11 @@ concurrency:
 jobs:
   build-and-push-images:
     runs-on: ubuntu-latest
-    # Build on: any push to the trunk; OR a PR carrying the `preview` label.
+    # Build on: any push to the trunk; a manual run on the trunk; OR a PR carrying the
+    # `preview` label.
     if: >-
       github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master') ||
       contains(github.event.pull_request.labels.*.name, 'preview')
     permissions:
       contents: write
@@ -57,7 +63,7 @@ jobs:
             echo "use_dev_env=true" >> $GITHUB_OUTPUT
             echo "BUNDLE_GEMFILE=$GITHUB_WORKSPACE/Gemfile.dev" >> $GITHUB_ENV
           else
-            # Trunk (push to master): build ONCE, released flavour. Staging + prod run this
+            # Trunk (push to master, or a manual run on master): build ONCE, released flavour. Staging + prod run this
             # same artifact (no -dev/-prod split — build once, deploy many).
             echo "environment=trunk" >> $GITHUB_OUTPUT
             echo "rake_task=web:generate_prod" >> $GITHUB_OUTPUT
@@ -90,6 +96,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # A manual run is for a trunk commit that has no image yet (a chart-only change).
+      # Trunk images are tagged by commit SHA and treated as immutable, so never overwrite
+      # one: the promotion PR for an already-built commit is promote/prod-<sha>.
+      - name: Refuse to rebuild an existing trunk image
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if docker manifest inspect "${REGISTRY}/${IMAGE_NAME}:${GITHUB_SHA}" >/dev/null 2>&1; then
+            echo "::error::${REGISTRY}/${IMAGE_NAME}:${GITHUB_SHA} already exists. Use its promotion PR (branch promote/prod-${GITHUB_SHA}) instead of rebuilding."
+            exit 1
+          fi
+
       - name: Build and push app image
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
@@ -110,9 +127,10 @@ jobs:
       # exists) OR surface a one-click prefilled compare link (fallback). Either way the PR
       # body carries a changelog + risk flags (deps / app / chart) diffed via the compare
       # API between the SHA prod runs now and this build, plus a proposed SemVer. Merging
-      # the PR = the prod release (human gate); prod-release.yaml then tags vX.Y.Z, aliases
-      # the image, and cuts a GitHub Release. ArgoCD (inferno-prod, targetRevision: master)
-      # syncs prod on merge.
+      # the PR = the prod release (human gate); prod-release.yaml then moves the `prod`
+      # branch to the merge commit, tags vX.Y.Z, aliases the image, and cuts a GitHub
+      # Release. ArgoCD (inferno-prod, targetRevision: prod) syncs prod from that branch, so
+      # the chart and values-prod.yaml ship with the image and nothing else reaches prod.
       #
       # values-prod.yaml stays pinned to the immutable SHA (reproducible); vX.Y.Z is the
       # human-facing release identity (git tag + Release + a semver image alias).
@@ -121,7 +139,7 @@ jobs:
       # GITHUB_TOKEN): PRs opened with GITHUB_TOKEN do not trigger further workflows, so
       # quality-control would silently skip. Absent the secret we fall back to the link.
       - name: Prepare prod-promotion PR (changelog + risk flags)
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PROMOTE_TOKEN: ${{ secrets.PROMOTE_TOKEN }}
@@ -144,23 +162,28 @@ jobs:
           IFS='.' read -r MA MI PA <<< "${LATEST_TAG#v}"
           PROPOSED="v${MA}.${MI}.$((PA + 1))"
 
+          # What prod renders now: the `prod` branch (chart + values + image together).
+          # Before that branch exists, fall back to the image SHA in values-prod.yaml.
+          PROD_BASE=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/prod" --jq .object.sha 2>/dev/null || echo "$PROD_SHA")
+
           # Diff "what prod runs now" against this build via the compare API — works on a
           # shallow checkout, no deep clone needed. Build a changelog (drop merge/chore
           # noise, cap 40) and risk flags from the changed files.
-          CMP=$(gh api "repos/${GITHUB_REPOSITORY}/compare/${PROD_SHA}...${GITHUB_SHA}" 2>/dev/null || echo '{}')
+          CMP=$(gh api "repos/${GITHUB_REPOSITORY}/compare/${PROD_BASE}...${GITHUB_SHA}" 2>/dev/null || echo '{}')
           CHANGELOG=$(printf '%s' "$CMP" | jq -r '
             [.commits[]?.commit.message | split("\n")[0]
              | select(test("skip ci|promote prod|^Merge pull request|^Merge branch";"i")|not)] as $a
             | ($a[0:40] | map("- "+.) | join("\n"))
               + (if ($a|length)>40 then "\n- …and \(($a|length)-40) more (see run summary)" else "" end)')
-          [ -z "$CHANGELOG" ] && CHANGELOG="- (could not compute commit range from ${PROD_SHA:-unknown})"
+          [ -z "$CHANGELOG" ] && CHANGELOG="- (could not compute commit range from ${PROD_BASE:-unknown})"
           FILES=$(printf '%s' "$CMP" | jq -r '.files[]?.filename')
           flag() { printf '%s\n' "$FILES" | grep -qE "$1" && echo '⚠️ CHANGED' || echo 'unchanged'; }
           DEPS=$(flag '^Gemfile\.lock$')
           APP_FLAG=$(flag '^(web|lib|app)/|\.rb$')
-          # Chart = templates / base values.yaml / Chart.*, NOT the per-env values-{dev,prod}.yaml
-          # (those are just image-tag write-backs/promotions and would otherwise always trip).
-          CHART=$(flag '^infra/helm/inferno/(templates/|values\.yaml|Chart\.)')
+          # Chart = templates / base values.yaml / values-prod.yaml / Chart.*. values-prod.yaml
+          # counts now that prod renders from the `prod` branch: a merged edit to it waits for
+          # this promotion. values-dev.yaml and values-ci-build.yaml never reach prod.
+          CHART=$(flag '^infra/helm/inferno/(templates/|values\.yaml|values-prod\.yaml|Chart\.)')
 
           # Build the promotion branch (the actual values-prod.yaml image bump).
           git config user.name "github-actions[bot]"
@@ -183,12 +206,12 @@ jobs:
             echo "## Risk flags"
             echo "- Dependencies / test kits (\`Gemfile.lock\`): **${DEPS}**"
             echo "- App code / static site (\`web/\`, \`lib/\`): **${APP_FLAG}**"
-            echo "- Helm chart (\`infra/**\`): **${CHART}** — already synced to prod via ArgoCD (informational)"
+            echo "- Helm chart and prod values (\`infra/helm/inferno/\`): **${CHART}** (ships to prod with this promotion: the chart on master when this PR merges)"
             echo ""
-            echo "## Changelog since current prod (\`${PROD_SHA:0:7}\`)"
+            echo "## Changelog since current prod (\`${PROD_BASE:0:7}\`)"
             echo "${CHANGELOG}"
             echo ""
-            echo "Full code diff: ${REPO_URL}/compare/${PROD_SHA}...${GITHUB_SHA}"
+            echo "Full code diff: ${REPO_URL}/compare/${PROD_BASE}...${GITHUB_SHA}"
             echo ""
             echo "- app: \`${APP}\`"
           } > "$BODY_FILE"
