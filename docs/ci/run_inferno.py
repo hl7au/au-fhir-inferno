@@ -12,15 +12,21 @@ Python 3.9 or later, standard library only.
     python3 run_inferno.py --inferno http://localhost:4567/suites --suite au_core_v200 \\
         --input url=http://fhir-server:8080/fhir --baseline inferno-baseline.json
 
-Exit codes: 0 no regressions, 1 regressions, 2 the run could not be completed.
+Exit codes: 0 no regressions, 1 regressions, 2 the run could not be completed (including
+any error talking to Inferno).
+
+With --output, the results are written without each result's inputs and outputs, which
+Inferno returns with their values and which can hold a credential.
 """
 
 import argparse
 import collections
+import http.client
 import json
 import os
 import sys
 import time
+import traceback
 import urllib.error
 import urllib.request
 
@@ -33,9 +39,16 @@ def api(base, method, path, body=None):
                                  headers={"Content-Type": "application/json", "Accept": "application/json"})
     try:
         with urllib.request.urlopen(req, timeout=60) as resp:
-            return json.loads(resp.read())
+            text = resp.read()
+        # Some calls answer with no body, such as DELETE test_runs/{id} (204).
+        return json.loads(text) if text.strip() else {}
     except urllib.error.HTTPError as err:
         stop(f"{method} {path}: HTTP {err.code} {err.read().decode('utf-8', 'replace')[:500]}")
+    except (OSError, http.client.HTTPException) as err:
+        # URLError, timeouts and dropped connections, for example while Inferno restarts.
+        stop(f"{method} {path}: no answer from Inferno ({err})")
+    except ValueError as err:
+        stop(f"{method} {path}: Inferno's answer is not JSON ({err})")
 
 
 def stop(message):
@@ -49,12 +62,33 @@ def wait_for_suite(base, suite_id, timeout):
         try:
             with urllib.request.urlopen(f"{base}/api/test_suites/{suite_id}", timeout=30) as resp:
                 return json.loads(resp.read())
-        except (urllib.error.URLError, ConnectionError, TimeoutError) as err:
+        except (OSError, http.client.HTTPException, ValueError) as err:
             if isinstance(err, urllib.error.HTTPError) and err.code == 404:
                 stop(f"Inferno does not offer suite {suite_id!r}; see {base}/api/test_suites")
             if time.monotonic() > deadline:
                 stop(f"Inferno at {base} did not answer within {timeout}s ({err})")
             time.sleep(5)
+
+
+def parse_inputs(items):
+    """Turn NAME=VALUE arguments into a dict."""
+    given = {}
+    for number, item in enumerate(items, 1):
+        name, sep, value = item.partition("=")
+        if not sep or not name:
+            # Say which one, not what it holds: it can be a credential.
+            stop(f"--input number {number} is not NAME=VALUE")
+        given[name] = value
+    return given
+
+
+def without_io(results):
+    """Copy the results without each result's inputs and outputs.
+
+    Inferno returns every input a test was given with its value, so a token passed as
+    an input (header_value, smart_credentials) would otherwise land in the file.
+    """
+    return [{k: v for k, v in r.items() if k not in ("inputs", "outputs")} for r in results]
 
 
 def walk(group, titles):
@@ -74,14 +108,15 @@ def main():
                         help="suite input; inputs not given keep the suite's default (repeatable)")
     parser.add_argument("--baseline", help="baseline JSON from an earlier --write-baseline")
     parser.add_argument("--write-baseline", metavar="PATH", help="write this run's results as a baseline")
-    parser.add_argument("--output", metavar="PATH", help="write the raw session results here")
+    parser.add_argument("--output", metavar="PATH",
+                        help="write the session results here, without each result's inputs and outputs")
     parser.add_argument("--timeout", type=int, default=3600, metavar="SECONDS",
                         help="give up on the run after this long (default 3600)")
     args = parser.parse_args()
     base = args.inferno.rstrip("/")
 
     suite = wait_for_suite(base, args.suite, timeout=600)
-    given = dict(item.split("=", 1) for item in args.input)
+    given = parse_inputs(args.input)
     unknown = set(given) - {i["name"] for i in suite.get("inputs", [])}
     if unknown:
         stop(f"suite {args.suite} has no input named {', '.join(sorted(unknown))}")
@@ -114,7 +149,7 @@ def main():
     results = api(base, "GET", f"test_sessions/{session['id']}/results")
     if args.output:
         with open(args.output, "w", encoding="utf-8") as out:
-            json.dump(results, out, indent=2)
+            json.dump(without_io(results), out, indent=2)
 
     titles = {}
     walk(suite, titles)
@@ -177,4 +212,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Exit code 1 means a regression, so an unexpected error must not exit with it.
+    try:
+        main()
+    except Exception:  # noqa: BLE001
+        traceback.print_exc()
+        sys.exit(2)
