@@ -213,7 +213,6 @@ def main():
     # so independent groups are written in parallel.
     sorter = TopologicalSorter({i: {group_of[t] for k in g for t in graph[k]} - {i}
                                 for i, g in enumerate(groups)})
-    sorter.prepare()
     cycles = sum(1 for g in groups if len(g) > 1)
     print(f"{len(load)} resources in {len(groups)} writes ({cycles} transaction Bundles for reference cycles)")
 
@@ -223,6 +222,7 @@ def main():
         return
 
     wait_for_server(base, headers, args.wait)
+    sorter.prepare()
     started, failures, failed, done = time.monotonic(), 0, 0, 0
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
         running = {}

@@ -65,7 +65,7 @@ jobs:
       - name: Run the AU Core test kit
         env:
           WRITE_BASELINE: ${{ inputs.write_baseline }}
-          # If your server needs a token, keep it in a repository secret and pass it as an
+          # If your server needs a token, keep it in a repository secret and supply it as an
           # input, for example:
           #   SERVER_TOKEN: ${{ secrets.FHIR_SERVER_TOKEN }}
           # and add to args below:

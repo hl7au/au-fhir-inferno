@@ -66,8 +66,9 @@ def walk(group, titles):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--inferno", default="http://localhost:4567/suites",
-                        help="Inferno base, including its base path (default http://localhost:4567/suites)")
+    parser.add_argument("--inferno", default=os.environ.get("INFERNO_URL", "http://localhost:4567/suites"),
+                        help="Inferno base, including its base path (default $INFERNO_URL, "
+                             "else http://localhost:4567/suites)")
     parser.add_argument("--suite", required=True, help="suite id, e.g. au_core_v200")
     parser.add_argument("--input", action="append", default=[], metavar="NAME=VALUE",
                         help="suite input; inputs not given keep the suite's default (repeatable)")
