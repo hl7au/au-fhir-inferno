@@ -29,6 +29,8 @@ from graphlib import TopologicalSorter
 from pathlib import Path
 
 FHIR_JSON = "application/fhir+json"
+# Stop when this many writes have failed with one status before any write succeeded.
+STOP_AFTER = 20
 # A literal relative reference: Type/id, optionally pinned to a version.
 RELATIVE_REF = re.compile(r"^([A-Z][A-Za-z]+)/([A-Za-z0-9\-.]{1,64})(/_history/[^/]+)?$")
 
@@ -55,12 +57,14 @@ def read_resources(paths):
 def references(resource):
     """Yield the Type/id of every literal relative reference in a resource.
 
-    Skips contained resources (their references are local to the resource) and the
-    contents of Bundles (a document or collection Bundle resolves its own entries).
+    Includes references made by contained resources (a contained Medication can
+    reference an Organization on the server); a reference to a contained resource
+    itself ("#id") is not a Type/id and is left out. Skips the contents of Bundles (a
+    document or collection Bundle resolves its own entries).
     """
     if resource.get("resourceType") == "Bundle":
         return
-    stack = [value for key, value in resource.items() if key != "contained"]
+    stack = list(resource.values())
     while stack:
         node = stack.pop()
         if isinstance(node, list):
@@ -71,7 +75,10 @@ def references(resource):
                 match = RELATIVE_REF.match(ref)
                 if match:
                     yield f"{match[1]}/{match[2]}"
-            stack.extend(value for key, value in node.items() if key != "reference")
+            # Only a string "reference" is the reference itself. An element named
+            # "reference" can also hold a whole Reference (Consent.provision.data.reference),
+            # so an object under that name is searched like any other.
+            stack.extend(value for key, value in node.items() if not (key == "reference" and isinstance(value, str)))
 
 
 def add_referenced(load, pool):
@@ -153,18 +160,30 @@ def outcome_text(text):
 
 
 def write_group(base, group, load, headers):
-    """Write one strongly connected group. Return None, or an error line."""
+    """Write one strongly connected group. Return (HTTP status, None or an error line)."""
     if len(group) == 1:
         key = next(iter(group))
         status, text = request("PUT", f"{base}/{key}", load[key][1], headers)
     else:
+        # Each entry's fullUrl is the resource's own URL on the server, so a reference to
+        # another member of the cycle resolves to that entry inside the transaction.
         bundle = {"resourceType": "Bundle", "type": "transaction", "entry": [
-            {"resource": load[key][1], "request": {"method": "PUT", "url": key}}
+            {"fullUrl": f"{base}/{key}", "resource": load[key][1], "request": {"method": "PUT", "url": key}}
             for key in sorted(group)]}
         status, text = request("POST", base, bundle, headers)
     if 200 <= status < 300:
-        return None
-    return f"{', '.join(sorted(group))}: HTTP {status} {outcome_text(text)}"
+        return status, None
+    return status, f"{', '.join(sorted(group))}: HTTP {status} {outcome_text(text)}"
+
+
+def giving_up(failures, succeeded, first_statuses):
+    """True when the first STOP_AFTER writes all failed the same way and none succeeded.
+
+    That is a server that rejects every write (no update as create, or missing
+    credentials), not a problem with particular resources, so going on would only print
+    the same failure for every resource.
+    """
+    return not succeeded and failures >= STOP_AFTER and len(first_statuses) == 1
 
 
 def wait_for_server(base, headers, timeout):
@@ -223,25 +242,37 @@ def main():
 
     wait_for_server(base, headers, args.wait)
     sorter.prepare()
-    started, failures, failed, done = time.monotonic(), 0, 0, 0
+    started, failures, failed, done, succeeded = time.monotonic(), 0, 0, 0, 0
+    first_statuses = set()  # the statuses of the failures before any write succeeded
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
         running = {}
-        while sorter.is_active():
+        while sorter.is_active() and not giving_up(failures, succeeded, first_statuses):
             for i in sorter.get_ready():
                 running[pool.submit(write_group, base, groups[i], load, headers)] = i
             finished, _ = wait(running, return_when=FIRST_COMPLETED)
             for future in finished:
                 i = running.pop(future)
-                error = future.result()
+                status, error = future.result()
                 if error:
                     failures += 1
                     failed += len(groups[i])
+                    if not succeeded:
+                        first_statuses.add(status)
                     print(f"  FAILED {error}", flush=True)
+                else:
+                    succeeded += 1
                 # Dependents still get their turn: the server decides whether it accepts them.
                 sorter.done(i)
                 done += len(groups[i])
                 if done % 200 < len(groups[i]):
                     print(f"  {done}/{len(load)} written", flush=True)
+        if sorter.is_active():
+            pool.shutdown(wait=True, cancel_futures=True)
+            print(f"stopping: the first {failures} writes all failed with HTTP {first_statuses.pop()} and "
+                  "none succeeded. Check that the server accepts PUT to an id that does not exist yet "
+                  "(update as create) and any authentication it needs; see the requirements in "
+                  "README.md.", flush=True)
+            sys.exit(1)
 
     elapsed = time.monotonic() - started
     print(f"{len(load) - failed} of {len(load)} resources written in {elapsed:.0f}s; "
