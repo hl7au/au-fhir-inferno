@@ -1,0 +1,105 @@
+# Runs the HL7 AU Core test kit against your FHIR server in GitHub Actions and fails the
+# job when a test that did not fail or error in your baseline now does.
+#
+# Copy this file to .github/workflows/au-core-inferno.yml in your repository, and copy
+# compose.yaml, load_test_data.py and run_inferno.py from the same folder to
+# .github/inferno/. Then replace the fhir-server service in compose.yaml with your server.
+# README.md in this folder walks through it, including how to record the baseline.
+name: AU Core Inferno
+
+on:
+  # In a public repository, keep this on GitHub-hosted runners: on a self-hosted runner,
+  # pull_request runs code from any fork on your machine (README.md, Authentication).
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 15 * * *" # nightly, 01:00 AEST
+  workflow_dispatch:
+    inputs:
+      write_baseline:
+        description: Record this run as the baseline (download it from the run's artifacts and commit it)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: au-core-inferno-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  au-core:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      RECIPE: .github/inferno
+      # The suite to run. GET https://inferno.hl7.org.au/suites/api/test_suites lists them.
+      SUITE: au_core_v200
+      # The au-fhir-test-data release whose AU Core folder is loaded, pinned by commit.
+      TEST_DATA_REF: 6dd0e1a873353cade63561ecac37db9de632917e # v2.0.0
+      # The committed baseline each run compares with.
+      BASELINE: .github/inferno/baseline-au_core_v200.json
+      # Where a run that records a baseline writes it, at the top of the results artifact.
+      NEW_BASELINE: baseline-au_core_v200.json
+    steps:
+      - name: Check out this repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check out the HL7 AU test data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: hl7au/au-fhir-test-data
+          ref: ${{ env.TEST_DATA_REF }}
+          path: au-fhir-test-data
+          persist-credentials: false
+
+      - name: Start the FHIR server and Inferno
+        run: docker compose -f "$RECIPE/compose.yaml" up --detach --wait --wait-timeout 900
+
+      - name: Load the AU Core test data
+        run: >-
+          python3 "$RECIPE/load_test_data.py"
+          --base-url http://localhost:8080/fhir
+          --resolve-from au-fhir-test-data/au-fhir-test-data-set
+          au-fhir-test-data/au-fhir-test-data-set/au-core
+
+      - name: Run the AU Core test kit
+        env:
+          WRITE_BASELINE: ${{ inputs.write_baseline }}
+          # If your server needs a token, keep it in a repository secret and supply it as an
+          # input, for example:
+          #   SERVER_TOKEN: ${{ secrets.FHIR_SERVER_TOKEN }}
+          # and add to args below:
+          #   --input header_name=Authorization --input "header_value=Bearer $SERVER_TOKEN"
+          # --output leaves every result's inputs out, so the token is not in the artifact.
+        run: |
+          args=(--suite "$SUITE" --input url=http://fhir-server:8080/fhir --output inferno-results.json)
+          if [ "$WRITE_BASELINE" = true ]; then
+            args+=(--write-baseline "$NEW_BASELINE")
+          else
+            args+=(--baseline "$BASELINE")
+          fi
+          python3 "$RECIPE/run_inferno.py" "${args[@]}"
+
+      - name: Keep the results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: inferno-results
+          path: |
+            inferno-results.json
+            ${{ env.NEW_BASELINE }}
+          if-no-files-found: ignore
+
+      - name: Show the container logs
+        if: failure()
+        run: docker compose -f "$RECIPE/compose.yaml" logs --no-color --tail 300
+
+      # A GitHub-hosted runner is thrown away after the job; a self-hosted one is not.
+      - name: Stop the stack
+        if: always()
+        run: docker compose -f "$RECIPE/compose.yaml" down --volumes

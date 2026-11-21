@@ -161,6 +161,11 @@ jobs:
           echo "$prod_route_render" | grep -q 'port: 4567'
           echo "::endgroup::"
 
+      # The CI recipe's loader and runner (Python stdlib only, so the runner's own
+      # python3 is enough).
+      - name: CI recipe scripts (docs/ci) unit tests
+        run: python3 -m unittest discover -s docs/ci/tests -v
+
       # Boots the full Inferno app (spec_helper → migrations on sqlite :memory:), so it's
       # the heaviest check — run last so the deterministic checks above always report.
       - name: RSpec

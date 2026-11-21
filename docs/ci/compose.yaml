@@ -1,0 +1,98 @@
+# A FHIR server plus a private Inferno with its own validator, for running the HL7 AU
+# test kits in CI. Copy this file into your repository and replace the fhir-server service
+# with your own server. See README.md in this folder.
+#
+# Every image is pinned to a tag and its digest so a run is repeatable; README.md says
+# how to move them forward.
+name: au-inferno-ci
+
+# Settings shared by the Inferno web process and its worker. The passwords below only
+# guard throwaway containers on the job's own Docker network; they are not secrets.
+x-inferno: &inferno
+  # The image hosted at inferno.hl7.org.au, release v1.2.2 (inferno_core 1.4.3,
+  # au_core_test_kit 1.4.6). It is built for amd64 only; the platform line lets it run,
+  # under emulation, on an arm64 laptop too.
+  image: ghcr.io/hl7au/au-fhir-inferno:v1.2.2@sha256:86250c73412b2951e456b1f3e371a084debdcfe75bc31ec6ac9771deb3f98814
+  platform: linux/amd64
+  restart: unless-stopped
+  environment:
+    INFERNO_HOST: http://localhost:4567
+    POSTGRES_HOST: inferno-db
+    POSTGRES_DB: inferno
+    POSTGRES_USER: inferno
+    POSTGRES_PASSWORD: inferno
+    REDIS_URL: redis://inferno-redis:6379/0
+    FHIR_RESOURCE_VALIDATOR_URL: http://inferno-validator:3500
+    # Terminology for the validator: the public HL7 AU development server, the same one
+    # the hosted Inferno uses.
+    TX_SERVER_URL: https://tx.dev.hl7.org.au/fhir
+    # Skip inferno_core's boot-time validator warm-up; the first validation warms instead.
+    INITIALIZE_VALIDATOR_SESSIONS: "false"
+
+services:
+  # REPLACE THIS SERVICE with your FHIR server. The HAPI FHIR reference server is here only
+  # so the recipe runs as it stands. Keep the service name, or change the url input in the
+  # workflow to match: Inferno reaches the server at http://fhir-server:8080/fhir over the
+  # compose network, and the loader reaches it at http://localhost:8080/fhir. The host
+  # ports can be moved with FHIR_SERVER_PORT and INFERNO_PORT if 8080 or 4567 is taken.
+  fhir-server:
+    image: hapiproject/hapi:v8.12.0-2@sha256:0ff86aac4c7bd13a1ee226444a70263bb46ed1c28ef543c30a44f865b80ca04e
+    ports:
+      - "${FHIR_SERVER_PORT:-8080}:8080"
+
+  inferno-db:
+    image: postgres:19.0-alpine@sha256:8b0ff4cdf221f0c53d7fcda681d3b461be725c492cd881c5ec9c0ad25023f188
+    environment:
+      POSTGRES_DB: inferno
+      POSTGRES_USER: inferno
+      POSTGRES_PASSWORD: inferno
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "inferno"]
+      interval: 5s
+      retries: 20
+
+  inferno-redis:
+    image: redis:8.10.3-alpine@sha256:7958cfbb9d152f87dadfbc89f1b0b15938f0b81ff8982feb327476f4911935c3
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 20
+
+  # The HL7 FHIR validator behind an HTTP API. Held at 1.0.78, the version the hosted
+  # Inferno runs: from 1.0.79 the validator stops using server-side terminology caching
+  # with Ontoserver, which tx.dev.hl7.org.au runs, and validation takes about twice as long.
+  inferno-validator:
+    image: markiantorno/validator-wrapper:1.0.78@sha256:b9f57a504a19295637ecc43023ad840573df7f6e3bdc62c5da0723321a06ffe8
+    platform: linux/amd64
+    environment:
+      SESSION_CACHE_DURATION: "-1"
+      JAVA_TOOL_OPTIONS: -Xmx4g
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:3500/"]
+      interval: 10s
+      start_period: 60s
+      retries: 30
+
+  inferno-web:
+    <<: *inferno
+    # Bring the database schema up to date, then serve the UI and the JSON API.
+    command: ["sh", "-c", "bundle exec rake db:migrate && exec bundle exec puma"]
+    ports:
+      - "${INFERNO_PORT:-4567}:4567"
+    depends_on:
+      inferno-db: { condition: service_healthy }
+      inferno-redis: { condition: service_healthy }
+      inferno-validator: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "ruby", "-rnet/http", "-e",
+             "exit Net::HTTP.get_response(URI('http://localhost:4567/suites/api/version')).is_a?(Net::HTTPOK)"]
+      interval: 10s
+      start_period: 60s
+      retries: 30
+
+  # Runs the tests. Starts after the web process so the schema exists.
+  inferno-worker:
+    <<: *inferno
+    command: ["bundle", "exec", "sidekiq", "-r", "./worker.rb"]
+    depends_on:
+      inferno-web: { condition: service_healthy }
