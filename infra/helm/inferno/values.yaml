@@ -400,6 +400,22 @@ postgresql:
     repository: bitnamilegacy/postgresql
   containerPorts:
     postgresql: 5432
+  # Explicit resources replace the subchart's "nano" preset, whose 150m CPU limit kept an
+  # idle Postgres CPU-throttled in about half its scheduling periods: each wake-up (the
+  # pg_isready exec probes, background workers) bursts past 15ms per 100ms period. That
+  # paged "High CPU Throttling" every 4h for the ci-build environment from its first day
+  # (2026-11-21) at about 0.01 cores of average use. No CPU limit, as for the validator
+  # in values-ci-build.yaml; the request still reserves the share the scheduler counts.
+  # Memory keeps the preset's figures (working set about 40Mi on 2026-11-21).
+  primary:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+        ephemeral-storage: 50Mi
+      limits:
+        memory: 192Mi
+        ephemeral-storage: 2Gi
   global:
     postgresql:
       auth:
