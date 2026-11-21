@@ -164,7 +164,14 @@ jobs:
 
           # What prod renders now: the `prod` branch (chart + values + image together).
           # Before that branch exists, fall back to the image SHA in values-prod.yaml.
-          PROD_BASE=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/prod" --jq .object.sha 2>/dev/null || echo "$PROD_SHA")
+          # PROD_REF names it in the live compare link below (the branch, so the link
+          # follows prod and master as they move).
+          if PROD_BASE=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/prod" --jq .object.sha 2>/dev/null); then
+            PROD_REF=prod
+          else
+            PROD_BASE="$PROD_SHA"
+            PROD_REF="$PROD_SHA"
+          fi
 
           # Diff "what prod runs now" against this build via the compare API — works on a
           # shallow checkout, no deep clone needed. Build a changelog (drop merge/chore
@@ -203,15 +210,19 @@ jobs:
             echo "To choose a different version, edit this PR's **title** to end with \`-> vX.Y.Z\`,"
             echo "or apply a \`release:major\` / \`release:minor\` / \`release:patch\` label before merging."
             echo ""
-            echo "## Risk flags"
+            echo "## Risk flags (since prod, up to this build)"
             echo "- Dependencies / test kits (\`Gemfile.lock\`): **${DEPS}**"
             echo "- App code / static site (\`web/\`, \`lib/\`): **${APP_FLAG}**"
-            echo "- Helm chart and prod values (\`infra/helm/inferno/\`): **${CHART}** (ships to prod with this promotion: the chart on master when this PR merges)"
+            echo "- Helm chart and prod values (\`infra/helm/inferno/\`): **${CHART}**"
             echo ""
-            echo "## Changelog since current prod (\`${PROD_BASE:0:7}\`)"
+            echo "Merging ships \`master\` as it is at merge time, so anything merged after this build (\`${GITHUB_SHA:0:7}\`) ships too: check the live link under the changelog before merging."
+            echo ""
+            echo "## Changelog since current prod (\`${PROD_BASE:0:7}\`), up to this build"
             echo "${CHANGELOG}"
             echo ""
-            echo "Full code diff: ${REPO_URL}/compare/${PROD_BASE}...${GITHUB_SHA}"
+            echo "Full code diff up to this build: ${REPO_URL}/compare/${PROD_BASE}...${GITHUB_SHA}"
+            echo ""
+            echo "What merging now ships, before the image bump (live): ${REPO_URL}/compare/${PROD_REF}...master"
             echo ""
             echo "- app: \`${APP}\`"
           } > "$BODY_FILE"
