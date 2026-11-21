@@ -92,3 +92,8 @@ jobs:
       - name: Show the container logs
         if: failure()
         run: docker compose -f "$RECIPE/compose.yaml" logs --no-color --tail 300
+
+      # A GitHub-hosted runner is thrown away after the job; a self-hosted one is not.
+      - name: Stop the stack
+        if: always()
+        run: docker compose -f "$RECIPE/compose.yaml" down --volumes
