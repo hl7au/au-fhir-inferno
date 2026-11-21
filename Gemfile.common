@@ -24,6 +24,20 @@ gem 'inferno_core', '~> 1.4.3'
 # floated to the beda-software default branch, including in prod).
 gem 'validation_test_kit', git: 'https://github.com/beda-software/validation-test-kit', ref: '3438159ae5860216d37c559725fbfdc316ad745c'
 
+# SMART App Launch test kit (inferno-framework, published on RubyGems). Hosted on purpose:
+# lib/inferno_platform_template.rb requires it and web/_test_kits/smart-app-launch.md is
+# its page. Until v1.2.3 it was loaded only as a side effect of au_core_test_kit 1.4.6,
+# whose regenerated 1.4.7 suites no longer require it, so it is declared here rather than
+# left to arrive through a kit. See docs/hosted-test-kits.md.
+#
+# '~> 0.4.6' means >= 0.4.6, < 0.5.0. 0.4.6 is NOT the latest release: every release from
+# 0.5.0 on depends on tls_test_kit 0.3 or 1.x, and au_core_test_kit (every version, up to
+# 1.4.7) depends on 'tls_test_kit ~> 0.2.0', so bundler cannot resolve a newer SMART kit
+# alongside the AU Core kit. The newest release, 1.0.3, would otherwise fit the
+# inferno_core 1.4.4 pin ('~> 1.4, >= 1.4.2'). Raise this floor once the AU Core kit
+# relaxes its tls_test_kit constraint.
+gem 'smart_app_launch_test_kit', '~> 0.4.6'
+
 # 9aff974 (hl7au/inferno_suite_generator#54) is the first revision whose gemspec allows a
 # Ruby other than exactly 3.3.6 (>= 3.3.6, < 3.4), which is what lets the image move to the
 # latest 3.3 patch release. Pinned by SHA because main moves. Its gemspec also pins

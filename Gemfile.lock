@@ -566,6 +566,7 @@ DEPENDENCIES
   rspec (~> 3.10)
   sidekiq-cron
   sinatra
+  smart_app_launch_test_kit (~> 0.4.6)
   validation_test_kit!
   webmock (~> 3.11)
 
