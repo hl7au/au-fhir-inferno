@@ -81,6 +81,11 @@ git fetch origin --tags
 git push --force origin 'v1.2.2^{commit}:refs/heads/prod'   # the release to return to
 ```
 
+The release before the `prod` branch existed is the exception: prod then rendered the
+chart from `master`, so the `v1.2.2` tag's chart is older than what prod last ran. To roll
+back the first promotion after the switch, move `prod` to the commit it was created at
+(recorded when it was bootstrapped), not to `v1.2.2`.
+
 ArgoCD syncs prod from the moved branch within its poll interval. The next promotion
 fast-forwards `prod` from there as usual, because the old tag is an ancestor of every
 later merge commit. Forward-only database migrations mean a rollback across a migration
