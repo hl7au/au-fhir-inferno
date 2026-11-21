@@ -22,6 +22,3 @@ node_modules
 /resources
 
 **.jekyll-cache
-
-# Python bytecode (docs/ci scripts and their tests)
-__pycache__/
