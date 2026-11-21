@@ -48,9 +48,14 @@ without a token is safe.
 ## Rollback
 
 A release is an immutable target, so rollback is a one-line promotion PR: point
-`values-prod.yaml` (`imageUrl` / `platformImageUri`) back at the SHA of the prior release
-(shown in that release's notes) and merge. ArgoCD reverts prod on sync. Cut a new patch
-release from the rollback if you want the tag history to reflect it.
+`inferno.imageUrl` in `values-prod.yaml` back at the SHA of the prior release (shown in
+that release's notes) and merge. ArgoCD reverts prod on sync. Cut a new patch release from
+the rollback if you want the tag history to reflect it.
+
+The promotion PR gates the image only. The `inferno-prod` Argo Application
+(`apps/inferno-prod.yaml` in `aehrc/sparked-argo`) renders the chart and
+`values-prod.yaml` from `master`, so chart changes reach prod when they merge to `master`
+and are not gated or rolled back by the promotion PR.
 
 ## Why the merge is the gate (not an Environment approval)
 
