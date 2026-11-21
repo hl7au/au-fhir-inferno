@@ -8,9 +8,9 @@
 # Ruby is the latest 3.3 patch release on the current Debian slim base (trixie).
 # inferno_suite_generator's gemspec allows any Ruby from 3.3.6 up to, not including, 3.4;
 # moving to 3.4 is a separate decision. Keep RUBY_VERSION in step with .ruby-version, the
-# ruby directive in Gemfile.common, the RUBY VERSION stanza in Gemfile.lock and
-# Gemfile.dev.lock, and ruby-version in the build-and-release-package and quality-control
-# workflows.
+# ruby directive in Gemfile.common, the RUBY VERSION stanza in Gemfile.lock,
+# Gemfile.dev.lock and Gemfile.ci-build.lock, and ruby-version in the
+# build-and-release-package, ci-build-environment and quality-control workflows.
 ARG RUBY_VERSION=3.3.12
 # The slim images no longer ship any -dev packages (no libc6-dev or linux-libc-dev), and
 # the tag is rebuilt upstream whenever its Debian base is refreshed, so the base stage
@@ -24,9 +24,11 @@ RUN mkdir -p $INSTALL_PATH
 WORKDIR $INSTALL_PATH
 
 # Select the dependency set: the default Gemfile (released test kits, what master
-# builds once for staging + prod) or Gemfile.dev (bleeding-edge, unreleased test-kit
-# commits) for preview environments. Each Gemfile has its own committed lockfile
-# (Gemfile.lock / Gemfile.dev.lock).
+# builds once for staging + prod), Gemfile.dev (bleeding-edge, unreleased test-kit
+# commits) for preview environments, or Gemfile.ci-build (each kit's ci-build branch) for
+# the ci-build environment. Each Gemfile has its own lockfile (Gemfile.lock,
+# Gemfile.dev.lock, Gemfile.ci-build.lock); the ci-build workflow relocks the last one's
+# two kits before it builds.
 ARG BUNDLE_GEMFILE=Gemfile
 ENV BUNDLE_GEMFILE=$INSTALL_PATH$BUNDLE_GEMFILE
 

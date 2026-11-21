@@ -14,6 +14,10 @@ inferno:
   replicas: 1
   workerReplicas: 1
   resultDuration: true
+  # Staging offers each kit's CI-build suite as a radio that launches on the ci-build
+  # environment (values-ci-build.yaml). The kit page shows it only once that host answers
+  # /site-config.json listing the suite, so this is safe to set before it exists.
+  ciBuildHost: https://ci-build.inferno.sparked-fhir.com
 
 validator:
   replicas: 1

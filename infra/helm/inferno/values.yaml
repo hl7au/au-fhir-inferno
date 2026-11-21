@@ -111,6 +111,20 @@ inferno:
   # because that feature is being retired in favour of the OpenTelemetry pipeline and this
   # one is not.
   resultDuration: false
+  # Registers each test kit's CI-build suite (au_core_ci_build, au_ps_ci_build). Written
+  # to INFERNO_CI_BUILD_SUITES, which each kit checks for exactly 'true' before it
+  # requires the suite file; the suite file itself only exists on the kit's `ci-build`
+  # branch, so this does nothing on an image built from Gemfile or Gemfile.dev. Set ONLY
+  # by the ci-build environment (values-ci-build.yaml). Staging and production run the
+  # released image and leave it off. See docs/ci-build-environment.md.
+  ciBuildSuites: false
+  # Public origin of the ci-build environment (https://host, no path). Written to
+  # INFERNO_CI_BUILD_HOST, which the kit pages read at runtime from /site-config.json: a
+  # CI-build suite this environment does not run itself is offered as a radio that
+  # launches the session on that host instead. Empty means no such radio, which is what
+  # production wants. A runtime setting rather than a Jekyll one because staging and
+  # production run one image with one generated site.
+  ciBuildHost: ""
   # inferno-app (Puma) pod resources, shared by every environment. Measured over the 30
   # days to 2026-09-29 (5-minute CPU rate, busiest replica): p99 0.002 cores in prod, dev
   # and every preview, highest 5-minute average 0.35 cores (dev). Memory peaked at 0.67Gi
@@ -191,6 +205,13 @@ externalSecrets:
 
 validator:
   storageClassName: "gp3-encrypted"  # Use default EBS storage class for validator caches
+  # Restart the validator whenever inferno.imageUrl changes, by stamping the app image
+  # into the validator pod template. For the ci-build environment only: its suites follow
+  # an IG's CI build through `igs '<package>#current'`, and a warm validator keeps the
+  # package it loaded for as long as its session lives, so a regenerated suite reaching
+  # the app must also reach a fresh validator. Off everywhere else, where an app deploy
+  # must not cost every resident engine a cold rebuild.
+  restartWithAppImage: false
   # Validator session cache (env: SESSION_CACHE_DURATION / SESSION_CACHE_SIZE on the
   # validator-wrapper). A "session" is a fully-built ValidationEngine keyed by a random
   # UUID; Inferno reuses the UUID it gets back so all bundles/users in a run share one

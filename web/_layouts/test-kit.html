@@ -58,9 +58,27 @@ layout: page
                     </div>
                     <fieldset class="mb-3" {% if page.suites==nil %}style="display:none" {% endif %}>
                     <legend class="tk-show-start-testing-block-legend">Test Suite</legend>
+                    {% comment %}
+                      A suite marked ci_build tracks its IG's CI build (docs/ci-build-environment.md).
+                      It renders hidden and never pre-selected; the script below shows it only where
+                      it can launch: here when this environment runs it, otherwise on the ci-build
+                      host named by /site-config.json, which production leaves unset. The default
+                      selection is the first released suite.
+                    {% endcomment %}
+                    {% assign default_suite = page.suites | where_exp: "suite", "suite.ci_build != true" | first %}
                     {% for suite in page.suites %}
+                    {% if suite.ci_build %}
+                    <div class="form-check ci-build-suite" style="display:none">
+                        <input class="form-check-input" type="radio" name="suite" id="{{ suite.id }}" value="{{ suite.id }}"
+                               data-ci-build="true">
+                        <label class="form-check-label" for="{{ suite.id }}">
+                            {{ suite.title }}
+                        </label>
+                        <div class="form-text ci-build-note" style="display:none"></div>
+                    </div>
+                    {% else %}
                     <div class="form-check">
-                        {% if forloop.first or suite.default %}
+                        {% if suite.id == default_suite.id or suite.default %}
                         <input class="form-check-input" type="radio" name="suite" id="{{ suite.id }}" value="{{ suite.id }}"
                                checked>
                         {% else %}
@@ -70,6 +88,7 @@ layout: page
                             {{ suite.title }}
                         </label>
                     </div>
+                    {% endif %}
                     {% endfor %}
                     </fieldset>
                     {% for option_group in page.option_groups %}
@@ -129,16 +148,62 @@ layout: page
   // Same origin by construction (siteConfig.infernoHost is window.location.origin), so
   // no CORS involved. Fails OPEN: if the API is unreachable the list stays exactly as
   // rendered, because hiding every option would be a worse page than an optimistic one.
+  //
+  // CI-build suites (data-ci-build) are the exception: they render hidden and this FAILS
+  // CLOSED for them. One is shown only when it can actually launch, either because this
+  // deployment runs it (the ci-build environment) or because /site-config.json names a
+  // ci-build host whose own /site-config.json says it runs that suite (staging). There it
+  // launches on that host, and says so. Production names no host, so it never shows one.
+  const suiteRadios = $('#start-testing-form input[type=radio][name=suite]');
+
+  const showCiBuildSuite = (radio, title, launchHost) => {
+    const check = $(radio).closest('.form-check');
+    // .text(), never .html(): a title can come from another host's JSON.
+    if (title) check.find('label').text(title);
+    if (launchHost) {
+      $(radio).attr('data-launch-host', launchHost);
+      check.find('.ci-build-note')
+        .text(`Runs on ${new URL(launchHost).host}, a separate environment that tracks the IG's CI build. A regenerated suite can stop older sessions there from opening.`)
+        .show();
+    }
+    check.show();
+  };
+
+  const offerRemoteCiBuildSuites = (radios) => {
+    if (radios.length === 0) return;
+
+    $.getJSON(`${siteConfig.infernoHost}/site-config.json`).done((config) => {
+      const host = config && config.ciBuildHost;
+      if (!host || host === window.location.origin) return;
+
+      $.getJSON(`${host}/site-config.json`).done((remote) => {
+        const titles = new Map(((remote && remote.ciBuildSuites) || []).map((suite) => [suite.id, suite.title]));
+        radios.forEach((radio) => {
+          if (titles.has(radio.value)) showCiBuildSuite(radio, titles.get(radio.value), host);
+        });
+      });
+    });
+  };
+
   $.getJSON(`${siteConfig.infernoHost}/suites/api/test_suites`)
     .done((suites) => {
-      const available = new Set((suites || []).map((suite) => suite.id));
-      if (available.size === 0) return;
+      const titles = new Map((suites || []).map((suite) => [suite.id, suite.title]));
+      if (titles.size === 0) return;
 
-      const radios = $('#start-testing-form input[type=radio][name=suite]');
       let checkedWasHidden = false;
+      const remoteCandidates = [];
 
-      radios.each((index, el) => {
-        if (available.has(el.value)) return;
+      suiteRadios.each((index, el) => {
+        if (el.dataset.ciBuild === 'true') {
+          if (titles.has(el.value)) {
+            showCiBuildSuite(el, titles.get(el.value), null);
+          } else {
+            remoteCandidates.push(el);
+          }
+          return;
+        }
+
+        if (titles.has(el.value)) return;
 
         $(el).closest('.form-check').hide();
         if (el.checked) {
@@ -149,9 +214,12 @@ layout: page
 
       if (checkedWasHidden) {
         // The option groups below are driven by the checked suite, so re-select and
-        // re-fire rather than just ticking a box.
-        radios.filter(':visible').first().prop('checked', true).trigger('change');
+        // re-fire rather than just ticking a box. Never fall back onto a CI-build suite:
+        // it may launch on another host.
+        suiteRadios.filter(':visible').not('[data-ci-build=true]').first().prop('checked', true).trigger('change');
       }
+
+      offerRemoteCiBuildSuites(remoteCandidates);
     });
 
   $('#start-testing-form input[type=radio][name=suite]').change(function () {
@@ -223,6 +291,13 @@ layout: page
 </script>
 
 <style>
+  /* Bootstrap's reboot floats the legend and clears only the element right after it
+     (legend + *). That element is now the hidden CI-build row, so without this the next
+     visible suite's radio floats up beside the legend. */
+  #start-testing-form legend ~ .form-check {
+    clear: left;
+  }
+
   .first {
     order: 1;
   }

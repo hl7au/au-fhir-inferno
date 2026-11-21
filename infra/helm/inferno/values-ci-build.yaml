@@ -1,0 +1,76 @@
+# The ci-build environment: one permanent environment that runs each test kit's
+# CI-build suite (au_core_ci_build, au_ps_ci_build), which tracks its IG's CI build on
+# build.fhir.org. Layered over values.yaml by the inferno-ci-build Application in
+# aehrc/sparked-argo (apps/inferno-ci-build.yaml). See docs/ci-build-environment.md.
+#
+# Its image is NOT the released image staging and production run. It is built from
+# Gemfile.ci-build by .github/workflows/ci-build-environment.yaml, tagged
+# ci-build-<app>-<au core>-<au ps> (twelve hex characters each), and ArgoCD Image
+# Updater writes the newest one to apps/inferno-ci-build/image-values.yaml in
+# aehrc/sparked-argo, which overrides inferno.imageUrl below.
+
+# Disposable in the same way dev is: a reclaim costs a cold validator rebuild, and a
+# regenerated suite already drops old sessions by design. Spot is the cheaper fit.
+capacityType: "spot"
+
+ingress:
+  hostnames:
+    - ci-build.inferno.sparked-fhir.com
+
+inferno:
+  # Seed only. The inferno-ci-build Application lists image-values.yaml last, and Image
+  # Updater owns that file.
+  imageUrl: ghcr.io/hl7au/au-fhir-inferno:ci-build-seed
+  validatorImageUri: markiantorno/validator-wrapper:1.0.78
+  # The one environment that registers the kits' CI-build suites.
+  ciBuildSuites: true
+  # Left empty on purpose: this environment runs the CI-build suites itself, so its kit
+  # pages launch them on their own origin. Only an environment WITHOUT them (staging)
+  # points here.
+  ciBuildHost: ""
+  replicas: 1
+  workerReplicas: 1
+
+validator:
+  replicas: 1
+  storageClassName: "gp3-encrypted"
+  # The CI-build suites validate against '<package>#current'. A warm validator keeps the
+  # package it loaded, so the validator rolls with every image the build workflow
+  # produces. A cold engine build (~50s) on the first run after a refresh is the price.
+  restartWithAppImage: true
+  # Sized like dev: both CI-build suites resident (two engines, ~1Gi live heap each),
+  # 30-minute idle expiry, -Xmx3g, 4Gi request against a 5Gi limit. The measurements
+  # behind these are in values-dev.yaml and VALIDATOR_OPTIMIZATION.md section 10.
+  sessionCacheDuration: 30
+  sessionCacheSize: 2
+  javaOpts: "-Xmx3g"
+  resources:
+    requests:
+      memory: "4Gi"
+      cpu: "250m"
+    limits:
+      memory: "5Gi"
+
+# The warmer keeps prod's engines hot for real users; here sessions warm on first use.
+warmer:
+  enabled: false
+
+autoscaling:
+  enabled: false
+
+# In-namespace Postgres rather than RDS. Sessions on this environment are short-lived by
+# design (a regeneration at the same IG version replaces the suite in place and can stop
+# earlier sessions rendering), so a managed database buys nothing here. The subchart's
+# PVC keeps sessions across pod restarts.
+externalSecrets:
+  enabled: false
+
+postgresql:
+  enabled: true
+  externaldbhost: ""
+  # The subchart ships an allow-all NetworkPolicy. The namespace's policies live in
+  # aehrc/sparked-argo (network-policies/), next to dev-inferno's and prod-inferno's, and
+  # admit only inferno-app and inferno-worker to Postgres.
+  primary:
+    networkPolicy:
+      enabled: false

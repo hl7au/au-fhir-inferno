@@ -1,0 +1,216 @@
+# Builds the ci-build environment's image whenever a kit's `ci-build` branch, or this
+# repository's master, has moved past the newest image.
+#
+# The ci-build environment runs master's application with each test kit taken from its
+# `ci-build` branch (Gemfile.ci-build), where the kit's own nightly workflow regenerates
+# a suite from the IG's CI build on build.fhir.org. This workflow is what carries that
+# regeneration to the environment, so the environment never goes stale silently:
+#
+#   1. Move only the two kits in Gemfile.ci-build.lock to their `ci-build` heads. Every
+#      other gem stays where the committed seed (and so Gemfile.lock) has it.
+#   2. Name the image after the three commits it is made of:
+#      ci-build-<app>-<au core>-<au ps>, twelve hex characters each, where <app> is the
+#      last master commit that touched anything but infra/, docs/, .github/ or Markdown.
+#      A docs change or a prod promotion therefore leaves the name, the image and the warm
+#      validator alone.
+#   3. If ghcr already has that tag, nothing changed: stop. Otherwise build and push it.
+#   4. ArgoCD Image Updater (in aehrc/sparked-argo) deploys the newest ci-build-* tag to
+#      the ci-build environment, and the chart restarts the validator with it
+#      (validator.restartWithAppImage), so the '#current' IG package is reloaded too.
+#
+# The pin therefore lives in the image tag and its labels, not in a commit here: master
+# needs a reviewed pull request, and a daily bump that waits for a review is exactly the
+# silent staleness this exists to prevent. See docs/ci-build-environment.md.
+#
+# While a run fails it keeps one issue open, assigned so a person is notified, and the
+# next successful run closes it, the same pattern as each kit's refresh workflow.
+name: CI-build environment image
+
+on:
+  schedule:
+    # Every three hours. The kits refresh their ci-build branches daily at 19:00 UTC, so
+    # the 21:23 run picks that up; the others catch a manually dispatched kit refresh or a
+    # master change that the push trigger skipped. A run with nothing new costs one
+    # ls-remote and one registry lookup.
+    - cron: '23 */3 * * *'
+  # A dispatch runs the same check now instead of waiting for the schedule. There is no
+  # force rebuild on purpose: the same commits would push new content under the same tag,
+  # which Image Updater never redeploys. To roll the environment, restart its Deployments.
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    # The same filter as the trunk image build: only an application change rebuilds.
+    paths-ignore:
+      - 'infra/**'
+      - 'docs/**'
+      - '.github/**'
+      - '*.md'
+
+concurrency:
+  group: ci-build-environment
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+  issues: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  BUNDLE_GEMFILE: ${{ github.workspace }}/Gemfile.ci-build
+  FAILURE_ISSUE_TITLE: CI-build environment image failing
+  # Assigned so GitHub notifies a person: a failing scheduled run is otherwise silent.
+  FAILURE_ISSUE_ASSIGNEE: KyleOps
+  # Lets the failure issue step find the repository even when the checkout failed.
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GH_REPO: ${{ github.repository }}
+
+jobs:
+  build:
+    # Image Updater deploys the newest ci-build-* image whatever branch built it, so only
+    # master may produce one. A dispatch from another branch is refused here.
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history, to find the last commit that changed the application.
+          fetch-depth: 0
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3.12'
+
+      - name: Move the kits to their ci-build heads
+        run: |
+          cp Gemfile.ci-build.lock "$RUNNER_TEMP/seed.lock"
+          bundle lock --update au_core_test_kit au_ps_inferno --conservative
+
+      - name: Name the image after its commits
+        id: tag
+        run: |
+          revisions=$(ruby -rbundler -e '
+            lock = Bundler::LockfileParser.new(File.read("Gemfile.ci-build.lock"))
+            %w[au_core_test_kit au_ps_inferno].each do |name|
+              spec = lock.specs.find { |s| s.name == name }
+              abort "#{name} is not a git gem in Gemfile.ci-build.lock" unless spec&.source.respond_to?(:revision)
+              puts spec.source.revision
+            end')
+          core=$(sed -n 1p <<< "$revisions")
+          ps=$(sed -n 2p <<< "$revisions")
+          # The same paths the push trigger ignores. Gemfile.ci-build.lock counts as the
+          # application, so a seed relock does rebuild.
+          app=$(git log -1 --format=%H -- . ':!infra' ':!docs' ':!.github' ':!*.md')
+          tag="ci-build-${app:0:12}-${core:0:12}-${ps:0:12}"
+          {
+            echo "app=$app"
+            echo "core=$core"
+            echo "ps=$ps"
+            echo "tag=$tag"
+            echo "image=${REGISTRY}/${IMAGE_NAME}:${tag}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Log in to the container registry
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check whether this image already exists
+        id: exists
+        env:
+          IMAGE: ${{ steps.tag.outputs.image }}
+        run: |
+          if docker buildx imagetools inspect "$IMAGE" > /dev/null 2>&1; then
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install the bundle
+        if: steps.exists.outputs.build == 'true'
+        run: bundle install
+
+      - name: Generate the static site
+        if: steps.exists.outputs.build == 'true'
+        run: bundle exec rake web:generate_prod
+
+      - name: Build and push the image
+        if: steps.exists.outputs.build == 'true'
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          push: true
+          build-args: |
+            BUNDLE_GEMFILE=Gemfile.ci-build
+          tags: ${{ steps.tag.outputs.image }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ steps.tag.outputs.app }}
+            au.org.hl7.inferno.ci-build.au-core-test-kit=${{ steps.tag.outputs.core }}
+            au.org.hl7.inferno.ci-build.au-ps-inferno=${{ steps.tag.outputs.ps }}
+
+      - name: Summarise
+        if: always() && steps.tag.outputs.tag != ''
+        env:
+          BUILT: ${{ steps.exists.outputs.build }}
+          TAG: ${{ steps.tag.outputs.tag }}
+          APP: ${{ steps.tag.outputs.app }}
+          CORE: ${{ steps.tag.outputs.core }}
+          PS: ${{ steps.tag.outputs.ps }}
+        run: |
+          {
+            if [ "$BUILT" = "true" ]; then
+              echo "## Built \`$TAG\`"
+              echo ""
+              echo "Image Updater deploys it to the ci-build environment, and the validator restarts with it."
+            else
+              echo "## Up to date: \`$TAG\` already exists"
+            fi
+            echo ""
+            echo "- au-fhir-inferno application: [\`${APP:0:12}\`](https://github.com/${GITHUB_REPOSITORY}/commit/${APP})"
+            echo "- au_core_test_kit ci-build: [\`${CORE:0:12}\`](https://github.com/hl7au/au-fhir-core-inferno/commit/${CORE})"
+            echo "- au_ps_inferno ci-build: [\`${PS:0:12}\`](https://github.com/hl7au/au-ps-inferno/commit/${PS})"
+            # Only the two kits should move. Anything else in this diff means a kit's
+            # ci-build branch now needs a newer shared gem than master has locked, and
+            # bundler unlocked it despite --conservative. diff prefixes each line with
+            # "< " or "> "; strip that so the lockfile's own four-space spec indent is what
+            # the pattern matches.
+            other=$(diff "$RUNNER_TEMP/seed.lock" Gemfile.ci-build.lock | grep -E '^[<>] ' | cut -c3- \
+              | grep -E '^ {4}[a-z0-9_-]+ \(' | grep -vE '^ {4}(au_core_test_kit|au_ps_inferno) \(' || true)
+            if [ -n "$other" ]; then
+              echo ""
+              echo "### Shared gems moved from the seed lock"
+              echo '```'
+              echo "$other"
+              echo '```'
+              echo "Relock Gemfile.ci-build.lock on master (or bump Gemfile.common) so the seed matches."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open or update the failure issue
+        if: failure()
+        run: |
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          issue=$(gh issue list --state open --search "in:title \"$FAILURE_ISSUE_TITLE\"" --json number,title \
+            --jq "map(select(.title == \"$FAILURE_ISSUE_TITLE\")) | .[0].number // empty")
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --body "Failed again: $run_url"
+          else
+            gh issue create --title "$FAILURE_ISSUE_TITLE" --assignee "$FAILURE_ISSUE_ASSIGNEE" \
+              --body "The CI-build environment image workflow failed, so the ci-build environment is no longer following the kits' ci-build branches. Run: $run_url. This issue closes itself on the next successful run."
+          fi
+
+      - name: Close the failure issue
+        if: success()
+        run: |
+          gh issue list --state open --search "in:title \"$FAILURE_ISSUE_TITLE\"" --json number,title \
+            --jq "map(select(.title == \"$FAILURE_ISSUE_TITLE\")) | .[].number" |
+            while read -r issue; do
+              gh issue close "$issue" --comment "The CI-build environment image built again."
+            done

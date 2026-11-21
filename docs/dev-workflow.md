@@ -135,6 +135,11 @@ It then rides the same pipeline above. (Why two Gemfiles: `Gemfile` = released/p
 `Gemfile.dev` = bleeding-edge SHAs for dev/preview — see
 [cicd-overhaul-plan.md](cicd-overhaul-plan.md).)
 
+To test against a kit's suite generated from the IG's **CI build** rather than a release,
+pick the CI-build radio on the staging kit page; the session runs on the ci-build
+environment, which follows each kit's `ci-build` branch on its own. See
+[ci-build-environment.md](ci-build-environment.md).
+
 ---
 
 ## Why it works this way
