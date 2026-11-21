@@ -52,9 +52,15 @@ collections:
   news:
     output: true
     permalink: /news/:path/
+  # An explicit order, not sort_by: date, so the HL7 AU kits stay above the hosted
+  # upstream SMART kit whatever their "Updated" dates are. test-kits/index.html reverses
+  # the collection, so the list renders bottom to top: AU Core, AU PS, SMART App Launch.
   test_kits:
     output: true
-    sort_by: date
+    order:
+      - smart-app-launch.md
+      - au-ps.md
+      - au-core.md
     permalink: /test-kits/:path/
 
 features_block:
@@ -70,7 +76,7 @@ features_block:
         </p>
     - name: "Start Testing Today"
       description: <p>
-          Inferno on hl7.org.au hosts the <a href="/test-kits/au-core">AU Core</a> and <a href="/test-kits/au-ps">AU Patient Summary</a> test kits. Not sure which you need? See <a href="/guidance/#which-test-kit">Which test kit do I need?</a>
+          Inferno on hl7.org.au hosts the <a href="/test-kits/au-core">AU Core</a> and <a href="/test-kits/au-ps">AU Patient Summary</a> test kits, and the <a href="/test-kits/smart-app-launch">SMART App Launch</a> test kit for authorisation servers. Not sure which you need? See <a href="/guidance/#which-test-kit">Which test kit do I need?</a>
         </p>
     - name: "Create your own tests"
       description: <p>
@@ -118,6 +124,11 @@ custom_pages:
                 <td>A patient summary document (a Bundle), or a server that serves or generates one</td>
                 <td><a href="/test-kits/au-ps">AU PS Test Kit</a></td>
                 <td>Validate the Bundle, its Composition sections and referenced resources against AU Patient Summary 1.0.0.</td>
+              </tr>
+              <tr>
+                <td>An authorisation server that issues access tokens for a FHIR API (SMART App Launch or Backend Services)</td>
+                <td><a href="/test-kits/smart-app-launch">SMART App Launch Test Kit</a></td>
+                <td>Act as a SMART app: read your discovery document, launch against your authorisation server and check the tokens it issues.</td>
               </tr>
             </tbody>
           </table>
@@ -194,7 +205,7 @@ custom_pages:
         content: >
           <ul>
             <li><b>Ask a question or report a suspect result:</b> the <a href="https://chat.fhir.org/#narrow/channel/179173-australia/topic/Inferno.20Test.20Kit.20feedback.20and.20queries">Inferno Test Kit feedback and queries</a> topic in the #australia channel on chat.fhir.org. Include the session URL.</li>
-            <li><b>Report a bug or request a test:</b> open an issue in <a href="https://github.com/hl7au/au-fhir-core-inferno/issues">au-fhir-core-inferno</a> or <a href="https://github.com/hl7au/au-ps-inferno/issues">au-ps-inferno</a>.</li>
+            <li><b>Report a bug or request a test:</b> open an issue in <a href="https://github.com/hl7au/au-fhir-core-inferno/issues">au-fhir-core-inferno</a> or <a href="https://github.com/hl7au/au-ps-inferno/issues">au-ps-inferno</a>. The SMART App Launch kit is maintained by the Inferno team: use <a href="https://github.com/inferno-framework/smart-app-launch-test-kit/issues">smart-app-launch-test-kit</a>.</li>
             <li><b>Join the conversation:</b> the fortnightly <a href="https://confluence.hl7.org/display/HAFWG/Infrastructure+and+Tooling+Contact+List">HL7 AU Infrastructure and Tooling community meeting</a> triages issues and discusses test coverage.</li>
             <li><b>Questions about Inferno itself:</b> the <a href="https://chat.fhir.org/#narrow/channel/179309-inferno">#inferno channel</a> on chat.fhir.org.</li>
           </ul>
@@ -237,7 +248,7 @@ custom_pages:
             Licensing of utilised 3rd party software components and test content should be considered including:
           </span>
           <ul>
-            <li><a href="https://github.com/inferno-framework/inferno-core?tab=Apache-2.0-1-ov-file">Inferno Framework</a>, <a href="https://github.com/hl7au/au-fhir-inferno?tab=Apache-2.0-1-ov-file">AU Inferno Framework</a>, <a href="https://github.com/hl7au/au-fhir-core-inferno?tab=Apache-2.0-1-ov-file">AU Core Inferno Test Kit</a>, <a href="https://github.com/hl7au/au-ps-inferno?tab=Apache-2.0-1-ov-file">AU Patient Summary Inferno Test Kit</a></li>
+            <li><a href="https://github.com/inferno-framework/inferno-core?tab=Apache-2.0-1-ov-file">Inferno Framework</a>, <a href="https://github.com/hl7au/au-fhir-inferno?tab=Apache-2.0-1-ov-file">AU Inferno Framework</a>, <a href="https://github.com/hl7au/au-fhir-core-inferno?tab=Apache-2.0-1-ov-file">AU Core Inferno Test Kit</a>, <a href="https://github.com/hl7au/au-ps-inferno?tab=Apache-2.0-1-ov-file">AU Patient Summary Inferno Test Kit</a>, <a href="https://github.com/inferno-framework/smart-app-launch-test-kit/blob/main/LICENSE">SMART App Launch Test Kit</a></li>
             <li><a href="https://hl7.org/fhir/license.html">HL7 FHIR IG License and Legal</a>, <a href="https://hl7.org.au/fhir/license.html">HL7 Australia FHIR IG License and Legal</a></li>
           </ul>
           <span>

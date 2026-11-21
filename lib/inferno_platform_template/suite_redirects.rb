@@ -38,9 +38,14 @@ module InfernoPlatformTemplate
     # nginx also carried ipa_v* and us_core_v* rules, left over from the upstream
     # template. Neither kit is hosted here and neither has a page to redirect to, so
     # they are deliberately not carried over.
+    #
+    # 'smart' has no trailing underscore because the SMART App Launch STU1 suite id is
+    # exactly 'smart'; the prefix also covers smart_stu2, smart_stu2_2 and
+    # smart_access_brands.
     KIT_PAGES = {
       'au_core_' => '/test-kits/au-core/',
-      'au_ps_' => '/test-kits/au-ps/'
+      'au_ps_' => '/test-kits/au-ps/',
+      'smart' => '/test-kits/smart-app-launch/'
     }.freeze
 
     SERVABLE_METHODS = ['GET', 'HEAD'].freeze

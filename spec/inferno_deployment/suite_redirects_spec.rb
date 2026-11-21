@@ -46,6 +46,12 @@ RSpec.describe InfernoPlatformTemplate::SuiteRedirects do
       expect(request.get('/suites/au_core_v200/')['Location']).to eq('/test-kits/au-core/')
     end
 
+    it 'redirects every SMART App Launch suite to the SMART kit page' do
+      ['smart', 'smart_stu2', 'smart_stu2_2', 'smart_access_brands'].each do |suite_id|
+        expect(request.get("/suites/#{suite_id}")['Location']).to eq('/test-kits/smart-app-launch/')
+      end
+    end
+
     it 'answers HEAD as well as GET' do
       expect(request.head('/suites/au_ps_v100').status).to eq(302)
     end
@@ -73,7 +79,7 @@ RSpec.describe InfernoPlatformTemplate::SuiteRedirects do
     end
 
     it 'leaves an unknown suite id to Inferno' do
-      expect(request.get('/suites/smart_app_launch').body).to eq('inner app')
+      expect(request.get('/suites/us_core_v311').body).to eq('inner app')
     end
 
     it 'leaves the static site alone' do
