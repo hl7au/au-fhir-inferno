@@ -1,5 +1,11 @@
 # Inferno CI/CD Overhaul Plan
 
+> **Historical.** This plan was completed on 2026-06-23 and is kept as a design and
+> decision record; it is not maintained. Some statements are now out of date: for
+> example, the AU PS test kit (`au_ps_inferno`) has since been released on RubyGems
+> (v1.0.1, 2026-09-02) and is no longer git-ref-pinned. For the current process see
+> [`dev-workflow.md`](dev-workflow.md) and [`prod-releases.md`](prod-releases.md).
+
 Status: **complete** (Phases 1–3 + preview envs shipped) · Owner: Kyle Pettigrew · Last updated: 2026-06-23
 
 This document is the reference for overhauling how the AU FHIR Inferno platform is
