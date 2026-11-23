@@ -53,6 +53,21 @@ jobs:
           cp .env.development .env
           bundle exec rake web:generate_dev
 
+      # Production's image pin. While the chart still lives here, prod reads its image
+      # from values-prod.yaml, so the two must agree; once inferno-prod reads
+      # deploy/prod-image.yaml, values-prod.yaml goes and only the shape check remains.
+      - name: Prod image pin is one immutable SHA tag, equal to values-prod.yaml
+        run: |
+          ruby -ryaml -e '
+            doc = YAML.safe_load_file("deploy/prod-image.yaml")
+            ok = doc.is_a?(Hash) && doc.keys == ["inferno"] &&
+                 doc["inferno"].is_a?(Hash) && doc["inferno"].keys == ["imageUrl"] &&
+                 doc["inferno"]["imageUrl"].to_s.match?(%r{\Aghcr\.io/hl7au/au-fhir-inferno:[0-9a-f]{40}\z})
+            abort "deploy/prod-image.yaml must hold only inferno.imageUrl pinned to ghcr.io/hl7au/au-fhir-inferno:<40-hex SHA>" unless ok
+            legacy = YAML.safe_load_file("infra/helm/inferno/values-prod.yaml").dig("inferno", "imageUrl")
+            abort "values-prod.yaml (#{legacy}) and deploy/prod-image.yaml (#{doc["inferno"]["imageUrl"]}) disagree" unless legacy == doc["inferno"]["imageUrl"]
+          '
+
       - name: Set up Helm
         uses: azure/setup-helm@v4
 

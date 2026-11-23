@@ -1,0 +1,15 @@
+# The application image production runs, and nothing else.
+#
+# Releasing is an app concern, so production's image pin lives here even after the Helm
+# chart moves to hl7au/inferno-deployment and per-environment values move to
+# aehrc/sparked-argo. The prod-promotion PR (build-and-release-package.yaml) bumps this
+# file, its merge cuts the vX.Y.Z tag and GitHub Release (prod-release.yaml), and
+# CODEOWNERS on /deploy/ is the prod review gate.
+#
+# Until inferno-prod reads this file (as its last value file, from master), prod still
+# takes its image from infra/helm/inferno/values-prod.yaml. During that overlap the
+# promotion PR bumps both, and quality-control fails if they differ.
+#
+# Keep it a single key pinned to an immutable commit SHA tag; quality-control checks that.
+inferno:
+  imageUrl: ghcr.io/hl7au/au-fhir-inferno:da275590632eaa7002ac2131d4000f756533c660

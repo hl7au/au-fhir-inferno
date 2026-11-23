@@ -10,7 +10,7 @@
 #      other gem stays where the committed seed (and so Gemfile.lock) has it.
 #   2. Name the image after the three commits it is made of:
 #      ci-build-<app>-<au core>-<au ps>, twelve hex characters each, where <app> is the
-#      last master commit that touched anything but infra/, docs/, .github/ or Markdown.
+#      last master commit that touched anything but infra/, deploy/, docs/, .github/ or Markdown.
 #      A docs change or a prod promotion therefore leaves the name, the image and the warm
 #      validator alone.
 #   3. If ghcr already has that tag, nothing changed: stop. Otherwise build and push it.
@@ -43,6 +43,7 @@ on:
     # The same filter as the trunk image build: only an application change rebuilds.
     paths-ignore:
       - 'infra/**'
+      - 'deploy/**'
       - 'docs/**'
       - '.github/**'
       - '*.md'
@@ -104,7 +105,7 @@ jobs:
           ps=$(sed -n 2p <<< "$revisions")
           # The same paths the push trigger ignores. Gemfile.ci-build.lock counts as the
           # application, so a seed relock does rebuild.
-          app=$(git log -1 --format=%H -- . ':!infra' ':!docs' ':!.github' ':!*.md')
+          app=$(git log -1 --format=%H -- . ':!infra' ':!deploy' ':!docs' ':!.github' ':!*.md')
           tag="ci-build-${app:0:12}-${core:0:12}-${ps:0:12}"
           {
             echo "app=$app"

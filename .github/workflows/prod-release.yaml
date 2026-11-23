@@ -8,7 +8,7 @@
 #   4. Record a deployment against the `production` Environment, wait for prod to come up
 #      on the new build, then mark the deployment success/failure.
 #
-# values-prod.yaml stays pinned to the immutable SHA (the promotion PR bumped it);
+# deploy/prod-image.yaml stays pinned to the immutable SHA (the promotion PR bumped it);
 # vX.Y.Z is the human-facing release identity + a convenience image alias. ArgoCD
 # (inferno-prod, targetRevision: master) performs the actual deploy on merge.
 name: Prod Release

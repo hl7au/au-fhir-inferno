@@ -11,6 +11,7 @@ on:
       - master            # the trunk
     paths-ignore:         # config-only pushes must not rebuild / open a promotion PR
       - 'infra/**'
+      - 'deploy/**'        # the prod image pin: a promotion, never a rebuild
       - 'docs/**'
       - '.github/**'       # CI, CODEOWNERS, templates: never change the app image
       - '*.md'
@@ -106,7 +107,8 @@ jobs:
       # writes back to master at all — nothing here pushes to the trunk. Prod stays a PR.
       #
       # Prod promotion: push the SAME artifact's tags to a branch that bumps
-      # values-prod.yaml, then EITHER auto-open a draft PR (when a PROMOTE_TOKEN secret
+      # deploy/prod-image.yaml (and, until inferno-prod reads that file, values-prod.yaml
+      # with it), then EITHER auto-open a draft PR (when a PROMOTE_TOKEN secret
       # exists) OR surface a one-click prefilled compare link (fallback). Either way the PR
       # body carries a changelog + risk flags (deps / app / chart) diffed via the compare
       # API between the SHA prod runs now and this build, plus a proposed SemVer. Merging
@@ -114,7 +116,7 @@ jobs:
       # the image, and cuts a GitHub Release. ArgoCD (inferno-prod, targetRevision: master)
       # syncs prod on merge.
       #
-      # values-prod.yaml stays pinned to the immutable SHA (reproducible); vX.Y.Z is the
+      # deploy/prod-image.yaml stays pinned to the immutable SHA (reproducible); vX.Y.Z is the
       # human-facing release identity (git tag + Release + a semver image alias).
       #
       # PROMOTE_TOKEN must be a GitHub App token or fine-grained PAT (NOT the default
@@ -130,9 +132,9 @@ jobs:
           BRANCH="promote/prod-${GITHUB_SHA}"
           REPO_URL="https://github.com/${GITHUB_REPOSITORY}"
 
-          # The SHA prod runs now = the image tag in values-prod.yaml BEFORE we bump it
+          # The SHA prod runs now = the image tag in deploy/prod-image.yaml BEFORE we bump it
           # (the staging step above reset the tree to the current master tip).
-          PROD_SHA=$(grep -m1 'imageUrl:' infra/helm/inferno/values-prod.yaml | sed -E 's#.*:([0-9a-f]{7,40}).*#\1#' || true)
+          PROD_SHA=$(grep -m1 'imageUrl:' deploy/prod-image.yaml | sed -E 's#.*:([0-9a-f]{7,40}).*#\1#' || true)
 
           # Proposed next version = patch bump of the latest vX.Y.Z tag. The human sets the
           # real version by editing the PR title (`... -> vX.Y.Z`) or applying a
@@ -162,10 +164,12 @@ jobs:
           # (those are just image-tag write-backs/promotions and would otherwise always trip).
           CHART=$(flag '^infra/helm/inferno/(templates/|values\.yaml|Chart\.)')
 
-          # Build the promotion branch (the actual values-prod.yaml image bump).
+          # Build the promotion branch (the actual image bump). Both files move together
+          # while the chart move is in flight; quality-control fails if they differ.
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git switch -c "$BRANCH"
+          sed -i "s|imageUrl:.*|imageUrl: ${APP}|" deploy/prod-image.yaml
           sed -i "s|imageUrl:.*|imageUrl: ${APP}|" infra/helm/inferno/values-prod.yaml
           git commit -am "chore: promote prod to ${GITHUB_SHA}"
           git push --force-with-lease origin "$BRANCH"

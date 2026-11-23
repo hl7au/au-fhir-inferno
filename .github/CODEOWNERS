@@ -9,12 +9,14 @@
 # There is deliberately no `*` default owner: routine feature PRs (web/, lib/) only reach
 # staging on merge and still require the normal 1 review + quality-control; they do not
 # need a release owner. Code that reaches PROD goes through a promotion PR that bumps
-# infra/helm/inferno/values-prod.yaml, which is covered by /infra/ below.
+# deploy/prod-image.yaml (and, until the chart moves out, infra/helm/inferno/values-prod.yaml),
+# covered by /deploy/ and /infra/ below.
 #
 # Release owners: @KyleOps and @brettesler-ext (either can approve a prod-affecting PR).
 # Available maintainers: @ir4y @projkov @xmhorsehead @KyleOps @heathfrankel @Sudo-JHare
 
 /.github/          @KyleOps @brettesler-ext
+/deploy/           @KyleOps @brettesler-ext
 /infra/            @KyleOps @brettesler-ext
 /Dockerfile        @KyleOps @brettesler-ext
 /Gemfile*          @KyleOps @brettesler-ext
