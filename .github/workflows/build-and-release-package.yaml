@@ -107,14 +107,14 @@ jobs:
       # writes back to master at all — nothing here pushes to the trunk. Prod stays a PR.
       #
       # Prod promotion: push the SAME artifact's tags to a branch that bumps
-      # deploy/prod-image.yaml (and, until inferno-prod reads that file, values-prod.yaml
-      # with it), then EITHER auto-open a draft PR (when a PROMOTE_TOKEN secret
+      # deploy/prod-image.yaml, then EITHER auto-open a draft PR (when a PROMOTE_TOKEN secret
       # exists) OR surface a one-click prefilled compare link (fallback). Either way the PR
       # body carries a changelog + risk flags (deps / app / chart) diffed via the compare
       # API between the SHA prod runs now and this build, plus a proposed SemVer. Merging
       # the PR = the prod release (human gate); prod-release.yaml then tags vX.Y.Z, aliases
       # the image, and cuts a GitHub Release. ArgoCD (inferno-prod, targetRevision: master)
-      # syncs prod on merge.
+      # syncs prod on merge: it renders the chart from hl7au/inferno-deployment with its
+      # values from aehrc/sparked-argo and takes deploy/prod-image.yaml from here, last.
       #
       # deploy/prod-image.yaml stays pinned to the immutable SHA (reproducible); vX.Y.Z is the
       # human-facing release identity (git tag + Release + a semver image alias).
@@ -160,17 +160,12 @@ jobs:
           flag() { printf '%s\n' "$FILES" | grep -qE "$1" && echo '⚠️ CHANGED' || echo 'unchanged'; }
           DEPS=$(flag '^Gemfile\.lock$')
           APP_FLAG=$(flag '^(web|lib|app)/|\.rb$')
-          # Chart = templates / base values.yaml / Chart.*, NOT the per-env values-{dev,prod}.yaml
-          # (those are just image-tag write-backs/promotions and would otherwise always trip).
-          CHART=$(flag '^infra/helm/inferno/(templates/|values\.yaml|Chart\.)')
 
-          # Build the promotion branch (the actual image bump). Both files move together
-          # while the chart move is in flight; quality-control fails if they differ.
+          # Build the promotion branch (the actual deploy/prod-image.yaml image bump).
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git switch -c "$BRANCH"
           sed -i "s|imageUrl:.*|imageUrl: ${APP}|" deploy/prod-image.yaml
-          sed -i "s|imageUrl:.*|imageUrl: ${APP}|" infra/helm/inferno/values-prod.yaml
           git commit -am "chore: promote prod to ${GITHUB_SHA}"
           git push --force-with-lease origin "$BRANCH"
 
@@ -187,7 +182,6 @@ jobs:
             echo "## Risk flags"
             echo "- Dependencies / test kits (\`Gemfile.lock\`): **${DEPS}**"
             echo "- App code / static site (\`web/\`, \`lib/\`): **${APP_FLAG}**"
-            echo "- Helm chart (\`infra/**\`): **${CHART}** — already synced to prod via ArgoCD (informational)"
             echo ""
             echo "## Changelog since current prod (\`${PROD_SHA:0:7}\`)"
             echo "${CHANGELOG}"

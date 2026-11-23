@@ -161,7 +161,7 @@ and production run that same image, so the CI suites cannot live in it. Decided 
   and the only environment with `INFERNO_CI_BUILD_SUITES=true` (chart key
   `inferno.ciBuildSuites`, configmap entry and schema, the way `inferno.resultDuration`
   maps to `RESULT_DURATION_ENABLED`). Its values are
-  `infra/helm/inferno/values-ci-build.yaml`; its Argo Application, Image Updater and
+  `apps/inferno-ci-build/values.yaml` in aehrc/sparked-argo; its Argo Application, Image Updater and
   hostname live in aehrc/sparked-argo. Staging and production keep one tested image and
   never set the flag.
 - `Gemfile.ci-build.lock` on master is the seed: every shared gem matches `Gemfile.lock`

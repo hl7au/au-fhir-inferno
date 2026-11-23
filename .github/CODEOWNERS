@@ -1,7 +1,9 @@
 # Code owners for the prod deploy gate.
 #
 # In GitOps the merge to master IS the prod deploy, so owning the deploy surface
-# (Helm chart + values, dependencies, CI, image build) gates prod. When the master
+# (the prod image pin, Terraform, dependencies, CI, image build) gates prod. The Helm
+# chart lives in hl7au/inferno-deployment and per-environment values in
+# aehrc/sparked-argo; their reviews gate those. When the master
 # ruleset has require_code_owner_review enabled, any PR touching these paths needs an
 # approving review from one of the listed owners before it can merge. Listing more than
 # one owner means ANY one of them satisfies the review (either can release).
@@ -9,8 +11,7 @@
 # There is deliberately no `*` default owner: routine feature PRs (web/, lib/) only reach
 # staging on merge and still require the normal 1 review + quality-control; they do not
 # need a release owner. Code that reaches PROD goes through a promotion PR that bumps
-# deploy/prod-image.yaml (and, until the chart moves out, infra/helm/inferno/values-prod.yaml),
-# covered by /deploy/ and /infra/ below.
+# deploy/prod-image.yaml, which is covered by /deploy/ below.
 #
 # Release owners: @KyleOps and @brettesler-ext (either can approve a prod-affecting PR).
 # Available maintainers: @ir4y @projkov @xmhorsehead @KyleOps @heathfrankel @Sudo-JHare

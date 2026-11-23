@@ -1,9 +1,9 @@
 # Prod releases (versioning + deployment records)
 
-Prod deploys via GitOps: ArgoCD (`inferno-prod`, `targetRevision: master`) syncs
-`infra/helm/inferno/values-prod.yaml`, whose image always equals `deploy/prod-image.yaml`.
-Once the chart moves to hl7au/inferno-deployment, `inferno-prod` takes its image from
-`deploy/prod-image.yaml` directly. The **merge of a promotion PR is the release gate**
+Prod deploys via GitOps: ArgoCD (`inferno-prod`) renders the chart from
+[hl7au/inferno-deployment](https://github.com/hl7au/inferno-deployment) with prod's values
+from aehrc/sparked-argo, and takes the image from `deploy/prod-image.yaml` on `master`
+here. The **merge of a promotion PR is the release gate**
 and the deploy trigger. This doc covers the release identity and audit trail layered on
 top of that flow.
 
@@ -12,7 +12,7 @@ top of that flow.
 1. **Push to master** builds one released-flavour image tagged by commit SHA
    (`build-and-release-package.yaml`). Staging auto-updates via ArgoCD Image Updater.
 2. The same workflow prepares a **prod-promotion PR** on branch `promote/prod-<sha>` that
-   bumps `deploy/prod-image.yaml` (and `values-prod.yaml` with it) to the built SHA. The PR body carries a changelog, risk flags,
+   bumps `deploy/prod-image.yaml` to the built SHA. The PR body carries a changelog, risk flags,
    and a **proposed SemVer** (patch bump of the latest `vX.Y.Z` tag).
    - If a `PROMOTE_TOKEN` secret exists, the PR is **auto-opened as a draft**.
    - Otherwise a one-click prefilled compare link is printed in the run summary (fallback).
@@ -30,7 +30,7 @@ top of that flow.
      `https://inferno.hl7.org.au` to serve HTTP 200, then marks the deployment
      success/failure.
 
-`values-prod.yaml` stays pinned to the **immutable SHA** (reproducible). `vX.Y.Z` is the
+`deploy/prod-image.yaml` stays pinned to the **immutable SHA** (reproducible). `vX.Y.Z` is the
 human-facing release identity (git tag + Release + image alias + Environment record).
 
 ## PROMOTE_TOKEN (auto-open the draft PR)
@@ -50,7 +50,7 @@ without a token is safe.
 ## Rollback
 
 A release is an immutable target, so rollback is a one-line promotion PR: point
-`deploy/prod-image.yaml` and `values-prod.yaml` (`inferno.imageUrl`) back at the SHA of the prior release
+`deploy/prod-image.yaml` (`inferno.imageUrl`) back at the SHA of the prior release
 (shown in that release's notes) and merge. ArgoCD reverts prod on sync. Cut a new patch
 release from the rollback if you want the tag history to reflect it.
 

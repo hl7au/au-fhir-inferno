@@ -1,42 +1,20 @@
-# Infrastructure Setup
+# Infrastructure
 
-This directory contains the infrastructure-as-code for the AU FHIR Inferno application, including AWS resources provisioned via Terraform and Kubernetes deployments managed through Helm charts and ArgoCD.
+This directory holds only the Terraform for the AWS resources production Inferno uses on
+the Sparked platform (RDS PostgreSQL and the IRSA role External Secrets uses to read its
+credentials), in [aws-impl/](aws-impl/). The `inferno-infra-deploy` workflow plans it on
+PRs and applies it only by manual dispatch.
 
-## Overview
+Everything else about how Inferno is deployed lives elsewhere:
 
-The infrastructure is divided into two main components:
+| What | Where |
+| --- | --- |
+| The Helm chart, its CI and the docker-compose example | [hl7au/inferno-deployment](https://github.com/hl7au/inferno-deployment) |
+| Per-environment values (sizing, hostnames, policy) and the Argo CD Applications | [aehrc/sparked-argo](https://github.com/aehrc/sparked-argo) (`apps/inferno-*`) |
+| The image production runs | [`deploy/prod-image.yaml`](../deploy/prod-image.yaml), bumped by the prod-promotion PR; see [docs/prod-releases.md](../docs/prod-releases.md) |
 
-1. **Terraform** ([aws-impl/](aws-impl/)) - Provisions AWS infrastructure including RDS PostgreSQL database and IAM roles
-2. **Helm Charts** ([helm/inferno/](helm/inferno/)) - Kubernetes application deployment configurations
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                       ArgoCD                             │
-│  https://argo.sparked-fhir.com/                         │
-│                                                          │
-│  Dev Environment  → watches `dev` branch (values-dev)   │
-│  Prod Environment → watches `master` branch (values-prod)│
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│              Helm Chart Deployment                       │
-│  - Inferno Application (inferno-helmd)                  │
-│  - PostgreSQL (Bitnami dependency)                      │
-│  - HTTPRoutes on the shared Envoy Gateway               │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│              AWS Infrastructure                          │
-│  - RDS PostgreSQL 16.8                                  │
-│  - IAM Roles (IRSA for External Secrets)                │
-│  - Security Groups                                       │
-│  - VPC Configuration                                     │
-└─────────────────────────────────────────────────────────┘
-```
+A change to sizing or probes is a sparked-argo PR. A change to what the chart can do is an
+inferno-deployment PR and release, then a chart version bump in sparked-argo.
 
 ## Terraform Infrastructure
 
@@ -105,132 +83,19 @@ terraform apply
 terraform output
 ```
 
-## Helm Charts
+## Common operations
 
-### Location
-[helm/inferno/](helm/inferno/)
-
-### Chart Details
-- **Name**: `inferno-helmd`
-- **Version**: 0.2.0
-- **App Version**: 1.16.0
-
-### Dependencies
-1. **PostgreSQL** (Bitnami)
-   - Version: 15.5.17
-   - Repository: https://charts.bitnami.com/bitnami
-   - Conditional: `postgresql.enabled`
-
-Routing is not a chart dependency: the chart renders Gateway API `HTTPRoute`s
-(`templates/configs/inferno-httproute.yaml`) attached to the cluster's shared Envoy
-Gateway, and the application serves the static site and Inferno itself on port 4567.
-
-### Environment-Specific Values
-
-#### Development Environment
-- **Values File**: [values-dev.yaml](helm/inferno/values-dev.yaml)
-- **Branch**: `dev`
-- **ArgoCD**: Watches `dev` branch for automatic deployments
-
-#### Production Environment
-- **Values File**: [values-prod.yaml](helm/inferno/values-prod.yaml)
-- **Branch**: `master`
-- **ArgoCD**: Watches `master` branch for automatic deployments
-
-### Deployment Process
-
-All deployments are managed through **ArgoCD** at https://argo.sparked-fhir.com/
-
-1. **Commit Changes**: Push Helm value changes to the appropriate branch
-   - Dev changes → `dev` branch with `values-dev.yaml`
-   - Prod changes → `master` branch with `values-prod.yaml`
-
-2. **ArgoCD Sync**: ArgoCD automatically detects changes and syncs the application
-
-3. **Verification**: Check deployment status in ArgoCD UI
-
-### Manual Helm Operations
-
-If you need to test Helm charts locally:
-
-```bash
-cd infra/helm/inferno
-
-# Update dependencies
-helm dependency update
-
-# Lint the chart
-helm lint .
-
-# Dry run for development
-helm install inferno . --values values-dev.yaml --dry-run --debug
-
-# Dry run for production
-helm install inferno . --values values-prod.yaml --dry-run --debug
-```
-
-## Secrets Management
-
-The application uses **AWS External Secrets Operator** to fetch RDS credentials from AWS Secrets Manager:
-
-1. Terraform creates RDS instance with managed master password in Secrets Manager
-2. Terraform creates IAM role with IRSA for External Secrets service account
-3. Kubernetes External Secrets controller uses this role to fetch credentials
-4. Credentials are injected into application pods as Kubernetes secrets
-
-## Environment Configuration
-
-### Development
-- **Namespace**: `dev-inferno`
-- **Branch**: `dev`
-- **Values**: `values-dev.yaml`
-- **ArgoCD**: Auto-sync enabled
-
-### Production
-- **Namespace**: `prod-inferno` (or similar)
-- **Branch**: `master`
-- **Values**: `values-prod.yaml`
-- **ArgoCD**: Auto-sync enabled with production safeguards
-
-## Prerequisites
-
-- AWS CLI configured with appropriate credentials
-- Terraform >= 1.0
-- Helm >= 3.0
-- kubectl configured for target EKS cluster
-- Access to ArgoCD UI (https://argo.sparked-fhir.com/)
-
-## Common Operations
-
-### Update Application Image
-
-1. Update the image reference in the appropriate values file:
-   - Dev: `helm/inferno/values-dev.yaml`
-   - Prod: `helm/inferno/values-prod.yaml`
-
-2. Commit and push to the corresponding branch
-3. ArgoCD will automatically sync the changes
-
-### Scale RDS Instance
+### Scale RDS instance
 
 1. Update `postgres_instance_class` in Terraform variables
 2. Run `terraform plan` and `terraform apply`
 3. RDS will be updated with minimal downtime
 
-### Restore from RDS Snapshot
+### Restore from RDS snapshot
 
 1. Set `snapshot_identifier` variable to the snapshot ID
 2. Run `terraform apply`
 3. Update application configuration if database name changed
-
-## Monitoring & Troubleshooting
-
-- **ArgoCD UI**: https://argo.sparked-fhir.com/ - Check deployment status and sync history
-- **RDS Performance Insights**: Enabled with 7-day retention for database performance monitoring
-- **Kubernetes Logs**: Check pod logs for application issues
-  ```bash
-  kubectl logs -n <namespace> -l app=inferno
-  ```
 
 ## Tags
 

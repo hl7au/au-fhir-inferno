@@ -1,9 +1,9 @@
 name        = "inferno"
 environment = "prod"
-## MOVED TO infra/helm/inferno/values-prod.yaml
-# imageUrl         = MOVED TO infra/helm/inferno/values-prod.yaml
-# platformImageUri = MOVED TO infra/helm/inferno/values-prod.yaml
-# validatorImageUri       = MOVED TO infra/helm/inferno/values-prod.yaml
+## MOVED TO apps/inferno-prod in aehrc/sparked-argo
+# imageUrl         = MOVED TO deploy/prod-image.yaml
+# platformImageUri = MOVED TO apps/inferno-prod in aehrc/sparked-argo
+# validatorImageUri       = MOVED TO apps/inferno-prod in aehrc/sparked-argo
 usesWrapper             = true
 cluster_name            = "sparkey"
 vpc_name                = "sparkey-vpc"

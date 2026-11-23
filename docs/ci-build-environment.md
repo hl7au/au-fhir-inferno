@@ -23,7 +23,7 @@ A-prime).
 | --- | --- |
 | Dependency set | `Gemfile.ci-build`, `Gemfile.ci-build.lock` |
 | Image build | `.github/workflows/ci-build-environment.yaml` |
-| Chart values | `infra/helm/inferno/values-ci-build.yaml` |
+| Chart values | `apps/inferno-ci-build/values.yaml` in aehrc/sparked-argo (chart: hl7au/inferno-deployment) |
 | Flag | `inferno.ciBuildSuites` -> `INFERNO_CI_BUILD_SUITES` |
 | Host for the radio | `inferno.ciBuildHost` -> `INFERNO_CI_BUILD_HOST`, set on staging only |
 | Validator restart | `validator.restartWithAppImage` |

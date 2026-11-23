@@ -242,7 +242,7 @@ change them.
 | What | Pinned to | Where to look for a newer one |
 | --- | --- | --- |
 | Inferno (`ghcr.io/hl7au/au-fhir-inferno`) | `v1.2.2`, the release hosted at inferno.hl7.org.au | [Releases](https://github.com/hl7au/au-fhir-inferno/releases) |
-| Validator (`markiantorno/validator-wrapper`) | `1.0.78`, held on purpose (below) | Keep in step with `validatorImageUri` in [`infra/helm/inferno/values-prod.yaml`](../../infra/helm/inferno/values-prod.yaml) |
+| Validator (`markiantorno/validator-wrapper`) | `1.0.78`, held on purpose (below) | Keep in step with `validatorImageUri` in prod's values (`apps/inferno-prod/values.yaml` in aehrc/sparked-argo) |
 | Test data (`hl7au/au-fhir-test-data`) | `v2.0.0`, commit `6dd0e1a8` (`TEST_DATA_REF` in the workflow) | [Releases](https://github.com/hl7au/au-fhir-test-data/releases) |
 | PostgreSQL, Redis | `postgres:19.0-alpine`, `redis:8.10.3-alpine` | Docker Hub |
 | HAPI FHIR (placeholder only) | `hapiproject/hapi:v8.12.0-2` | Replaced by your server |
