@@ -58,9 +58,14 @@ The promotion PR gates the image only. The `inferno-prod` Argo Application
 and are not gated or rolled back by the promotion PR.
 
 During an event freeze the `inferno` AppProject (`projects/proj-inferno.yaml` in
-`aehrc/sparked-argo`) carries a dated deny sync window on `inferno-prod`, so a promotion
-or chart change merged inside the window reaches prod only when the window ends or an
-operator syncs it by hand.
+`aehrc/sparked-argo`) carries a dated deny sync window on `inferno-prod` and
+`inferno-ci-build`, so a promotion or chart change merged inside the window reaches those
+environments only when the window ends or an operator syncs it by hand. The window does
+not stop `prod-release.yaml`: a promotion merged inside it still tags `vX.Y.Z`, cuts the
+GitHub Release and marks the `production` deployment success, because the workflow's only
+check is an HTTP 200 from prod, which the previous build still serves. Until the sync, the
+Release and the deployment record name a version prod is not running. Do not merge a
+promotion PR inside the window unless an operator will sync it straight away.
 
 ## After a release
 
