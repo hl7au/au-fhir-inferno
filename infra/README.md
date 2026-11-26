@@ -123,7 +123,10 @@ terraform output
 1. **PostgreSQL** (Bitnami)
    - Version: 15.5.17
    - Repository: https://charts.bitnami.com/bitnami
-   - Conditional: `postgresql.enabled`
+   - Conditional: `postgresql.enabled`, which is on only for the ci-build environment and
+     previews; staging and production use RDS. `values.yaml` sets the subchart's
+     `primary.resources` (requests, a memory limit and no CPU limit) in place of its
+     `nano` preset, whose 150m CPU limit throttled an idle Postgres.
 
 Routing is not a chart dependency: the chart renders Gateway API `HTTPRoute`s
 (`templates/configs/inferno-httproute.yaml`) attached to the cluster's shared Envoy
@@ -146,6 +149,15 @@ Gateway, and the application serves the static site and Inferno itself on port 4
   from `master`. The prod image changes only through a merged promotion PR (see
   [docs/prod-releases.md](../docs/prod-releases.md)); chart changes reach prod when
   they merge to `master`.
+
+#### CI-build Environment
+- **Values File**: [values-ci-build.yaml](helm/inferno/values-ci-build.yaml)
+- **Branch**: `master`
+- **ArgoCD**: The `inferno-ci-build` Application (`apps/inferno-ci-build.yaml` in
+  `aehrc/sparked-argo`) renders the chart from `master`; ArgoCD Image Updater writes the
+  image tag to `apps/inferno-ci-build/image-values.yaml`. It runs each kit's CI-build
+  suite on an in-namespace Postgres; see
+  [docs/ci-build-environment.md](../docs/ci-build-environment.md).
 
 ### Deployment Process
 
@@ -201,6 +213,12 @@ The application uses **AWS External Secrets Operator** to fetch RDS credentials 
 - **Branch**: `master`
 - **Values**: `values-prod.yaml`
 - **ArgoCD**: Auto-sync enabled with production safeguards
+
+### CI-build
+- **Namespace**: `ci-build-inferno`
+- **Branch**: `master`
+- **Values**: `values-ci-build.yaml`
+- **ArgoCD**: Auto-sync enabled
 
 ## Prerequisites
 
