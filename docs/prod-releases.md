@@ -48,9 +48,31 @@ without a token is safe.
 ## Rollback
 
 A release is an immutable target, so rollback is a one-line promotion PR: point
-`values-prod.yaml` (`imageUrl` / `platformImageUri`) back at the SHA of the prior release
-(shown in that release's notes) and merge. ArgoCD reverts prod on sync. Cut a new patch
-release from the rollback if you want the tag history to reflect it.
+`inferno.imageUrl` in `values-prod.yaml` back at the SHA of the prior release (shown in
+that release's notes) and merge. ArgoCD reverts prod on sync. Cut a new patch release from
+the rollback if you want the tag history to reflect it.
+
+The promotion PR gates the image only. The `inferno-prod` Argo Application
+(`apps/inferno-prod.yaml` in `aehrc/sparked-argo`) renders the chart and
+`values-prod.yaml` from `master`, so chart changes reach prod when they merge to `master`
+and are not gated or rolled back by the promotion PR.
+
+During an event freeze the `inferno` AppProject (`projects/proj-inferno.yaml` in
+`aehrc/sparked-argo`) carries a dated deny sync window on `inferno-prod` and
+`inferno-ci-build`, so a promotion or chart change merged inside the window reaches those
+environments only when the window ends or an operator syncs it by hand. The window does
+not stop `prod-release.yaml`: a promotion merged inside it still tags `vX.Y.Z`, cuts the
+GitHub Release and marks the `production` deployment success, because the workflow's only
+check is an HTTP 200 from prod, which the previous build still serves. Until the sync, the
+Release and the deployment record name a version prod is not running. Do not merge a
+promotion PR inside the window unless an operator will sync it straight away.
+
+## After a release
+
+The headless CI recipe in [`docs/ci/`](ci/README.md) pins the Inferno image to the release
+hosted at inferno.hl7.org.au, by tag and digest. Move `docs/ci/compose.yaml` to the new
+`vX.Y.Z` tag and digest, and update the versions and suite ids its README names. A change
+under `docs/` does not rebuild the image or open a promotion PR.
 
 ## Why the merge is the gate (not an Environment approval)
 

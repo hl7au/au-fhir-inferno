@@ -4,7 +4,11 @@
 > 2026-06-04. Every version, image tag and deployment detail below is as-of that date
 > (validator-wrapper `1.0.68`, a 2-replica StatefulSet, presets enabled). For the current
 > deployment see [`../VALIDATOR_OPTIMIZATION.md`](../VALIDATOR_OPTIMIZATION.md) §8-§10.
-> The `noEcosystem` finding itself still stands and is still applied.
+> The `noEcosystem` finding itself still stands, but the setting is no longer applied
+> everywhere: `au_core_test_kit` 1.4.7 (on `master` since #210) drops it from the v1.0.0
+> and v2.0.0 suites, and only the validation suite keeps it. The 1.65x figure was taken on
+> validator 1.0.68 with a tx-reg route on tx.dev that has since been removed, so it does not
+> predict the cost on a later validator.
 
 **Date:** 2026-06-04  
 **Compared:** au_core_v100 test suite, same FHIR server (smile.sparked-fhir.com/aucore)  

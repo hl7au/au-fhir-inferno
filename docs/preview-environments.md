@@ -50,12 +50,14 @@ add `preview` label
 
 ## Previewing a test-kit (gem) change
 
-Previews build with `Gemfile.dev`, which pins `au_core_test_kit` and `au_ps_inferno`
-by git ref. To preview a change to one of those kits:
+Previews build with `Gemfile.dev`, which floors `au_core_test_kit` and `au_ps_inferno`
+at a minimum released version (for example `>= 1.4.7`); `Gemfile.dev.lock` pins the exact
+version. To preview a change to one of those kits:
 
 1. Push your change to the kit repo (e.g. `hl7au/au-ps-inferno`) and note the commit SHA.
-2. In an `au-fhir-inferno` branch, bump that gem's `ref:` in `Gemfile.dev` and
-   regenerate `Gemfile.dev.lock` (Ruby 3.3.12, clean `GEM_HOME`).
+2. In an `au-fhir-inferno` branch, swap that gem's floor in `Gemfile.dev` for a
+   `github:`/`ref:` pin to the commit and regenerate `Gemfile.dev.lock` (Ruby 3.3.12,
+   clean `GEM_HOME`). Move it back to a floor once the kit commit is released.
 3. Open the PR, add the `preview` label — the preview runs your kit change.
 
 ## Teardown
@@ -72,11 +74,19 @@ lingers. Because merging also tears it down, a preview is a *pre-merge* review t
 
 ## Notes & limitations
 
-- **Timing:** the ApplicationSet polls GitHub roughly every 30 minutes, so creation
-  and teardown can take up to that long to begin (a webhook to make this instant is a
-  possible future improvement). First start also includes a validator warmup (~5–10 min).
-- **Not hardened:** preview namespaces have no NetworkPolicies (unlike dev/prod) — fine
-  for ephemeral review environments, but don't treat a preview as a secure deployment.
+- **Timing:** a GitHub webhook to the ApplicationSet controller drives refreshes, with a
+  fallback poll every 2 minutes (`requeueAfterSeconds: 120` in
+  `apps/inferno-previews.yaml`, `aehrc/sparked-argo`). The poll matters because GitHub
+  can deliver the `labeled` webhook before its API shows the label, so a label added just
+  after the PR opens is picked up by the poll rather than the webhook. Creation and
+  teardown therefore start within about 2 minutes. The validator warmer is off in
+  previews, so the first validation in each suite also waits for its engine to build.
+- **Guardrails, not hardening:** every preview namespace gets an egress-baseline
+  NetworkPolicy, Pod Security labels, a ResourceQuota and a LimitRange from the trusted
+  `apps/inferno-preview-guardrails` chart in `aehrc/sparked-argo`, which the PR cannot
+  modify. The egress policy blocks link-local addresses (instance metadata) and the VPC
+  range; ingress is not restricted. A preview still runs unreviewed PR code, so don't
+  treat it as a secure deployment.
 - **Persistent dev** (`development.inferno.sparked-fhir.com`) is unaffected — previews
   are additive.
 - **CI-build suites** do not run in previews: they need `Gemfile.ci-build` and

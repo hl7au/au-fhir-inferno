@@ -105,8 +105,8 @@ Check the change on staging. It's the *same artifact* prod will run, so "works o
 means "works on prod." Happy? Move to **Verified in Development**.
 
 ### 6. → Deployed to Prod
-The same merge also **opened a promotion PR automatically** (titled `Promote prod → <sha>`,
-with a one-click changelog). **Merging that PR is the release gate** — a deliberate human
+The same merge also **opened a promotion PR automatically** (titled `Promote prod -> vX.Y.Z`,
+with a changelog and risk flags). **Merging that PR is the release gate**, a deliberate human
 step. Once merged, ArgoCD ships it to production:
 
 ```
@@ -146,7 +146,9 @@ environment, which follows each kit's `ci-build` branch on its own. See
 
 - **See it before you ship it** — every PR can be a real, clickable environment.
 - **Build once, deploy many** — staging and prod run the same image.
-- **Prod stays gated** — nothing reaches prod without a human merging the promotion PR.
+- **The prod image is gated**: it changes only when a human merges the promotion PR. Chart
+  and `values-prod.yaml` changes reach prod when they merge to `master`
+  ([prod-releases.md](prod-releases.md#rollback)).
 - **The board tells the truth** — a card's column is its real deployment state.
 
 ## More detail
