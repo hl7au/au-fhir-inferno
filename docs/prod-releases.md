@@ -57,6 +57,18 @@ The promotion PR gates the image only. The `inferno-prod` Argo Application
 `values-prod.yaml` from `master`, so chart changes reach prod when they merge to `master`
 and are not gated or rolled back by the promotion PR.
 
+During an event freeze the `inferno` AppProject (`projects/proj-inferno.yaml` in
+`aehrc/sparked-argo`) carries a dated deny sync window on `inferno-prod`, so a promotion
+or chart change merged inside the window reaches prod only when the window ends or an
+operator syncs it by hand.
+
+## After a release
+
+The headless CI recipe in [`docs/ci/`](ci/README.md) pins the Inferno image to the release
+hosted at inferno.hl7.org.au, by tag and digest. Move `docs/ci/compose.yaml` to the new
+`vX.Y.Z` tag and digest, and update the versions and suite ids its README names. A change
+under `docs/` does not rebuild the image or open a promotion PR.
+
 ## Why the merge is the gate (not an Environment approval)
 
 In GitOps, ArgoCD deploys from git regardless of whether any CI job ran. A GitHub
