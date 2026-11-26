@@ -187,7 +187,7 @@ custom_pages:
             <li>In the repository directory run <code>make setup</code> (installs dependencies, initialises the database), then <code>make run</code>.</li>
             <li>Open <a href="http://localhost">http://localhost</a>. The kit is on the home page.</li>
           </ol>
-          <p>Each README also documents the validator configuration and how to drive the tests from the Inferno API for automation.</p>
+          <p>To run the AU Core kit in your own CI, use the <a href="https://github.com/hl7au/au-fhir-inferno/tree/master/docs/ci">CI recipe</a>: it starts a private Inferno and validator inside the CI job, runs a suite through the Inferno API and compares each run with your own baseline.</p>
       - title: Get help and give feedback
         anchor: help
         logo_path: /assets/images/feedback.svg
