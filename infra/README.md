@@ -256,7 +256,7 @@ The application uses **AWS External Secrets Operator** to fetch RDS credentials 
 - **RDS Performance Insights**: Enabled with 7-day retention for database performance monitoring
 - **Kubernetes Logs**: Check pod logs for application issues
   ```bash
-  kubectl logs -n <namespace> -l app=inferno
+  kubectl logs -n <namespace> -l app=inferno-app      # also inferno-worker, validator-api
   ```
 
 ## Tags
